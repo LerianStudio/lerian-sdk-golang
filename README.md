@@ -1,0 +1,279 @@
+# Lerian Go SDK
+
+[![Go Reference](https://pkg.go.dev/badge/github.com/LerianStudio/lerian-sdk-golang.svg)](https://pkg.go.dev/github.com/LerianStudio/lerian-sdk-golang)
+[![CI](https://github.com/LerianStudio/lerian-sdk-golang/actions/workflows/ci.yml/badge.svg)](https://github.com/LerianStudio/lerian-sdk-golang/actions/workflows/ci.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/LerianStudio/lerian-sdk-golang)](https://goreportcard.com/report/github.com/LerianStudio/lerian-sdk-golang)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE.md)
+
+The official Go SDK for the **Lerian** financial infrastructure platform. This SDK provides a unified, type-safe client for all Lerian products -- from core ledger operations to transaction matching, tracing, reporting, and fee management. Built for production use in financial systems with enterprise-grade observability, retry logic, and error handling.
+
+## Installation
+
+```bash
+go get github.com/LerianStudio/lerian-sdk-golang
+```
+
+Requires **Go 1.24** or later.
+
+## Quick Start
+
+```go
+package main
+
+import (
+    "context"
+    "fmt"
+    "log"
+
+    lerian "github.com/LerianStudio/lerian-sdk-golang"
+    "github.com/LerianStudio/lerian-sdk-golang/midaz"
+    "github.com/LerianStudio/lerian-sdk-golang/models"
+)
+
+func main() {
+    ctx := context.Background()
+
+    // Create a client with the Midaz product enabled.
+    // Configuration can also come from LERIAN_* environment variables.
+    client, err := lerian.New(
+        lerian.WithMidaz(
+            midaz.WithOnboardingURL("http://localhost:3000/v1"),
+            midaz.WithTransactionURL("http://localhost:3001/v1"),
+            midaz.WithAuthToken("my-auth-token"),
+        ),
+    )
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer client.Close(ctx)
+
+    // Create an organization
+    org, err := client.Midaz.Organizations.Create(ctx, models.CreateOrganizationInput{
+        LegalName:      "Acme Corp",
+        DoingBusinessAs: ptr("Acme"),
+        LegalDocument:   "12345678000100",
+        Status:         models.Status{Code: "ACTIVE"},
+        Address: models.Address{
+            Country: "BR",
+        },
+    })
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    fmt.Printf("Created organization: %s (%s)\n", org.LegalName, org.ID)
+}
+
+func ptr(s string) *string { return &s }
+```
+
+## Products
+
+The SDK provides access to the full suite of Lerian products through a single client:
+
+| Product | Services | Description |
+|---------|----------|-------------|
+| **Midaz** | 13 | Core ledger -- organizations, ledgers, accounts, portfolios, assets, segments, transactions, operations, balances, and more |
+| **Matcher** | 14 | Transaction matching engine -- rules, reconciliation pipelines, match results, and manual overrides |
+| **Tracer** | 4 | Transaction tracing and audit trail -- trace queries, event streams, and validation |
+| **Reporter** | 3 | Financial reporting and analytics -- report generation, templates, and scheduling |
+| **Fees** | 3 | Fee management -- fee rules, estimation, and billing |
+
+Enable only the products you need:
+
+```go
+client, err := lerian.New(
+    lerian.WithMidaz(midaz.WithAuthToken("token")),
+    lerian.WithMatcher(matcher.WithAPIKey("key")),
+    lerian.WithTracer(tracer.WithAPIKey("key")),
+    lerian.WithReporter(reporter.WithAuthToken("token")),
+    lerian.WithFees(fees.WithAuthToken("token")),
+)
+```
+
+Products not enabled via `With<Product>()` will be `nil` on the client. This keeps resource usage minimal -- only backends you configure are initialized.
+
+## Configuration
+
+### Environment Variables
+
+The SDK supports `LERIAN_*` environment variables as a configuration layer. Explicit options passed to `New()` always take precedence over environment variables, which in turn take precedence over defaults.
+
+```bash
+# Global
+LERIAN_DEBUG=false
+
+# Midaz (Ledger)
+LERIAN_MIDAZ_ONBOARDING_URL=http://localhost:3000/v1
+LERIAN_MIDAZ_TRANSACTION_URL=http://localhost:3001/v1
+LERIAN_MIDAZ_AUTH_TOKEN=my-token
+
+# Matcher (Rule Engine)
+LERIAN_MATCHER_URL=http://localhost:3002/v1
+LERIAN_MATCHER_API_KEY=my-key
+
+# Tracer (Audit Trail)
+LERIAN_TRACER_URL=http://localhost:3003/v1
+LERIAN_TRACER_API_KEY=my-key
+
+# Reporter (Analytics)
+LERIAN_REPORTER_URL=http://localhost:3004/v1
+LERIAN_REPORTER_AUTH_TOKEN=my-token
+LERIAN_REPORTER_ORG_ID=org-uuid
+
+# Fees (Billing)
+LERIAN_FEES_URL=http://localhost:3005/v1
+LERIAN_FEES_AUTH_TOKEN=my-token
+LERIAN_FEES_ORG_ID=org-uuid
+```
+
+### Functional Options
+
+Every aspect of the client is configurable through the functional options pattern:
+
+```go
+client, err := lerian.New(
+    // Shared infrastructure options
+    lerian.WithHTTPClient(customHTTPClient),
+    lerian.WithRetryConfig(retry.Config{
+        MaxRetries: 3,
+        BaseDelay:  500 * time.Millisecond,
+    }),
+    lerian.WithObservability(observability.Config{
+        ServiceName: "my-service",
+        Enabled:     true,
+    }),
+
+    // Product-specific options
+    lerian.WithMidaz(
+        midaz.WithOnboardingURL("http://localhost:3000/v1"),
+        midaz.WithTransactionURL("http://localhost:3001/v1"),
+    ),
+)
+```
+
+## Error Handling
+
+The SDK uses a hierarchical error system. Use `errors.Is()` to match errors by category, regardless of which product returned them:
+
+```go
+import "errors"
+
+_, err := client.Midaz.Accounts.Get(ctx, orgID, ledgerID, accountID)
+if err != nil {
+    switch {
+    case errors.Is(err, lerian.ErrNotFound):
+        // Handle not-found for any product
+        fmt.Println("Resource not found")
+
+    case errors.Is(err, lerian.ErrAuthentication):
+        // Handle auth errors
+        fmt.Println("Check your credentials")
+
+    case errors.Is(err, lerian.ErrRateLimit):
+        // Back off and retry
+        fmt.Println("Rate limited, retrying...")
+
+    case errors.Is(err, lerian.ErrValidation):
+        // Inspect validation details
+        var sdkErr *lerian.Error
+        if errors.As(err, &sdkErr) {
+            fmt.Printf("Validation: %s (code: %s)\n", sdkErr.Message, sdkErr.Code)
+        }
+
+    default:
+        fmt.Printf("Unexpected error: %v\n", err)
+    }
+}
+```
+
+Available sentinel errors: `ErrValidation`, `ErrNotFound`, `ErrAuthentication`, `ErrAuthorization`, `ErrConflict`, `ErrRateLimit`, `ErrNetwork`, `ErrTimeout`, `ErrCancellation`, `ErrInternal`.
+
+Each product also defines product-specific error codes (e.g., `midaz.ErrAccountNotFound`) that chain to the category sentinels, so both specific and broad matching work with `errors.Is()`.
+
+## Iterator Pattern
+
+List operations return an `Iterator[T]` that supports lazy, memory-efficient pagination. The iterator implements Go 1.23+ range-over-function via `All()`:
+
+```go
+// Iterate lazily over all accounts (fetches pages on demand)
+for account, err := range client.Midaz.Accounts.List(ctx, orgID, ledgerID).All() {
+    if err != nil {
+        log.Fatal(err)
+    }
+    fmt.Println(account.Name)
+}
+
+// Collect all results into a slice
+accounts, err := client.Midaz.Accounts.List(ctx, orgID, ledgerID).Collect()
+
+// Collect up to N results
+first10, err := client.Midaz.Accounts.List(ctx, orgID, ledgerID).CollectN(10)
+
+// Process concurrently with bounded parallelism
+err := client.Midaz.Accounts.List(ctx, orgID, ledgerID).ForEachConcurrent(8,
+    func(ctx context.Context, account models.Account) error {
+        return processAccount(ctx, account)
+    },
+)
+```
+
+## Testing
+
+The SDK ships with a `leriantest` package that provides a complete fake client for all 37 services. No network calls, no mocking frameworks required:
+
+```go
+import "github.com/LerianStudio/lerian-sdk-golang/testing/leriantest"
+
+func TestMyService(t *testing.T) {
+    // Create a fake client pre-loaded with test data
+    fake := leriantest.NewClient()
+
+    // Seed data
+    fake.Midaz.Organizations.Store = leriantest.NewStore(testOrg)
+
+    // Use fake.Client in your code under test -- it implements
+    // the same interface as the real client.
+    result, err := myFunction(ctx, fake.Client)
+    assert.NoError(t, err)
+    assert.Equal(t, expected, result)
+}
+```
+
+## Examples
+
+The `examples/` directory contains runnable programs demonstrating each product:
+
+| Example | Description |
+|---------|-------------|
+| [`midaz-workflow`](examples/midaz-workflow/) | End-to-end ledger workflow: org, ledger, accounts, transactions |
+| [`matcher-reconciliation`](examples/matcher-reconciliation/) | Set up matching rules and run a reconciliation pipeline |
+| [`tracer-validation`](examples/tracer-validation/) | Trace a transaction through the system |
+| [`reporter-usage`](examples/reporter-usage/) | Generate and retrieve financial reports |
+| [`fees-estimation`](examples/fees-estimation/) | Estimate and apply fees to transactions |
+| [`multi-product`](examples/multi-product/) | Combine multiple products in a single workflow |
+
+Run an example:
+
+```bash
+cd examples/midaz-workflow
+go run .
+```
+
+## Contributing
+
+We welcome contributions. Please follow these guidelines:
+
+1. Fork the repository and create a feature branch.
+2. Follow [Conventional Commits](https://www.conventionalcommits.org/): `feat(midaz): add balance caching`.
+3. Ensure all checks pass: `make fmt lint test verify-sdk`.
+4. Write tests for new code (target 80%+ coverage).
+5. Open a pull request with a clear description of the change.
+
+See the project's coding style and testing guidelines in [CLAUDE.md](CLAUDE.md) for detailed conventions.
+
+## License
+
+This project is licensed under the Apache License 2.0. See [LICENSE.md](LICENSE.md) for the full text.
+
+Copyright 2025 [Lerian Studio](https://lerian.studio).

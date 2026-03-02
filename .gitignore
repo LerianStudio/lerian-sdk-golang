@@ -1,0 +1,113 @@
+# ===========================================================================
+# Go binaries and build artifacts
+# ===========================================================================
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+*.prof
+*.trace
+*.o
+*.a
+*.log
+
+# Go workspace files
+go.work
+go.work.sum
+
+# Build output directories
+/bin/
+/artifacts/
+/dist/
+/tmp/
+/coverage.out
+/coverage.html
+
+# ===========================================================================
+# Environment files
+# ===========================================================================
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# ===========================================================================
+# IDE and editor files
+# ===========================================================================
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+.history/
+*.sublime-workspace
+*.sublime-project
+
+# ===========================================================================
+# Dependencies
+# ===========================================================================
+/vendor/
+
+# ===========================================================================
+# Debug files
+# ===========================================================================
+debug
+debug.test
+
+# ===========================================================================
+# Auto-generated files
+# ===========================================================================
+*.pb.go
+swagger.json
+*_gen.go
+*_easyjson.go
+*_string.go
+/mocks/
+
+# ===========================================================================
+# Testing artifacts
+# ===========================================================================
+test-results/
+junit-report.xml
+profile.cov
+coverage.xml
+.test_coverage.txt
+
+# ===========================================================================
+# Documentation artifacts
+# ===========================================================================
+/docs/godoc
+/docs/tmp/
+
+# ===========================================================================
+# OS generated files
+# ===========================================================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Icon?
+ehthumbs.db
+Thumbs.db
+
+# ===========================================================================
+# Misc
+# ===========================================================================
+TODO
+NOTES
+
+# ===========================================================================
+# Example binaries (built from examples/)
+# ===========================================================================
+examples/fees-estimation/fees-estimation
+examples/matcher-reconciliation/matcher-reconciliation
+examples/midaz-workflow/midaz-workflow
+examples/multi-product/multi-product
+examples/reporter-usage/reporter-usage
+examples/tracer-validation/tracer-validation
