@@ -196,7 +196,6 @@ type requestResult struct {
 // On error it returns a structured *sdkerrors.Error.
 func (b *BackendImpl) doRequest(ctx context.Context, method, path string,
 	extraHeaders map[string]string, body any) (*requestResult, error) {
-
 	operation := method + " " + path
 
 	// Start an observability span for the entire call lifecycle.
@@ -207,11 +206,13 @@ func (b *BackendImpl) doRequest(ctx context.Context, method, path string,
 	// use its bytes directly without JSON encoding -- this supports
 	// non-JSON content types such as multipart/form-data.
 	var bodyBytes []byte
+
 	if body != nil {
 		if raw, ok := body.(RawBody); ok {
 			bodyBytes = raw.Data
 		} else {
 			var err error
+
 			bodyBytes, err = b.jsonPool.Marshal(body)
 			if err != nil {
 				return nil, sdkerrors.NewInternal("sdk", operation, "failed to marshal request body", err)
@@ -322,7 +323,6 @@ func (b *BackendImpl) doRequest(ctx context.Context, method, path string,
 // the response bytes are discarded.
 func (b *BackendImpl) doCall(ctx context.Context, method, path string,
 	extraHeaders map[string]string, body, result any) error {
-
 	res, err := b.doRequest(ctx, method, path, extraHeaders, body)
 	if err != nil {
 		return err
@@ -351,7 +351,6 @@ func (b *BackendImpl) doCall(ctx context.Context, method, path string,
 // response bytes without any JSON unmarshaling.
 func (b *BackendImpl) doCallRaw(ctx context.Context, method, path string,
 	extraHeaders map[string]string, body any) ([]byte, error) {
-
 	res, err := b.doRequest(ctx, method, path, extraHeaders, body)
 	if err != nil {
 		return nil, err
@@ -369,7 +368,6 @@ func (b *BackendImpl) doCallRaw(ctx context.Context, method, path string,
 // and authentication.
 func (b *BackendImpl) buildRequest(ctx context.Context, method, path string,
 	extraHeaders map[string]string, bodyBytes []byte) (*http.Request, error) {
-
 	operation := method + " " + path
 	url := b.baseURL + path
 

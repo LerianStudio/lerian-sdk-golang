@@ -112,11 +112,11 @@ func NewNoopProvider() Provider {
 	}
 }
 
-func (n *noopProvider) Tracer() trace.Tracer  { return n.tracer }
-func (n *noopProvider) Meter() metric.Meter    { return n.meter }
-func (n *noopProvider) Logger() *slog.Logger   { return n.logger }
+func (n *noopProvider) Tracer() trace.Tracer           { return n.tracer }
+func (n *noopProvider) Meter() metric.Meter            { return n.meter }
+func (n *noopProvider) Logger() *slog.Logger           { return n.logger }
 func (n *noopProvider) Shutdown(context.Context) error { return nil }
-func (n *noopProvider) IsEnabled() bool        { return false }
+func (n *noopProvider) IsEnabled() bool                { return false }
 
 // ---------------------------------------------------------------------------
 // OTel provider
@@ -172,7 +172,8 @@ func NewProvider(cfg ProviderConfig) (Provider, error) {
 		tp, shutdownFn, tErr := setupTracing(ctx, cfg, res)
 		if tErr != nil {
 			// Clean up anything already created.
-			p.shutdownAll(ctx)
+			p.shutdownErr = p.shutdownAll(ctx)
+
 			return nil, fmt.Errorf("observability: setup tracing: %w", tErr)
 		}
 
@@ -186,7 +187,8 @@ func NewProvider(cfg ProviderConfig) (Provider, error) {
 	if cfg.EnableMetrics {
 		mp, shutdownFn, mErr := setupMetrics(ctx, cfg, res)
 		if mErr != nil {
-			p.shutdownAll(ctx)
+			p.shutdownErr = p.shutdownAll(ctx)
+
 			return nil, fmt.Errorf("observability: setup metrics: %w", mErr)
 		}
 

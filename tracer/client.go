@@ -12,10 +12,6 @@ import (
 // Configuration
 // ---------------------------------------------------------------------------
 
-// defaultTimeout is the default HTTP timeout for Tracer requests.
-// Tracer operations tend to be fast lookups, so a shorter timeout is used.
-const defaultTimeout = 10 * time.Second
-
 // Config holds the product-specific configuration for the Tracer client.
 // It is populated by applying [Option] functions and validated before
 // the client is constructed.

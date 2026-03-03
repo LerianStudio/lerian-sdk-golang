@@ -5,7 +5,6 @@ package midaz
 
 import (
 	"context"
-	"fmt"
 	"net/url"
 
 	"github.com/LerianStudio/lerian-sdk-golang/models"
@@ -61,12 +60,12 @@ func newPortfoliosService(backend core.Backend) PortfoliosService {
 
 // portfoliosBasePath returns the collection URL for portfolios within a ledger.
 func portfoliosBasePath(orgID, ledgerID string) string {
-	return fmt.Sprintf("/organizations/%s/ledgers/%s/portfolios", url.PathEscape(orgID), url.PathEscape(ledgerID))
+	return "/organizations/" + url.PathEscape(orgID) + "/ledgers/" + url.PathEscape(ledgerID) + "/portfolios"
 }
 
 // portfoliosItemPath returns the resource URL for a specific portfolio.
 func portfoliosItemPath(orgID, ledgerID, id string) string {
-	return fmt.Sprintf("/organizations/%s/ledgers/%s/portfolios/%s", url.PathEscape(orgID), url.PathEscape(ledgerID), url.PathEscape(id))
+	return portfoliosBasePath(orgID, ledgerID) + "/" + url.PathEscape(id)
 }
 
 // ---------------------------------------------------------------------------

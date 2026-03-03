@@ -279,7 +279,9 @@ func ForEachConcurrent[T any](
 
 	for it.Next(ctx) {
 		item := it.Item()
+
 		sem <- struct{}{}
+
 		wg.Add(1)
 
 		go func() {
@@ -288,6 +290,7 @@ func ForEachConcurrent[T any](
 
 			if err := fn(ctx, item); err != nil {
 				mu.Lock()
+
 				errs = append(errs, err)
 				mu.Unlock()
 			}

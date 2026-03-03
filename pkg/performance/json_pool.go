@@ -24,12 +24,18 @@ func NewJSONPool() *JSONPool {
 // Marshal encodes v to JSON using a pooled buffer.
 // Output is identical to json.Marshal but with reduced allocations.
 func (p *JSONPool) Marshal(v any) ([]byte, error) {
-	buf := p.pool.Get().(*bytes.Buffer)
+	buf, ok := p.pool.Get().(*bytes.Buffer)
+	if !ok {
+		buf = new(bytes.Buffer)
+	}
+
 	buf.Reset()
+
 	defer p.pool.Put(buf)
 
 	enc := json.NewEncoder(buf)
 	enc.SetEscapeHTML(false)
+
 	if err := enc.Encode(v); err != nil {
 		return nil, err
 	}
@@ -43,6 +49,7 @@ func (p *JSONPool) Marshal(v any) ([]byte, error) {
 	// Return a copy so the buffer can be reused
 	result := make([]byte, len(b))
 	copy(result, b)
+
 	return result, nil
 }
 

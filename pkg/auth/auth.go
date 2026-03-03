@@ -180,9 +180,11 @@ func NewOAuth2(clientID, clientSecret, tokenURL string, scopes []string) *OAuth2
 				if len(via) >= 10 {
 					return fmt.Errorf("stopped after 10 redirects")
 				}
+
 				if len(via) > 0 && req.URL.Host != via[0].URL.Host {
 					req.Header.Del("Authorization")
 				}
+
 				return nil
 			},
 		},

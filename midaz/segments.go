@@ -5,7 +5,6 @@ package midaz
 
 import (
 	"context"
-	"fmt"
 	"net/url"
 
 	"github.com/LerianStudio/lerian-sdk-golang/models"
@@ -61,12 +60,12 @@ func newSegmentsService(backend core.Backend) SegmentsService {
 
 // segmentsBasePath returns the collection URL for segments within a ledger.
 func segmentsBasePath(orgID, ledgerID string) string {
-	return fmt.Sprintf("/organizations/%s/ledgers/%s/segments", url.PathEscape(orgID), url.PathEscape(ledgerID))
+	return "/organizations/" + url.PathEscape(orgID) + "/ledgers/" + url.PathEscape(ledgerID) + "/segments"
 }
 
 // segmentsItemPath returns the resource URL for a specific segment.
 func segmentsItemPath(orgID, ledgerID, id string) string {
-	return fmt.Sprintf("/organizations/%s/ledgers/%s/segments/%s", url.PathEscape(orgID), url.PathEscape(ledgerID), url.PathEscape(id))
+	return segmentsBasePath(orgID, ledgerID) + "/" + url.PathEscape(id)
 }
 
 // ---------------------------------------------------------------------------

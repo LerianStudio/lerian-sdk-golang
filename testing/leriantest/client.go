@@ -56,7 +56,7 @@ func NewFakeClient(opts ...FakeOption) *lerian.Client {
 // fields the caller supplied.
 func applySeedData(client *lerian.Client, cfg *fakeConfig) {
 	// Seed organizations.
-	if orgs := client.Midaz.Organizations.(*fakeOrganizations); orgs != nil {
+	if orgs, ok := client.Midaz.Organizations.(*fakeOrganizations); ok && orgs != nil {
 		for _, org := range cfg.seedOrgs {
 			if org.ID == "" {
 				org.ID = generateID("org")
@@ -67,7 +67,7 @@ func applySeedData(client *lerian.Client, cfg *fakeConfig) {
 	}
 
 	// Seed ledgers.
-	if ledgers := client.Midaz.Ledgers.(*fakeLedgers); ledgers != nil {
+	if ledgers, ok := client.Midaz.Ledgers.(*fakeLedgers); ok && ledgers != nil {
 		for _, l := range cfg.seedLedgers {
 			if l.ID == "" {
 				l.ID = generateID("ledger")
@@ -78,7 +78,7 @@ func applySeedData(client *lerian.Client, cfg *fakeConfig) {
 	}
 
 	// Seed accounts.
-	if accounts := client.Midaz.Accounts.(*fakeAccounts); accounts != nil {
+	if accounts, ok := client.Midaz.Accounts.(*fakeAccounts); ok && accounts != nil {
 		for _, a := range cfg.seedAccounts {
 			if a.ID == "" {
 				a.ID = generateID("acct")
