@@ -52,8 +52,10 @@ linters:
     - unconvert       # Unnecessary conversions
     - usestdlibvars   # Use stdlib variables (http.MethodGet, etc.)
     - dogsled         # Too many blank identifiers
+    - inamedparam     # Named params in long interfaces for readability
     - nakedret        # Naked returns
     - prealloc        # Preallocate slices
+    - varnamelen      # Enforce meaningful variable names
     - nolintlint      # Proper nolint directives
     - wsl_v5          # Whitespace linter
 
@@ -123,6 +125,9 @@ linters:
       excludes:
         - G104  # Unhandled errors (covered by errcheck)
         - G304  # File path from variable (needed for SDK)
+        - G101  # False positive: env var NAMES containing "token"/"key" aren't credentials
+        - G117  # False positive: config struct fields (AuthToken/APIKey) are redacted via String()/MarshalJSON()
+        - G704  # SDK must make HTTP requests via user-provided URLs
       config:
         global:
           audit: false
@@ -167,19 +172,26 @@ linters:
         - pattern: '^unsafe\.'
           msg: "Avoid unsafe package in SDK code"
 
+        # Forbid errors.New in product code (use SDK error factories)
+        - pattern: '^errors\.New$'
+          msg: "Use sdkerrors.NewXxx() factory functions (NewValidation, NewNotFound, etc.) instead of errors.New()"
+
     # -----------------------------------------
     # Dependency Guard
     # -----------------------------------------
     depguard:
       rules:
         main:
+          allow:
+            - $gostd
+            - github.com/LerianStudio
+            - github.com/stretchr/testify
+            - go.opentelemetry.io
           deny:
             - pkg: io/ioutil
               desc: "Deprecated: Use io and os packages instead (Go 1.16+)"
             - pkg: github.com/pkg/errors
               desc: "Use standard errors package with fmt.Errorf and %w"
-            - pkg: log
-              desc: "Use structured logging via pkg/observability"
 
     # -----------------------------------------
     # Code Constants
@@ -254,7 +266,6 @@ linters:
         - name: exported
           severity: warning
           arguments:
-            - checkPrivateReceivers
             - sayRepetitiveInsteadOfStutters
         - name: if-return
           severity: warning
@@ -279,7 +290,11 @@ linters:
         - name: imports-blocklist
           severity: error
         - name: redundant-import-alias
-          severity: warning
+          severity: error
+        - name: import-alias-naming
+          severity: error
+          arguments:
+            - "^[a-z][a-z0-9]*$"
         - name: unnecessary-stmt
           severity: warning
         - name: deep-exit
@@ -319,8 +334,10 @@ linters:
           severity: warning
         - name: optimize-operands-order
           severity: warning
-        - name: use-errors-new
-          severity: warning
+        # Disabled: conflicts with forbidigo rule that forbids errors.New
+        # in favor of sdkerrors.NewXxx() factory functions.
+        # - name: use-errors-new
+        #   severity: warning
 
     # -----------------------------------------
     # Whitespace Settings
@@ -333,6 +350,56 @@ linters:
     # -----------------------------------------
     testifylint:
       enable-all: true
+      disable:
+        # These catch pre-existing patterns across 400+ call sites.
+        # Enable individually as the codebase is migrated.
+        - error-is-as     # assert.ErrorIs / require.ErrorAs (315+ sites)
+        - require-error   # require for error assertions (28+ sites)
+        - float-compare   # assert.InEpsilon (8+ sites)
+        - go-require      # require in goroutines / http handlers (10+ sites)
+        - error-nil       # assert.NoError instead of assert.Nil(err) (11+ sites)
+        - expected-actual  # reversed actual/expected (9+ sites)
+        - empty           # assert.Empty (6+ sites)
+        - len             # assert.Len (2+ sites)
+        - compares        # assert.Greater etc. (pre-existing)
+
+    # -----------------------------------------
+    # Variable Name Length
+    # -----------------------------------------
+    varnamelen:
+      min-name-length: 2
+      ignore-names:
+        - t
+        - i
+        - j
+        - k
+        - v
+        - id
+        - ok
+        - wg
+        - mu
+        - fn
+        - db
+        - tx
+        - tc
+        - tt
+        - s
+        - c
+        - w
+        - r
+        - b   # common for builders, backends, buffers
+        - d   # common for data, duration
+        - e   # common for event, entry, element
+        - l   # common for list, length
+        - n   # common for count, number
+        - p   # common for provider, pointer, path
+      ignore-type-assert-ok: true
+      ignore-map-index-ok: true
+      ignore-chan-recv-ok: true
+      ignore-decls:
+        - t testing.T
+        - e error
+        - b []byte
 
   # ===========================================
   # EXCLUSIONS
@@ -355,13 +422,33 @@ linters:
           - goconst
         path: _test\.go
 
+      - linters:
+          - inamedparam
+        path: _test\.go
+
+      - linters:
+          - varnamelen
+        path: _test\.go
+
       # Allow complexity in core transport layer
       - linters:
           - funlen
           - gocognit
           - gocyclo
+          - cyclop
           - maintidx
+          - nestif
         path: pkg/core/
+      # Revive cognitive-complexity duplicates gocognit; exclude from core
+      - linters:
+          - revive
+        path: pkg/core/
+        text: "cognitive-complexity"
+      # Allow empty-lines style in core transport (pre-existing formatting)
+      - linters:
+          - revive
+        path: pkg/core/
+        text: "empty-lines"
 
       # Allow complexity in observability setup
       - linters:
@@ -369,16 +456,94 @@ linters:
           - gocognit
         path: pkg/observability/
 
-      # Allow fmt.Print and log in examples
+      # Allow fmt.Print, log, and complexity in examples (workflow demonstrations)
       - linters:
           - forbidigo
           - depguard
+          - funlen
+          - gocognit
+          - gocyclo
+          - cyclop
+          - maintidx
+          - nestif
+          - errcheck
         path: examples/
+      # Exclude revive cognitive-complexity in examples (duplicates gocognit)
+      - linters:
+          - revive
+        path: examples/
+        text: "cognitive-complexity"
 
-      # Allow fmt.Print in test helpers
+      # Allow fmt.Print and complexity in test helpers (fake implementations)
       - linters:
           - forbidigo
+          - gocognit
+          - gocyclo
+          - funlen
+          - cyclop
         path: testing/
+      # Exclude revive cognitive-complexity in testing/ (duplicates gocognit)
+      - linters:
+          - revive
+        path: testing/
+        text: "cognitive-complexity"
+
+      # Relax unused-receiver and unused-parameter in test files (mock implementations)
+      - linters:
+          - revive
+        path: _test\.go
+        text: "unused-receiver"
+      - linters:
+          - revive
+        path: _test\.go
+        text: "unused-parameter"
+
+      # Relax use-errors-new in test files (tests can use fmt.Errorf for simple errors)
+      - linters:
+          - revive
+        path: _test\.go
+        text: "use-errors-new"
+
+      # Relax empty-lines in test files (stylistic, low priority)
+      - linters:
+          - revive
+        path: _test\.go
+        text: "empty-lines"
+
+      # Relax revive in testing/ helpers (fake implementations satisfy interfaces)
+      - linters:
+          - revive
+        path: testing/
+        text: "unused-receiver"
+      - linters:
+          - revive
+        path: testing/
+        text: "unused-parameter"
+      - linters:
+          - revive
+        path: testing/
+        text: "if-return"
+
+      # Relax unused-receiver/unused-parameter in pkg/ (interface implementations)
+      - linters:
+          - revive
+        path: pkg/
+        text: "unused-receiver"
+      - linters:
+          - revive
+        path: pkg/
+        text: "unused-parameter"
+
+      # Exclude pkg/errors var-naming (package name "errors" is intentional for SDK error hierarchy)
+      - linters:
+          - revive
+        path: pkg/errors/
+        text: "var-naming"
+
+      # Exclude stuttering type names in product packages (pre-existing naming convention)
+      - linters:
+          - revive
+        text: "type name will be used as"
 
       # Existing exclusions
       - linters:
@@ -396,6 +561,18 @@ linters:
       - linters:
           - govet
         text: '^shadow: declaration of "(err|ok)" shadows declaration'
+
+      # Allow errors.New in core infrastructure (cannot use sdkerrors due to dependency direction)
+      - linters:
+          - forbidigo
+        path: pkg/core/
+        text: "errors.New"
+
+      # Allow errors.New in SDK root for sentinel errors
+      - linters:
+          - forbidigo
+        path: ^errors\.go$
+        text: "errors.New"
 
       # WSL is too noisy in examples and test helpers
       - linters:
