@@ -105,10 +105,10 @@ func main() {
 	// -----------------------------------------------------------------------
 	validation, err := client.Tracer.Validations.Create(ctx, &tracer.CreateValidationInput{
 		Transaction: map[string]any{
-			"amount":    7500000, // R$ 75,000.00 -- exceeds the R$ 50,000 threshold
-			"assetCode": "BRL",
-			"type":      "transfer",
-			"senderID":  "acc-sender-001",
+			"amount":     7500000, // R$ 75,000.00 -- exceeds the R$ 50,000 threshold
+			"assetCode":  "BRL",
+			"type":       "transfer",
+			"senderID":   "acc-sender-001",
 			"receiverID": "acc-receiver-002",
 		},
 	})

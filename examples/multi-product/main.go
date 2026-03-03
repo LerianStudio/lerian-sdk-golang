@@ -167,12 +167,12 @@ func main() {
 	// inspect amount thresholds, asset codes, account types, etc.
 	validation, err := client.Tracer.Validations.Create(ctx, &tracer.CreateValidationInput{
 		Transaction: map[string]any{
-			"transactionId": txn.ID,
-			"amount":        txn.Amount,
-			"assetCode":     txn.AssetCode,
-			"type":          "wire_transfer",
-			"senderID":      sender.ID,
-			"receiverID":    receiver.ID,
+			"transactionId":  txn.ID,
+			"amount":         txn.Amount,
+			"assetCode":      txn.AssetCode,
+			"type":           "wire_transfer",
+			"senderID":       sender.ID,
+			"receiverID":     receiver.ID,
 			"organizationID": org.ID,
 		},
 	})

@@ -60,8 +60,8 @@ func main() {
 	//
 	// Amounts are in the smallest currency unit (e.g. cents for BRL).
 	// -----------------------------------------------------------------------
-	flatAmount := int64(150)     // R$ 1.50 flat fee
-	pctValue := "1.5"            // 1.5% of the transaction amount
+	flatAmount := int64(150) // R$ 1.50 flat fee
+	pctValue := "1.5"        // 1.5% of the transaction amount
 	pkgDesc := "Standard fees for BRL wire transfers"
 
 	pkg, err := client.Fees.Packages.Create(ctx, &fees.CreatePackageInput{
