@@ -28,16 +28,16 @@ const (
 // Rules contain a set of conditions that are evaluated against transactions
 // and other resources to determine whether actions should be triggered.
 type Rule struct {
-	ID          string            `json:"id"`
-	Name        string            `json:"name"`
-	Description *string           `json:"description,omitempty"`
-	Status      RuleStatus        `json:"status"`
-	Priority    int               `json:"priority"`
-	Conditions  []RuleCondition   `json:"conditions"`
-	Actions     []string          `json:"actions,omitempty"`
-	Metadata    map[string]any    `json:"metadata,omitempty"`
-	CreatedAt   time.Time         `json:"createdAt"`
-	UpdatedAt   time.Time         `json:"updatedAt"`
+	ID          string          `json:"id"`
+	Name        string          `json:"name"`
+	Description *string         `json:"description,omitempty"`
+	Status      RuleStatus      `json:"status"`
+	Priority    int             `json:"priority"`
+	Conditions  []RuleCondition `json:"conditions"`
+	Actions     []string        `json:"actions,omitempty"`
+	Metadata    map[string]any  `json:"metadata,omitempty"`
+	CreatedAt   time.Time       `json:"createdAt"`
+	UpdatedAt   time.Time       `json:"updatedAt"`
 }
 
 // RuleCondition defines a single evaluation criterion within a [Rule].

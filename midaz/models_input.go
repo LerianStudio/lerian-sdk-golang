@@ -173,14 +173,14 @@ type UpdateBalanceInput struct {
 // CreateTransactionInput holds the fields needed to create a transaction.
 // The Send/Distribute arrays define the money movement using the Midaz DSL.
 type CreateTransactionInput struct {
-	Description              *string              `json:"description,omitempty"`
-	ChartOfAccountsGroupName *string              `json:"chartOfAccountsGroupName,omitempty"`
-	AssetCode                string               `json:"assetCode"`
-	Amount                   int64                `json:"amount"`
-	Scale                    int                  `json:"scale"`
-	Source                   []TransactionSource  `json:"source"`
-	ParentTransactionID      *string              `json:"parentTransactionId,omitempty"`
-	Metadata                 models.Metadata      `json:"metadata,omitempty"`
+	Description              *string             `json:"description,omitempty"`
+	ChartOfAccountsGroupName *string             `json:"chartOfAccountsGroupName,omitempty"`
+	AssetCode                string              `json:"assetCode"`
+	Amount                   int64               `json:"amount"`
+	Scale                    int                 `json:"scale"`
+	Source                   []TransactionSource `json:"source"`
+	ParentTransactionID      *string             `json:"parentTransactionId,omitempty"`
+	Metadata                 models.Metadata     `json:"metadata,omitempty"`
 }
 
 // UpdateTransactionInput holds the fields that may be updated on an

@@ -27,10 +27,10 @@ type Package struct {
 //   - "tiered": uses both Amount and Percentage with MinAmount/MaxAmount caps
 type FeeRule struct {
 	Type       string  `json:"type"`                 // "flat", "percentage", "tiered"
-	Amount     *int64  `json:"amount,omitempty"`      // for flat fees (in smallest unit)
-	Percentage *string `json:"percentage,omitempty"`  // for percentage fees (e.g., "2.5")
-	MinAmount  *int64  `json:"minAmount,omitempty"`   // minimum fee cap
-	MaxAmount  *int64  `json:"maxAmount,omitempty"`   // maximum fee cap
+	Amount     *int64  `json:"amount,omitempty"`     // for flat fees (in smallest unit)
+	Percentage *string `json:"percentage,omitempty"` // for percentage fees (e.g., "2.5")
+	MinAmount  *int64  `json:"minAmount,omitempty"`  // minimum fee cap
+	MaxAmount  *int64  `json:"maxAmount,omitempty"`  // maximum fee cap
 	Currency   string  `json:"currency"`
 	AssetCode  *string `json:"assetCode,omitempty"`
 }

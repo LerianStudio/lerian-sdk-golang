@@ -64,13 +64,13 @@ type Account struct {
 // AccountType defines a classification for accounts within a ledger
 // (e.g., "deposit", "savings", "external").
 type AccountType struct {
-	ID             string     `json:"id"`
-	OrganizationID string     `json:"organizationId"`
-	LedgerID       string     `json:"ledgerId"`
-	Name           string     `json:"name"`
-	Description    *string    `json:"description,omitempty"`
-	CreatedAt      time.Time  `json:"createdAt"`
-	UpdatedAt      time.Time  `json:"updatedAt"`
+	ID             string    `json:"id"`
+	OrganizationID string    `json:"organizationId"`
+	LedgerID       string    `json:"ledgerId"`
+	Name           string    `json:"name"`
+	Description    *string   `json:"description,omitempty"`
+	CreatedAt      time.Time `json:"createdAt"`
+	UpdatedAt      time.Time `json:"updatedAt"`
 }
 
 // Asset represents a tradable instrument or currency within a ledger
@@ -90,15 +90,15 @@ type Asset struct {
 
 // AssetRate represents an exchange rate between two assets at a point in time.
 type AssetRate struct {
-	ID               string  `json:"id"`
-	OrganizationID   string  `json:"organizationId"`
-	LedgerID         string  `json:"ledgerId"`
-	BaseAssetCode    string  `json:"baseAssetCode"`
-	CounterAssetCode string  `json:"counterAssetCode"`
-	Amount           int64   `json:"amount"`
-	Scale            int     `json:"scale"`
-	Source           *string `json:"source,omitempty"`
-	ExternalID       *string `json:"externalId,omitempty"`
+	ID               string    `json:"id"`
+	OrganizationID   string    `json:"organizationId"`
+	LedgerID         string    `json:"ledgerId"`
+	BaseAssetCode    string    `json:"baseAssetCode"`
+	CounterAssetCode string    `json:"counterAssetCode"`
+	Amount           int64     `json:"amount"`
+	Scale            int       `json:"scale"`
+	Source           *string   `json:"source,omitempty"`
+	ExternalID       *string   `json:"externalId,omitempty"`
 	CreatedAt        time.Time `json:"createdAt"`
 	UpdatedAt        time.Time `json:"updatedAt"`
 }

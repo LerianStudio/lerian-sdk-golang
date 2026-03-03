@@ -439,8 +439,8 @@ type PerformanceMetricsReport struct {
 // summary, overall match rate, exception statistics, and recent
 // reconciliation history for a single-screen dashboard.
 type DashboardReport struct {
-	Summary    ReconciliationSummary      `json:"summary"`
-	MatchRate  float64                    `json:"matchRate"`
-	Exceptions ExceptionStatistics        `json:"exceptions"`
+	Summary    ReconciliationSummary        `json:"summary"`
+	MatchRate  float64                      `json:"matchRate"`
+	Exceptions ExceptionStatistics          `json:"exceptions"`
 	RecentRuns []ReconciliationHistoryEntry `json:"recentRuns"`
 }
