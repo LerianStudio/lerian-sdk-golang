@@ -2,24 +2,24 @@ package core
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/url"
 	"strconv"
 
 	"github.com/LerianStudio/lerian-sdk-golang/models"
+	sdkerrors "github.com/LerianStudio/lerian-sdk-golang/pkg/errors"
 	"github.com/LerianStudio/lerian-sdk-golang/pkg/pagination"
 )
 
 var (
 	// ErrNilService is returned when a nil *BaseService is passed to a
 	// generic CRUD function.
-	ErrNilService = errors.New("service is nil")
+	ErrNilService = sdkerrors.NewInternal("sdk", "BaseService", "service is nil", nil)
 
 	// ErrNilBackend is returned when a BaseService has no Backend configured.
 	// This typically means the service was constructed without wiring it to
 	// an HTTP transport (e.g., via NewBackendImpl).
-	ErrNilBackend = errors.New("backend is not configured")
+	ErrNilBackend = sdkerrors.NewInternal("sdk", "BaseService", "backend is not configured", nil)
 )
 
 // BaseService provides shared infrastructure for all product services.
