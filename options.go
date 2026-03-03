@@ -34,6 +34,7 @@ func WithMidaz(opts ...midaz.Option) Option {
 	return func(c *Client) error {
 		c.midazRequested = true
 		c.midazOpts = append(c.midazOpts, opts...)
+
 		return nil
 	}
 }
@@ -44,6 +45,7 @@ func WithMatcher(opts ...matcher.Option) Option {
 	return func(c *Client) error {
 		c.matcherRequested = true
 		c.matcherOpts = append(c.matcherOpts, opts...)
+
 		return nil
 	}
 }
@@ -54,6 +56,7 @@ func WithTracer(opts ...tracer.Option) Option {
 	return func(c *Client) error {
 		c.tracerRequested = true
 		c.tracerOpts = append(c.tracerOpts, opts...)
+
 		return nil
 	}
 }
@@ -64,6 +67,7 @@ func WithReporter(opts ...reporter.Option) Option {
 	return func(c *Client) error {
 		c.reporterRequested = true
 		c.reporterOpts = append(c.reporterOpts, opts...)
+
 		return nil
 	}
 }
@@ -74,6 +78,7 @@ func WithFees(opts ...fees.Option) Option {
 	return func(c *Client) error {
 		c.feesRequested = true
 		c.feesOpts = append(c.feesOpts, opts...)
+
 		return nil
 	}
 }
@@ -92,6 +97,7 @@ func WithDebug(debug bool) Option {
 	return func(c *Client) error {
 		c.debug = debug
 		c.debugExplicit = true
+
 		return nil
 	}
 }
@@ -103,6 +109,7 @@ func WithRetry(maxRetries int, baseDelay time.Duration) Option {
 	return func(c *Client) error {
 		c.retryConfig.MaxRetries = maxRetries
 		c.retryConfig.BaseDelay = baseDelay
+
 		return nil
 	}
 }
@@ -134,6 +141,7 @@ func WithObservability(traces, metrics, logs bool) Option {
 		c.otelTraces = traces
 		c.otelMetrics = metrics
 		c.otelLogs = logs
+
 		return nil
 	}
 }

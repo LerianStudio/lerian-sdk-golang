@@ -55,16 +55,16 @@ type Client struct {
 	// Deferred product configs — populated by options, consumed during New().
 	// The "requested" flags track whether With<Product>() was called, even
 	// with no options (env vars can supply the values).
-	midazOpts       []midaz.Option
-	midazRequested  bool
-	matcherOpts     []matcher.Option
-	matcherRequested bool
-	tracerOpts      []tracer.Option
-	tracerRequested bool
-	reporterOpts    []reporter.Option
+	midazOpts         []midaz.Option
+	midazRequested    bool
+	matcherOpts       []matcher.Option
+	matcherRequested  bool
+	tracerOpts        []tracer.Option
+	tracerRequested   bool
+	reporterOpts      []reporter.Option
 	reporterRequested bool
-	feesOpts        []fees.Option
-	feesRequested   bool
+	feesOpts          []fees.Option
+	feesRequested     bool
 
 	// Observability config — populated by options, consumed during New().
 	otelTraces   bool

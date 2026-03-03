@@ -151,9 +151,9 @@ type Client struct {
 // [lerian.New] — SDK consumers should not call it directly.
 func NewClient(onboardingBackend, transactionBackend core.Backend, cfg Config) *Client {
 	return &Client{
-		onboarding: onboardingBackend,
+		onboarding:  onboardingBackend,
 		transaction: transactionBackend,
-		config:     cfg,
+		config:      cfg,
 		// Onboarding backend services:
 		Organizations: newOrganizationsService(onboardingBackend),
 		Ledgers:       newLedgersService(onboardingBackend),

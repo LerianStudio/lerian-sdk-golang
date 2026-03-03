@@ -18,7 +18,7 @@ const (
 	envDebug = "LERIAN_DEBUG"
 
 	// Midaz
-	envMidazOnboardingURL = "LERIAN_MIDAZ_ONBOARDING_URL"
+	envMidazOnboardingURL  = "LERIAN_MIDAZ_ONBOARDING_URL"
 	envMidazTransactionURL = "LERIAN_MIDAZ_TRANSACTION_URL"
 	envMidazAuthToken      = "LERIAN_MIDAZ_AUTH_TOKEN"
 
