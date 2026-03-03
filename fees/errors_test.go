@@ -14,6 +14,8 @@ import (
 // ---------------------------------------------------------------------------
 
 func TestParseError(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name           string
 		statusCode     int
@@ -168,6 +170,8 @@ func TestParseError(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := ParseError(tc.statusCode, tc.body)
 			require.NotNil(t, got)
 
@@ -185,6 +189,8 @@ func TestParseError(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestParseErrorMatchesSentinels(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name     string
 		status   int
@@ -237,6 +243,8 @@ func TestParseErrorMatchesSentinels(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			err := ParseError(tc.status, tc.body)
 			assert.True(t, stderrors.Is(err, tc.sentinel),
 				"ParseError(%d) should match %s", tc.status, tc.sentinel.Category)
@@ -249,6 +257,8 @@ func TestParseErrorMatchesSentinels(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestCategoryFromStatus(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		status int
 		want   sdkerrors.ErrorCategory

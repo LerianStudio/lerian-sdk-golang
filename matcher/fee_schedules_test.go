@@ -11,13 +11,17 @@ import (
 )
 
 func TestFeeSchedulesCreate(t *testing.T) {
+	t.Parallel()
+
 	t.Run("success", func(t *testing.T) {
-		mb := &mockBackend{t: t, callFn: func(_ context.Context, method, path string, body, result any) error {
+		t.Parallel()
+
+		mb := &mockBackend{callFn: func(_ context.Context, method, path string, body, result any) error {
 			assert.Equal(t, "POST", method)
 			assert.Equal(t, "/fee-schedules", path)
 			assert.NotNil(t, body)
-			unmarshalInto(t, FeeSchedule{ID: "fs-1", Name: "standard"}, result)
-			return nil
+
+			return unmarshalInto(FeeSchedule{ID: "fs-1", Name: "standard"}, result)
 		}}
 		svc := newFeeSchedulesService(mb)
 		got, err := svc.Create(context.Background(), &CreateFeeScheduleInput{
@@ -30,7 +34,9 @@ func TestFeeSchedulesCreate(t *testing.T) {
 	})
 
 	t.Run("nil input", func(t *testing.T) {
-		svc := newFeeSchedulesService(&mockBackend{t: t, callFn: func(context.Context, string, string, any, any) error { return nil }})
+		t.Parallel()
+
+		svc := newFeeSchedulesService(&mockBackend{callFn: func(context.Context, string, string, any, any) error { return nil }})
 		_, err := svc.Create(context.Background(), nil)
 		require.Error(t, err)
 		assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
@@ -38,12 +44,16 @@ func TestFeeSchedulesCreate(t *testing.T) {
 }
 
 func TestFeeSchedulesGet(t *testing.T) {
+	t.Parallel()
+
 	t.Run("success", func(t *testing.T) {
-		mb := &mockBackend{t: t, callFn: func(_ context.Context, method, path string, _, result any) error {
+		t.Parallel()
+
+		mb := &mockBackend{callFn: func(_ context.Context, method, path string, _, result any) error {
 			assert.Equal(t, "GET", method)
 			assert.Equal(t, "/fee-schedules/fs-1", path)
-			unmarshalInto(t, FeeSchedule{ID: "fs-1"}, result)
-			return nil
+
+			return unmarshalInto(FeeSchedule{ID: "fs-1"}, result)
 		}}
 		svc := newFeeSchedulesService(mb)
 		got, err := svc.Get(context.Background(), "fs-1")
@@ -52,7 +62,9 @@ func TestFeeSchedulesGet(t *testing.T) {
 	})
 
 	t.Run("empty id", func(t *testing.T) {
-		svc := newFeeSchedulesService(&mockBackend{t: t, callFn: func(context.Context, string, string, any, any) error { return nil }})
+		t.Parallel()
+
+		svc := newFeeSchedulesService(&mockBackend{callFn: func(context.Context, string, string, any, any) error { return nil }})
 		_, err := svc.Get(context.Background(), "")
 		require.Error(t, err)
 		assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
@@ -60,9 +72,12 @@ func TestFeeSchedulesGet(t *testing.T) {
 }
 
 func TestFeeSchedulesList(t *testing.T) {
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, method, path string, _, result any) error {
+	t.Parallel()
+
+	mb := &mockBackend{callFn: func(_ context.Context, method, path string, _, result any) error {
 		assert.Equal(t, "GET", method)
 		assert.Contains(t, path, "/fee-schedules")
+
 		return nil
 	}}
 	svc := newFeeSchedulesService(mb)
@@ -71,14 +86,18 @@ func TestFeeSchedulesList(t *testing.T) {
 }
 
 func TestFeeSchedulesUpdate(t *testing.T) {
+	t.Parallel()
+
 	t.Run("success", func(t *testing.T) {
+		t.Parallel()
+
 		name := "premium"
-		mb := &mockBackend{t: t, callFn: func(_ context.Context, method, path string, body, result any) error {
+		mb := &mockBackend{callFn: func(_ context.Context, method, path string, body, result any) error {
 			assert.Equal(t, "PATCH", method)
 			assert.Equal(t, "/fee-schedules/fs-1", path)
 			assert.NotNil(t, body)
-			unmarshalInto(t, FeeSchedule{ID: "fs-1", Name: "premium"}, result)
-			return nil
+
+			return unmarshalInto(FeeSchedule{ID: "fs-1", Name: "premium"}, result)
 		}}
 		svc := newFeeSchedulesService(mb)
 		got, err := svc.Update(context.Background(), "fs-1", &UpdateFeeScheduleInput{Name: &name})
@@ -87,14 +106,18 @@ func TestFeeSchedulesUpdate(t *testing.T) {
 	})
 
 	t.Run("empty id", func(t *testing.T) {
-		svc := newFeeSchedulesService(&mockBackend{t: t, callFn: func(context.Context, string, string, any, any) error { return nil }})
+		t.Parallel()
+
+		svc := newFeeSchedulesService(&mockBackend{callFn: func(context.Context, string, string, any, any) error { return nil }})
 		_, err := svc.Update(context.Background(), "", &UpdateFeeScheduleInput{})
 		require.Error(t, err)
 		assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
 	})
 
 	t.Run("nil input", func(t *testing.T) {
-		svc := newFeeSchedulesService(&mockBackend{t: t, callFn: func(context.Context, string, string, any, any) error { return nil }})
+		t.Parallel()
+
+		svc := newFeeSchedulesService(&mockBackend{callFn: func(context.Context, string, string, any, any) error { return nil }})
 		_, err := svc.Update(context.Background(), "fs-1", nil)
 		require.Error(t, err)
 		assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
@@ -102,11 +125,16 @@ func TestFeeSchedulesUpdate(t *testing.T) {
 }
 
 func TestFeeSchedulesDelete(t *testing.T) {
+	t.Parallel()
+
 	t.Run("success", func(t *testing.T) {
-		mb := &mockBackend{t: t, callFn: func(_ context.Context, method, path string, _, result any) error {
+		t.Parallel()
+
+		mb := &mockBackend{callFn: func(_ context.Context, method, path string, _, result any) error {
 			assert.Equal(t, "DELETE", method)
 			assert.Equal(t, "/fee-schedules/fs-1", path)
 			assert.Nil(t, result)
+
 			return nil
 		}}
 		svc := newFeeSchedulesService(mb)
@@ -115,7 +143,9 @@ func TestFeeSchedulesDelete(t *testing.T) {
 	})
 
 	t.Run("empty id", func(t *testing.T) {
-		svc := newFeeSchedulesService(&mockBackend{t: t, callFn: func(context.Context, string, string, any, any) error { return nil }})
+		t.Parallel()
+
+		svc := newFeeSchedulesService(&mockBackend{callFn: func(context.Context, string, string, any, any) error { return nil }})
 		err := svc.Delete(context.Background(), "")
 		require.Error(t, err)
 		assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
@@ -123,12 +153,17 @@ func TestFeeSchedulesDelete(t *testing.T) {
 }
 
 func TestFeeSchedulesSimulate(t *testing.T) {
+	t.Parallel()
+
 	t.Run("success", func(t *testing.T) {
-		mb := &mockBackend{t: t, callFn: func(_ context.Context, method, path string, body, result any) error {
+		t.Parallel()
+
+		mb := &mockBackend{callFn: func(_ context.Context, method, path string, body, result any) error {
 			assert.Equal(t, "POST", method)
 			assert.Equal(t, "/fee-schedules/fs-1/simulate", path)
 			assert.NotNil(t, body)
-			unmarshalInto(t, FeeSimulationResult{
+
+			return unmarshalInto(FeeSimulationResult{
 				TotalFee: 150,
 				Scale:    2,
 				Currency: "USD",
@@ -137,7 +172,6 @@ func TestFeeSchedulesSimulate(t *testing.T) {
 					{RuleType: "fixed", Amount: 50, Scale: 2, Currency: "USD"},
 				},
 			}, result)
-			return nil
 		}}
 		svc := newFeeSchedulesService(mb)
 		got, err := svc.Simulate(context.Background(), "fs-1", &SimulateFeeScheduleInput{
@@ -151,14 +185,18 @@ func TestFeeSchedulesSimulate(t *testing.T) {
 	})
 
 	t.Run("empty id", func(t *testing.T) {
-		svc := newFeeSchedulesService(&mockBackend{t: t, callFn: func(context.Context, string, string, any, any) error { return nil }})
+		t.Parallel()
+
+		svc := newFeeSchedulesService(&mockBackend{callFn: func(context.Context, string, string, any, any) error { return nil }})
 		_, err := svc.Simulate(context.Background(), "", &SimulateFeeScheduleInput{Amount: 100, Currency: "USD"})
 		require.Error(t, err)
 		assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
 	})
 
 	t.Run("nil input", func(t *testing.T) {
-		svc := newFeeSchedulesService(&mockBackend{t: t, callFn: func(context.Context, string, string, any, any) error { return nil }})
+		t.Parallel()
+
+		svc := newFeeSchedulesService(&mockBackend{callFn: func(context.Context, string, string, any, any) error { return nil }})
 		_, err := svc.Simulate(context.Background(), "fs-1", nil)
 		require.Error(t, err)
 		assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
@@ -173,7 +211,7 @@ func TestFeeSchedulesCreateBackendError(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("backend error: conflict")
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, _, _ any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
 		return expectedErr
 	}}
 
@@ -191,7 +229,7 @@ func TestFeeSchedulesGetBackendError(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("backend error: not found")
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, _, _ any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
 		return expectedErr
 	}}
 
@@ -207,7 +245,7 @@ func TestFeeSchedulesListBackendError(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("backend error: internal")
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, _, _ any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
 		return expectedErr
 	}}
 
@@ -224,7 +262,7 @@ func TestFeeSchedulesUpdateBackendError(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("backend error: conflict")
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, _, _ any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
 		return expectedErr
 	}}
 
@@ -241,7 +279,7 @@ func TestFeeSchedulesDeleteBackendError(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("backend error: forbidden")
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, _, _ any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
 		return expectedErr
 	}}
 
@@ -256,7 +294,7 @@ func TestFeeSchedulesSimulateBackendError(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("backend error: internal")
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, _, _ any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
 		return expectedErr
 	}}
 

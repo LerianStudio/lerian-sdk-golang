@@ -16,8 +16,12 @@ import (
 // ---------------------------------------------------------------------------
 
 func TestExceptionsCreate(t *testing.T) {
+	t.Parallel()
+
 	t.Run("success", func(t *testing.T) {
-		mb := &mockBackend{t: t, callFn: func(_ context.Context, method, path string, body, result any) error {
+		t.Parallel()
+
+		mb := &mockBackend{callFn: func(_ context.Context, method, path string, body, result any) error {
 			assert.Equal(t, "POST", method)
 			assert.Equal(t, "/exceptions", path)
 			assert.NotNil(t, body)
@@ -27,9 +31,7 @@ func TestExceptionsCreate(t *testing.T) {
 			assert.Equal(t, "ctx-1", input.ContextID)
 			assert.Equal(t, "amount_mismatch", input.Type)
 
-			unmarshalInto(t, Exception{ID: "exc-1", ContextID: "ctx-1", Type: "amount_mismatch", Status: "open", Priority: "high"}, result)
-
-			return nil
+			return unmarshalInto(Exception{ID: "exc-1", ContextID: "ctx-1", Type: "amount_mismatch", Status: "open", Priority: "high"}, result)
 		}}
 
 		svc := newExceptionsService(mb)
@@ -45,7 +47,9 @@ func TestExceptionsCreate(t *testing.T) {
 	})
 
 	t.Run("nil input", func(t *testing.T) {
-		svc := newExceptionsService(&mockBackend{t: t, callFn: func(context.Context, string, string, any, any) error { return nil }})
+		t.Parallel()
+
+		svc := newExceptionsService(&mockBackend{callFn: func(context.Context, string, string, any, any) error { return nil }})
 		_, err := svc.Create(context.Background(), nil)
 		require.Error(t, err)
 		assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
@@ -57,13 +61,16 @@ func TestExceptionsCreate(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestExceptionsGet(t *testing.T) {
+	t.Parallel()
+
 	t.Run("success", func(t *testing.T) {
-		mb := &mockBackend{t: t, callFn: func(_ context.Context, method, path string, _, result any) error {
+		t.Parallel()
+
+		mb := &mockBackend{callFn: func(_ context.Context, method, path string, _, result any) error {
 			assert.Equal(t, "GET", method)
 			assert.Equal(t, "/exceptions/exc-1", path)
-			unmarshalInto(t, Exception{ID: "exc-1", Status: "open"}, result)
 
-			return nil
+			return unmarshalInto(Exception{ID: "exc-1", Status: "open"}, result)
 		}}
 
 		svc := newExceptionsService(mb)
@@ -73,7 +80,9 @@ func TestExceptionsGet(t *testing.T) {
 	})
 
 	t.Run("empty id", func(t *testing.T) {
-		svc := newExceptionsService(&mockBackend{t: t, callFn: func(context.Context, string, string, any, any) error { return nil }})
+		t.Parallel()
+
+		svc := newExceptionsService(&mockBackend{callFn: func(context.Context, string, string, any, any) error { return nil }})
 		_, err := svc.Get(context.Background(), "")
 		require.Error(t, err)
 		assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
@@ -85,7 +94,9 @@ func TestExceptionsGet(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestExceptionsList(t *testing.T) {
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, method, path string, _, result any) error {
+	t.Parallel()
+
+	mb := &mockBackend{callFn: func(_ context.Context, method, path string, _, result any) error {
 		assert.Equal(t, "GET", method)
 		assert.Contains(t, path, "/exceptions")
 
@@ -96,9 +107,8 @@ func TestExceptionsList(t *testing.T) {
 			},
 			Pagination: models.Pagination{Total: 2, Limit: 10},
 		}
-		unmarshalInto(t, resp, result)
 
-		return nil
+		return unmarshalInto(resp, result)
 	}}
 
 	svc := newExceptionsService(mb)
@@ -117,9 +127,13 @@ func TestExceptionsList(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestExceptionsUpdate(t *testing.T) {
+	t.Parallel()
+
 	t.Run("success", func(t *testing.T) {
+		t.Parallel()
+
 		priority := "critical"
-		mb := &mockBackend{t: t, callFn: func(_ context.Context, method, path string, body, result any) error {
+		mb := &mockBackend{callFn: func(_ context.Context, method, path string, body, result any) error {
 			assert.Equal(t, "PATCH", method)
 			assert.Equal(t, "/exceptions/exc-1", path)
 			assert.NotNil(t, body)
@@ -128,9 +142,7 @@ func TestExceptionsUpdate(t *testing.T) {
 			require.True(t, ok)
 			assert.Equal(t, "critical", *input.Priority)
 
-			unmarshalInto(t, Exception{ID: "exc-1", Priority: "critical"}, result)
-
-			return nil
+			return unmarshalInto(Exception{ID: "exc-1", Priority: "critical"}, result)
 		}}
 
 		svc := newExceptionsService(mb)
@@ -140,14 +152,18 @@ func TestExceptionsUpdate(t *testing.T) {
 	})
 
 	t.Run("empty id", func(t *testing.T) {
-		svc := newExceptionsService(&mockBackend{t: t, callFn: func(context.Context, string, string, any, any) error { return nil }})
+		t.Parallel()
+
+		svc := newExceptionsService(&mockBackend{callFn: func(context.Context, string, string, any, any) error { return nil }})
 		_, err := svc.Update(context.Background(), "", &UpdateExceptionInput{})
 		require.Error(t, err)
 		assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
 	})
 
 	t.Run("nil input", func(t *testing.T) {
-		svc := newExceptionsService(&mockBackend{t: t, callFn: func(context.Context, string, string, any, any) error { return nil }})
+		t.Parallel()
+
+		svc := newExceptionsService(&mockBackend{callFn: func(context.Context, string, string, any, any) error { return nil }})
 		_, err := svc.Update(context.Background(), "exc-1", nil)
 		require.Error(t, err)
 		assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
@@ -159,8 +175,12 @@ func TestExceptionsUpdate(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestExceptionsDelete(t *testing.T) {
+	t.Parallel()
+
 	t.Run("success", func(t *testing.T) {
-		mb := &mockBackend{t: t, callFn: func(_ context.Context, method, path string, _, result any) error {
+		t.Parallel()
+
+		mb := &mockBackend{callFn: func(_ context.Context, method, path string, _, result any) error {
 			assert.Equal(t, "DELETE", method)
 			assert.Equal(t, "/exceptions/exc-1", path)
 			assert.Nil(t, result)
@@ -174,7 +194,9 @@ func TestExceptionsDelete(t *testing.T) {
 	})
 
 	t.Run("empty id", func(t *testing.T) {
-		svc := newExceptionsService(&mockBackend{t: t, callFn: func(context.Context, string, string, any, any) error { return nil }})
+		t.Parallel()
+
+		svc := newExceptionsService(&mockBackend{callFn: func(context.Context, string, string, any, any) error { return nil }})
 		err := svc.Delete(context.Background(), "")
 		require.Error(t, err)
 		assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
@@ -186,14 +208,17 @@ func TestExceptionsDelete(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestExceptionsApprove(t *testing.T) {
+	t.Parallel()
+
 	t.Run("success", func(t *testing.T) {
-		mb := &mockBackend{t: t, callFn: func(_ context.Context, method, path string, body, result any) error {
+		t.Parallel()
+
+		mb := &mockBackend{callFn: func(_ context.Context, method, path string, body, result any) error {
 			assert.Equal(t, "POST", method)
 			assert.Equal(t, "/exceptions/exc-1/approve", path)
 			assert.Nil(t, body)
-			unmarshalInto(t, Exception{ID: "exc-1", Status: "approved"}, result)
 
-			return nil
+			return unmarshalInto(Exception{ID: "exc-1", Status: "approved"}, result)
 		}}
 
 		svc := newExceptionsService(mb)
@@ -203,7 +228,9 @@ func TestExceptionsApprove(t *testing.T) {
 	})
 
 	t.Run("empty id", func(t *testing.T) {
-		svc := newExceptionsService(&mockBackend{t: t, callFn: func(context.Context, string, string, any, any) error { return nil }})
+		t.Parallel()
+
+		svc := newExceptionsService(&mockBackend{callFn: func(context.Context, string, string, any, any) error { return nil }})
 		_, err := svc.Approve(context.Background(), "")
 		require.Error(t, err)
 		assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
@@ -215,8 +242,12 @@ func TestExceptionsApprove(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestExceptionsReject(t *testing.T) {
+	t.Parallel()
+
 	t.Run("success", func(t *testing.T) {
-		mb := &mockBackend{t: t, callFn: func(_ context.Context, method, path string, body, result any) error {
+		t.Parallel()
+
+		mb := &mockBackend{callFn: func(_ context.Context, method, path string, body, result any) error {
 			assert.Equal(t, "POST", method)
 			assert.Equal(t, "/exceptions/exc-1/reject", path)
 			assert.NotNil(t, body)
@@ -225,9 +256,7 @@ func TestExceptionsReject(t *testing.T) {
 			require.True(t, ok)
 			assert.Equal(t, "duplicate entry", input.Reason)
 
-			unmarshalInto(t, Exception{ID: "exc-1", Status: "rejected"}, result)
-
-			return nil
+			return unmarshalInto(Exception{ID: "exc-1", Status: "rejected"}, result)
 		}}
 
 		svc := newExceptionsService(mb)
@@ -237,14 +266,18 @@ func TestExceptionsReject(t *testing.T) {
 	})
 
 	t.Run("empty id", func(t *testing.T) {
-		svc := newExceptionsService(&mockBackend{t: t, callFn: func(context.Context, string, string, any, any) error { return nil }})
+		t.Parallel()
+
+		svc := newExceptionsService(&mockBackend{callFn: func(context.Context, string, string, any, any) error { return nil }})
 		_, err := svc.Reject(context.Background(), "", &RejectExceptionInput{Reason: "test"})
 		require.Error(t, err)
 		assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
 	})
 
 	t.Run("nil input", func(t *testing.T) {
-		svc := newExceptionsService(&mockBackend{t: t, callFn: func(context.Context, string, string, any, any) error { return nil }})
+		t.Parallel()
+
+		svc := newExceptionsService(&mockBackend{callFn: func(context.Context, string, string, any, any) error { return nil }})
 		_, err := svc.Reject(context.Background(), "exc-1", nil)
 		require.Error(t, err)
 		assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
@@ -256,8 +289,12 @@ func TestExceptionsReject(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestExceptionsReassign(t *testing.T) {
+	t.Parallel()
+
 	t.Run("success", func(t *testing.T) {
-		mb := &mockBackend{t: t, callFn: func(_ context.Context, method, path string, body, result any) error {
+		t.Parallel()
+
+		mb := &mockBackend{callFn: func(_ context.Context, method, path string, body, result any) error {
 			assert.Equal(t, "POST", method)
 			assert.Equal(t, "/exceptions/exc-1/reassign", path)
 			assert.NotNil(t, body)
@@ -266,9 +303,7 @@ func TestExceptionsReassign(t *testing.T) {
 			require.True(t, ok)
 			assert.Equal(t, "user-42", input.AssignTo)
 
-			unmarshalInto(t, Exception{ID: "exc-1", AssignedTo: strPtr("user-42")}, result)
-
-			return nil
+			return unmarshalInto(Exception{ID: "exc-1", AssignedTo: strPtr("user-42")}, result)
 		}}
 
 		svc := newExceptionsService(mb)
@@ -279,14 +314,18 @@ func TestExceptionsReassign(t *testing.T) {
 	})
 
 	t.Run("empty id", func(t *testing.T) {
-		svc := newExceptionsService(&mockBackend{t: t, callFn: func(context.Context, string, string, any, any) error { return nil }})
+		t.Parallel()
+
+		svc := newExceptionsService(&mockBackend{callFn: func(context.Context, string, string, any, any) error { return nil }})
 		_, err := svc.Reassign(context.Background(), "", &ReassignExceptionInput{AssignTo: "user-42"})
 		require.Error(t, err)
 		assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
 	})
 
 	t.Run("nil input", func(t *testing.T) {
-		svc := newExceptionsService(&mockBackend{t: t, callFn: func(context.Context, string, string, any, any) error { return nil }})
+		t.Parallel()
+
+		svc := newExceptionsService(&mockBackend{callFn: func(context.Context, string, string, any, any) error { return nil }})
 		_, err := svc.Reassign(context.Background(), "exc-1", nil)
 		require.Error(t, err)
 		assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
@@ -298,8 +337,12 @@ func TestExceptionsReassign(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestExceptionsBulkApprove(t *testing.T) {
+	t.Parallel()
+
 	t.Run("success", func(t *testing.T) {
-		mb := &mockBackend{t: t, callFn: func(_ context.Context, method, path string, body, result any) error {
+		t.Parallel()
+
+		mb := &mockBackend{callFn: func(_ context.Context, method, path string, body, result any) error {
 			assert.Equal(t, "POST", method)
 			assert.Equal(t, "/exceptions/bulk/approve", path)
 			assert.NotNil(t, body)
@@ -308,9 +351,7 @@ func TestExceptionsBulkApprove(t *testing.T) {
 			require.True(t, ok)
 			assert.Equal(t, []string{"exc-1", "exc-2", "exc-3"}, input.IDs)
 
-			unmarshalInto(t, BulkExceptionResult{Processed: 3, Succeeded: 3, Failed: 0}, result)
-
-			return nil
+			return unmarshalInto(BulkExceptionResult{Processed: 3, Succeeded: 3, Failed: 0}, result)
 		}}
 
 		svc := newExceptionsService(mb)
@@ -324,7 +365,9 @@ func TestExceptionsBulkApprove(t *testing.T) {
 	})
 
 	t.Run("nil input", func(t *testing.T) {
-		svc := newExceptionsService(&mockBackend{t: t, callFn: func(context.Context, string, string, any, any) error { return nil }})
+		t.Parallel()
+
+		svc := newExceptionsService(&mockBackend{callFn: func(context.Context, string, string, any, any) error { return nil }})
 		_, err := svc.BulkApprove(context.Background(), nil)
 		require.Error(t, err)
 		assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
@@ -336,8 +379,12 @@ func TestExceptionsBulkApprove(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestExceptionsBulkReject(t *testing.T) {
+	t.Parallel()
+
 	t.Run("success", func(t *testing.T) {
-		mb := &mockBackend{t: t, callFn: func(_ context.Context, method, path string, body, result any) error {
+		t.Parallel()
+
+		mb := &mockBackend{callFn: func(_ context.Context, method, path string, body, result any) error {
 			assert.Equal(t, "POST", method)
 			assert.Equal(t, "/exceptions/bulk/reject", path)
 			assert.NotNil(t, body)
@@ -347,9 +394,7 @@ func TestExceptionsBulkReject(t *testing.T) {
 			assert.Equal(t, []string{"exc-1", "exc-2"}, input.IDs)
 			assert.Equal(t, "not applicable", input.Reason)
 
-			unmarshalInto(t, BulkExceptionResult{Processed: 2, Succeeded: 1, Failed: 1, Errors: []string{"exc-2: already rejected"}}, result)
-
-			return nil
+			return unmarshalInto(BulkExceptionResult{Processed: 2, Succeeded: 1, Failed: 1, Errors: []string{"exc-2: already rejected"}}, result)
 		}}
 
 		svc := newExceptionsService(mb)
@@ -365,7 +410,9 @@ func TestExceptionsBulkReject(t *testing.T) {
 	})
 
 	t.Run("nil input", func(t *testing.T) {
-		svc := newExceptionsService(&mockBackend{t: t, callFn: func(context.Context, string, string, any, any) error { return nil }})
+		t.Parallel()
+
+		svc := newExceptionsService(&mockBackend{callFn: func(context.Context, string, string, any, any) error { return nil }})
 		_, err := svc.BulkReject(context.Background(), nil)
 		require.Error(t, err)
 		assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
@@ -377,8 +424,12 @@ func TestExceptionsBulkReject(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestExceptionsBulkReassign(t *testing.T) {
+	t.Parallel()
+
 	t.Run("success", func(t *testing.T) {
-		mb := &mockBackend{t: t, callFn: func(_ context.Context, method, path string, body, result any) error {
+		t.Parallel()
+
+		mb := &mockBackend{callFn: func(_ context.Context, method, path string, body, result any) error {
 			assert.Equal(t, "POST", method)
 			assert.Equal(t, "/exceptions/bulk/reassign", path)
 			assert.NotNil(t, body)
@@ -388,9 +439,7 @@ func TestExceptionsBulkReassign(t *testing.T) {
 			assert.Equal(t, []string{"exc-1", "exc-2"}, input.IDs)
 			assert.Equal(t, "user-99", input.AssignTo)
 
-			unmarshalInto(t, BulkExceptionResult{Processed: 2, Succeeded: 2, Failed: 0}, result)
-
-			return nil
+			return unmarshalInto(BulkExceptionResult{Processed: 2, Succeeded: 2, Failed: 0}, result)
 		}}
 
 		svc := newExceptionsService(mb)
@@ -404,7 +453,9 @@ func TestExceptionsBulkReassign(t *testing.T) {
 	})
 
 	t.Run("nil input", func(t *testing.T) {
-		svc := newExceptionsService(&mockBackend{t: t, callFn: func(context.Context, string, string, any, any) error { return nil }})
+		t.Parallel()
+
+		svc := newExceptionsService(&mockBackend{callFn: func(context.Context, string, string, any, any) error { return nil }})
 		_, err := svc.BulkReassign(context.Background(), nil)
 		require.Error(t, err)
 		assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
@@ -416,7 +467,9 @@ func TestExceptionsBulkReassign(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestExceptionsListByContext(t *testing.T) {
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, method, path string, _, result any) error {
+	t.Parallel()
+
+	mb := &mockBackend{callFn: func(_ context.Context, method, path string, _, result any) error {
 		assert.Equal(t, "GET", method)
 		assert.Contains(t, path, "/contexts/ctx-1/exceptions")
 
@@ -426,9 +479,8 @@ func TestExceptionsListByContext(t *testing.T) {
 			},
 			Pagination: models.Pagination{Total: 1, Limit: 10},
 		}
-		unmarshalInto(t, resp, result)
 
-		return nil
+		return unmarshalInto(resp, result)
 	}}
 
 	svc := newExceptionsService(mb)
@@ -446,19 +498,19 @@ func TestExceptionsListByContext(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestExceptionsGetStatistics(t *testing.T) {
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, method, path string, _, result any) error {
+	t.Parallel()
+
+	mb := &mockBackend{callFn: func(_ context.Context, method, path string, _, result any) error {
 		assert.Equal(t, "GET", method)
 		assert.Equal(t, "/exceptions/statistics", path)
 
-		unmarshalInto(t, ExceptionStatistics{
+		return unmarshalInto(ExceptionStatistics{
 			Total:      42,
 			ByStatus:   map[string]int{"open": 30, "approved": 10, "rejected": 2},
 			ByPriority: map[string]int{"high": 15, "medium": 20, "low": 7},
 			ByType:     map[string]int{"amount_mismatch": 25, "missing_record": 17},
 			AvgAge:     48.5,
 		}, result)
-
-		return nil
 	}}
 
 	svc := newExceptionsService(mb)
@@ -479,7 +531,7 @@ func TestExceptionsCreateBackendError(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("backend error: conflict")
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, _, _ any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
 		return expectedErr
 	}}
 
@@ -497,7 +549,7 @@ func TestExceptionsGetBackendError(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("backend error: not found")
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, _, _ any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
 		return expectedErr
 	}}
 
@@ -513,7 +565,7 @@ func TestExceptionsListBackendError(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("backend error: internal")
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, _, _ any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
 		return expectedErr
 	}}
 
@@ -530,7 +582,7 @@ func TestExceptionsUpdateBackendError(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("backend error: conflict")
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, _, _ any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
 		return expectedErr
 	}}
 
@@ -547,7 +599,7 @@ func TestExceptionsDeleteBackendError(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("backend error: forbidden")
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, _, _ any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
 		return expectedErr
 	}}
 
@@ -562,7 +614,7 @@ func TestExceptionsApproveBackendError(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("backend error: internal")
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, _, _ any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
 		return expectedErr
 	}}
 
@@ -578,7 +630,7 @@ func TestExceptionsRejectBackendError(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("backend error: internal")
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, _, _ any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
 		return expectedErr
 	}}
 
@@ -594,7 +646,7 @@ func TestExceptionsReassignBackendError(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("backend error: internal")
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, _, _ any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
 		return expectedErr
 	}}
 
@@ -610,7 +662,7 @@ func TestExceptionsBulkApproveBackendError(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("backend error: internal")
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, _, _ any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
 		return expectedErr
 	}}
 
@@ -626,7 +678,7 @@ func TestExceptionsBulkRejectBackendError(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("backend error: internal")
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, _, _ any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
 		return expectedErr
 	}}
 
@@ -642,7 +694,7 @@ func TestExceptionsBulkReassignBackendError(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("backend error: internal")
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, _, _ any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
 		return expectedErr
 	}}
 
@@ -658,7 +710,7 @@ func TestExceptionsListByContextBackendError(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("backend error: internal")
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, _, _ any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
 		return expectedErr
 	}}
 
@@ -675,7 +727,7 @@ func TestExceptionsGetStatisticsBackendError(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("backend error: internal")
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, _, _ any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
 		return expectedErr
 	}}
 

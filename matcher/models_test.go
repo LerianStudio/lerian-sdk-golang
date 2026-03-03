@@ -17,6 +17,8 @@ func ptr[T any](v T) *T { return &v }
 // ---------------------------------------------------------------------------
 
 func TestContextJSON(t *testing.T) {
+	t.Parallel()
+
 	tol := 0.01
 	original := Context{
 		ID:          "ctx-001",
@@ -40,6 +42,7 @@ func TestContextJSON(t *testing.T) {
 	// Verify camelCase keys.
 	raw := make(map[string]json.RawMessage)
 	require.NoError(t, json.Unmarshal(data, &raw))
+
 	for _, key := range []string{"id", "name", "description", "status", "config", "metadata", "createdAt", "updatedAt"} {
 		assert.Contains(t, raw, key, "expected key %q in JSON output", key)
 	}
@@ -63,6 +66,8 @@ func TestContextJSON(t *testing.T) {
 }
 
 func TestContextOmitempty(t *testing.T) {
+	t.Parallel()
+
 	minimal := Context{
 		ID:        "ctx-min",
 		Name:      "Minimal",
@@ -83,6 +88,8 @@ func TestContextOmitempty(t *testing.T) {
 }
 
 func TestRuleJSON(t *testing.T) {
+	t.Parallel()
+
 	original := Rule{
 		ID:          "rule-001",
 		ContextID:   "ctx-001",
@@ -114,6 +121,8 @@ func TestRuleJSON(t *testing.T) {
 }
 
 func TestExceptionJSON(t *testing.T) {
+	t.Parallel()
+
 	original := Exception{
 		ID:          "exc-001",
 		ContextID:   "ctx-001",
@@ -153,6 +162,8 @@ func TestExceptionJSON(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestMatchResultJSON(t *testing.T) {
+	t.Parallel()
+
 	original := MatchResult{
 		ID:             "mr-001",
 		ContextID:      "ctx-001",
@@ -180,6 +191,8 @@ func TestMatchResultJSON(t *testing.T) {
 }
 
 func TestBulkExceptionResultJSON(t *testing.T) {
+	t.Parallel()
+
 	original := BulkExceptionResult{
 		Processed: 10,
 		Succeeded: 8,
@@ -201,6 +214,8 @@ func TestBulkExceptionResultJSON(t *testing.T) {
 }
 
 func TestBulkExceptionResultOmitErrors(t *testing.T) {
+	t.Parallel()
+
 	result := BulkExceptionResult{
 		Processed: 5,
 		Succeeded: 5,
@@ -221,6 +236,8 @@ func TestBulkExceptionResultOmitErrors(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestReconciliationSummaryJSON(t *testing.T) {
+	t.Parallel()
+
 	original := ReconciliationSummary{
 		Period:           "2026-02",
 		TotalRecords:     1000,
@@ -249,6 +266,8 @@ func TestReconciliationSummaryJSON(t *testing.T) {
 }
 
 func TestDashboardReportJSON(t *testing.T) {
+	t.Parallel()
+
 	original := DashboardReport{
 		Summary: ReconciliationSummary{
 			Period:           "2026-02",
@@ -303,6 +322,8 @@ func TestDashboardReportJSON(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestScheduleJSON(t *testing.T) {
+	t.Parallel()
+
 	lastRun := time.Date(2026, 2, 28, 23, 0, 0, 0, time.UTC)
 	nextRun := time.Date(2026, 3, 31, 23, 0, 0, 0, time.UTC)
 
@@ -333,6 +354,8 @@ func TestScheduleJSON(t *testing.T) {
 }
 
 func TestFeeScheduleJSON(t *testing.T) {
+	t.Parallel()
+
 	amt := int64(100)
 	pct := "0.5"
 
@@ -368,6 +391,8 @@ func TestFeeScheduleJSON(t *testing.T) {
 }
 
 func TestFeeSimulationResultJSON(t *testing.T) {
+	t.Parallel()
+
 	original := FeeSimulationResult{
 		TotalFee: 350,
 		Scale:    2,
@@ -393,6 +418,8 @@ func TestFeeSimulationResultJSON(t *testing.T) {
 }
 
 func TestDisputeJSON(t *testing.T) {
+	t.Parallel()
+
 	resolvedAt := time.Date(2026, 3, 5, 16, 0, 0, 0, time.UTC)
 
 	original := Dispute{
@@ -426,6 +453,8 @@ func TestDisputeJSON(t *testing.T) {
 }
 
 func TestExportJobJSON(t *testing.T) {
+	t.Parallel()
+
 	expires := time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC)
 
 	original := ExportJob{
@@ -455,7 +484,11 @@ func TestExportJobJSON(t *testing.T) {
 }
 
 func TestImportAndImportStatusJSON(t *testing.T) {
+	t.Parallel()
+
 	t.Run("Import round-trip", func(t *testing.T) {
+		t.Parallel()
+
 		original := Import{
 			ID:          "imp-001",
 			ContextID:   "ctx-001",
@@ -482,6 +515,8 @@ func TestImportAndImportStatusJSON(t *testing.T) {
 	})
 
 	t.Run("ImportStatus round-trip", func(t *testing.T) {
+		t.Parallel()
+
 		original := ImportStatus{
 			ID:          "imp-001",
 			Status:      "processing",
@@ -507,6 +542,8 @@ func TestImportAndImportStatusJSON(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestMatchRateReportJSON(t *testing.T) {
+	t.Parallel()
+
 	original := MatchRateReport{
 		Period:   "2026-02",
 		Overall:  0.94,
@@ -531,6 +568,8 @@ func TestMatchRateReportJSON(t *testing.T) {
 }
 
 func TestPerformanceMetricsReportJSON(t *testing.T) {
+	t.Parallel()
+
 	original := PerformanceMetricsReport{
 		AvgDuration:      3200.5,
 		P95Duration:      5400.0,
@@ -559,6 +598,8 @@ func TestPerformanceMetricsReportJSON(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestCreateContextInputJSON(t *testing.T) {
+	t.Parallel()
+
 	input := CreateContextInput{
 		Name:        "Q1 Reconciliation",
 		Description: ptr("Quarterly bank recon"),
@@ -582,6 +623,8 @@ func TestCreateContextInputJSON(t *testing.T) {
 }
 
 func TestUpdateContextInputOmitempty(t *testing.T) {
+	t.Parallel()
+
 	input := UpdateContextInput{}
 
 	data, err := json.Marshal(input)
@@ -598,6 +641,8 @@ func TestUpdateContextInputOmitempty(t *testing.T) {
 }
 
 func TestBulkReassignInputJSON(t *testing.T) {
+	t.Parallel()
+
 	input := BulkReassignInput{
 		IDs:      []string{"exc-001", "exc-002", "exc-003"},
 		AssignTo: "user-99",
@@ -615,6 +660,8 @@ func TestBulkReassignInputJSON(t *testing.T) {
 }
 
 func TestManualMatchInputJSON(t *testing.T) {
+	t.Parallel()
+
 	input := ManualMatchInput{
 		ContextID:       "ctx-001",
 		SourceRecordIDs: []string{"src-001", "src-002"},
@@ -640,6 +687,8 @@ func TestManualMatchInputJSON(t *testing.T) {
 }
 
 func TestSimulateFeeScheduleInputJSON(t *testing.T) {
+	t.Parallel()
+
 	input := SimulateFeeScheduleInput{
 		Amount:   50000,
 		Currency: "BRL",

@@ -30,16 +30,17 @@ var testImport = Import{
 // ---------------------------------------------------------------------------
 
 func TestImportsCreate(t *testing.T) {
+	t.Parallel()
+
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		mb := &mockBackend{t: t, callFn: func(_ context.Context, method, path string, body, result any) error {
+		mb := &mockBackend{callFn: func(_ context.Context, method, path string, body, result any) error {
 			assert.Equal(t, "POST", method)
 			assert.Equal(t, "/imports", path)
 			assert.NotNil(t, body)
-			unmarshalInto(t, testImport, result)
 
-			return nil
+			return unmarshalInto(testImport, result)
 		}}
 
 		svc := newImportsService(mb)
@@ -58,7 +59,7 @@ func TestImportsCreate(t *testing.T) {
 	t.Run("nil input", func(t *testing.T) {
 		t.Parallel()
 
-		svc := newImportsService(&mockBackend{t: t, callFn: noopCallFn})
+		svc := newImportsService(&mockBackend{callFn: noopCallFn})
 		got, err := svc.Create(context.Background(), nil)
 
 		require.Error(t, err)
@@ -69,14 +70,13 @@ func TestImportsCreate(t *testing.T) {
 	t.Run("input forwarded", func(t *testing.T) {
 		t.Parallel()
 
-		mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, body, result any) error {
+		mb := &mockBackend{callFn: func(_ context.Context, _, _ string, body, result any) error {
 			input, ok := body.(*CreateImportInput)
 			require.True(t, ok, "body should be *CreateImportInput")
 			assert.Equal(t, "ctx-2", input.ContextID)
 			assert.Equal(t, "data.csv", input.FileName)
-			unmarshalInto(t, testImport, result)
 
-			return nil
+			return unmarshalInto(testImport, result)
 		}}
 
 		svc := newImportsService(mb)
@@ -93,16 +93,17 @@ func TestImportsCreate(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestImportsGet(t *testing.T) {
+	t.Parallel()
+
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		mb := &mockBackend{t: t, callFn: func(_ context.Context, method, path string, body, result any) error {
+		mb := &mockBackend{callFn: func(_ context.Context, method, path string, body, result any) error {
 			assert.Equal(t, "GET", method)
 			assert.Equal(t, "/imports/imp-1", path)
 			assert.Nil(t, body)
-			unmarshalInto(t, testImport, result)
 
-			return nil
+			return unmarshalInto(testImport, result)
 		}}
 
 		svc := newImportsService(mb)
@@ -116,7 +117,7 @@ func TestImportsGet(t *testing.T) {
 	t.Run("empty id", func(t *testing.T) {
 		t.Parallel()
 
-		svc := newImportsService(&mockBackend{t: t, callFn: noopCallFn})
+		svc := newImportsService(&mockBackend{callFn: noopCallFn})
 		got, err := svc.Get(context.Background(), "")
 
 		require.Error(t, err)
@@ -127,7 +128,7 @@ func TestImportsGet(t *testing.T) {
 	t.Run("backend error", func(t *testing.T) {
 		t.Parallel()
 
-		mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, _, _ any) error {
+		mb := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
 			return errors.New("not found")
 		}}
 
@@ -147,7 +148,7 @@ func TestImportsGet(t *testing.T) {
 func TestImportsList(t *testing.T) {
 	t.Parallel()
 
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, method, path string, _, result any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, method, path string, _, result any) error {
 		assert.Equal(t, "GET", method)
 		assert.Contains(t, path, "/imports")
 
@@ -158,9 +159,8 @@ func TestImportsList(t *testing.T) {
 			},
 			Pagination: models.Pagination{Total: 2, Limit: 10},
 		}
-		unmarshalInto(t, resp, result)
 
-		return nil
+		return unmarshalInto(resp, result)
 	}}
 
 	svc := newImportsService(mb)
@@ -180,16 +180,15 @@ func TestImportsListWithOptions(t *testing.T) {
 
 	var receivedPath string
 
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, _, path string, _, result any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, _, path string, _, result any) error {
 		receivedPath = path
 
 		resp := models.ListResponse[Import]{
 			Items:      []Import{{ID: "imp-1"}},
 			Pagination: models.Pagination{Total: 1, Limit: 5},
 		}
-		unmarshalInto(t, resp, result)
 
-		return nil
+		return unmarshalInto(resp, result)
 	}}
 
 	svc := newImportsService(mb)
@@ -205,19 +204,20 @@ func TestImportsListWithOptions(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestImportsCancel(t *testing.T) {
+	t.Parallel()
+
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		mb := &mockBackend{t: t, callFn: func(_ context.Context, method, path string, body, result any) error {
+		mb := &mockBackend{callFn: func(_ context.Context, method, path string, body, result any) error {
 			assert.Equal(t, "POST", method)
 			assert.Equal(t, "/imports/imp-1/cancel", path)
 			assert.Nil(t, body)
 
 			cancelled := testImport
 			cancelled.Status = "cancelled"
-			unmarshalInto(t, cancelled, result)
 
-			return nil
+			return unmarshalInto(cancelled, result)
 		}}
 
 		svc := newImportsService(mb)
@@ -232,7 +232,7 @@ func TestImportsCancel(t *testing.T) {
 	t.Run("empty id", func(t *testing.T) {
 		t.Parallel()
 
-		svc := newImportsService(&mockBackend{t: t, callFn: noopCallFn})
+		svc := newImportsService(&mockBackend{callFn: noopCallFn})
 		got, err := svc.Cancel(context.Background(), "")
 
 		require.Error(t, err)
@@ -243,7 +243,7 @@ func TestImportsCancel(t *testing.T) {
 	t.Run("backend error", func(t *testing.T) {
 		t.Parallel()
 
-		mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, _, _ any) error {
+		mb := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
 			return errors.New("cannot cancel completed import")
 		}}
 
@@ -261,6 +261,8 @@ func TestImportsCancel(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestImportsGetStatus(t *testing.T) {
+	t.Parallel()
+
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
@@ -273,13 +275,12 @@ func TestImportsGetStatus(t *testing.T) {
 			UpdatedAt:   time.Date(2026, 1, 15, 10, 10, 0, 0, time.UTC),
 		}
 
-		mb := &mockBackend{t: t, callFn: func(_ context.Context, method, path string, body, result any) error {
+		mb := &mockBackend{callFn: func(_ context.Context, method, path string, body, result any) error {
 			assert.Equal(t, "GET", method)
 			assert.Equal(t, "/imports/imp-1/status", path)
 			assert.Nil(t, body)
-			unmarshalInto(t, status, result)
 
-			return nil
+			return unmarshalInto(status, result)
 		}}
 
 		svc := newImportsService(mb)
@@ -297,7 +298,7 @@ func TestImportsGetStatus(t *testing.T) {
 	t.Run("empty id", func(t *testing.T) {
 		t.Parallel()
 
-		svc := newImportsService(&mockBackend{t: t, callFn: noopCallFn})
+		svc := newImportsService(&mockBackend{callFn: noopCallFn})
 		got, err := svc.GetStatus(context.Background(), "")
 
 		require.Error(t, err)
@@ -314,7 +315,7 @@ func TestImportsCreateBackendError(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("backend error: conflict")
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, _, _ any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
 		return expectedErr
 	}}
 
@@ -332,7 +333,7 @@ func TestImportsListBackendError(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("backend error: internal")
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, _, _ any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
 		return expectedErr
 	}}
 
@@ -349,7 +350,7 @@ func TestImportsGetStatusBackendError(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("backend error: not found")
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, _, _ any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
 		return expectedErr
 	}}
 

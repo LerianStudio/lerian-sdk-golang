@@ -17,8 +17,12 @@ import (
 // ---------------------------------------------------------------------------
 
 func TestExportJobsCreate(t *testing.T) {
+	t.Parallel()
+
 	t.Run("success", func(t *testing.T) {
-		mb := &mockBackend{t: t, callFn: func(_ context.Context, method, path string, body, result any) error {
+		t.Parallel()
+
+		mb := &mockBackend{callFn: func(_ context.Context, method, path string, body, result any) error {
 			assert.Equal(t, "POST", method)
 			assert.Equal(t, "/export-jobs", path)
 			assert.NotNil(t, body)
@@ -28,9 +32,7 @@ func TestExportJobsCreate(t *testing.T) {
 			assert.Equal(t, "ctx-1", input.ContextID)
 			assert.Equal(t, "csv", input.Format)
 
-			unmarshalInto(t, ExportJob{ID: "exp-1", ContextID: "ctx-1", Status: "pending", Format: "csv"}, result)
-
-			return nil
+			return unmarshalInto(ExportJob{ID: "exp-1", ContextID: "ctx-1", Status: "pending", Format: "csv"}, result)
 		}}
 
 		svc := newExportJobsService(mb)
@@ -46,7 +48,9 @@ func TestExportJobsCreate(t *testing.T) {
 	})
 
 	t.Run("nil input", func(t *testing.T) {
-		svc := newExportJobsService(&mockBackend{t: t, callFn: func(context.Context, string, string, any, any) error { return nil }})
+		t.Parallel()
+
+		svc := newExportJobsService(&mockBackend{callFn: func(context.Context, string, string, any, any) error { return nil }})
 		_, err := svc.Create(context.Background(), nil)
 		require.Error(t, err)
 		assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
@@ -58,13 +62,16 @@ func TestExportJobsCreate(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestExportJobsGet(t *testing.T) {
+	t.Parallel()
+
 	t.Run("success", func(t *testing.T) {
-		mb := &mockBackend{t: t, callFn: func(_ context.Context, method, path string, _, result any) error {
+		t.Parallel()
+
+		mb := &mockBackend{callFn: func(_ context.Context, method, path string, _, result any) error {
 			assert.Equal(t, "GET", method)
 			assert.Equal(t, "/export-jobs/exp-1", path)
-			unmarshalInto(t, ExportJob{ID: "exp-1", Status: "completed", Format: "xlsx"}, result)
 
-			return nil
+			return unmarshalInto(ExportJob{ID: "exp-1", Status: "completed", Format: "xlsx"}, result)
 		}}
 
 		svc := newExportJobsService(mb)
@@ -75,7 +82,9 @@ func TestExportJobsGet(t *testing.T) {
 	})
 
 	t.Run("empty id", func(t *testing.T) {
-		svc := newExportJobsService(&mockBackend{t: t, callFn: func(context.Context, string, string, any, any) error { return nil }})
+		t.Parallel()
+
+		svc := newExportJobsService(&mockBackend{callFn: func(context.Context, string, string, any, any) error { return nil }})
 		_, err := svc.Get(context.Background(), "")
 		require.Error(t, err)
 		assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
@@ -87,7 +96,9 @@ func TestExportJobsGet(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestExportJobsList(t *testing.T) {
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, method, path string, _, result any) error {
+	t.Parallel()
+
+	mb := &mockBackend{callFn: func(_ context.Context, method, path string, _, result any) error {
 		assert.Equal(t, "GET", method)
 		assert.Contains(t, path, "/export-jobs")
 
@@ -98,9 +109,8 @@ func TestExportJobsList(t *testing.T) {
 			},
 			Pagination: models.Pagination{Total: 2, Limit: 10},
 		}
-		unmarshalInto(t, resp, result)
 
-		return nil
+		return unmarshalInto(resp, result)
 	}}
 
 	svc := newExportJobsService(mb)
@@ -115,18 +125,19 @@ func TestExportJobsList(t *testing.T) {
 }
 
 func TestExportJobsListWithOptions(t *testing.T) {
+	t.Parallel()
+
 	var receivedPath string
 
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, _, path string, _, result any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, _, path string, _, result any) error {
 		receivedPath = path
 
 		resp := models.ListResponse[ExportJob]{
 			Items:      []ExportJob{{ID: "exp-1"}},
 			Pagination: models.Pagination{Total: 1, Limit: 50},
 		}
-		unmarshalInto(t, resp, result)
 
-		return nil
+		return unmarshalInto(resp, result)
 	}}
 
 	svc := newExportJobsService(mb)
@@ -143,14 +154,17 @@ func TestExportJobsListWithOptions(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestExportJobsCancel(t *testing.T) {
+	t.Parallel()
+
 	t.Run("success", func(t *testing.T) {
-		mb := &mockBackend{t: t, callFn: func(_ context.Context, method, path string, body, result any) error {
+		t.Parallel()
+
+		mb := &mockBackend{callFn: func(_ context.Context, method, path string, body, result any) error {
 			assert.Equal(t, "POST", method)
 			assert.Equal(t, "/export-jobs/exp-1/cancel", path)
 			assert.Nil(t, body)
-			unmarshalInto(t, ExportJob{ID: "exp-1", Status: "cancelled"}, result)
 
-			return nil
+			return unmarshalInto(ExportJob{ID: "exp-1", Status: "cancelled"}, result)
 		}}
 
 		svc := newExportJobsService(mb)
@@ -160,7 +174,9 @@ func TestExportJobsCancel(t *testing.T) {
 	})
 
 	t.Run("empty id", func(t *testing.T) {
-		svc := newExportJobsService(&mockBackend{t: t, callFn: func(context.Context, string, string, any, any) error { return nil }})
+		t.Parallel()
+
+		svc := newExportJobsService(&mockBackend{callFn: func(context.Context, string, string, any, any) error { return nil }})
 		_, err := svc.Cancel(context.Background(), "")
 		require.Error(t, err)
 		assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
@@ -172,11 +188,14 @@ func TestExportJobsCancel(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestExportJobsDownload(t *testing.T) {
+	t.Parallel()
+
 	t.Run("success", func(t *testing.T) {
+		t.Parallel()
+
 		expectedContent := []byte("id,amount,status\n1,1000,matched\n2,2500,unmatched\n")
 
 		mb := &mockBackend{
-			t:      t,
 			callFn: func(context.Context, string, string, any, any) error { return nil },
 			callRawFn: func(_ context.Context, method, path string, body any) ([]byte, error) {
 				assert.Equal(t, "GET", method)
@@ -194,7 +213,9 @@ func TestExportJobsDownload(t *testing.T) {
 	})
 
 	t.Run("empty id", func(t *testing.T) {
-		svc := newExportJobsService(&mockBackend{t: t, callFn: func(context.Context, string, string, any, any) error { return nil }})
+		t.Parallel()
+
+		svc := newExportJobsService(&mockBackend{callFn: func(context.Context, string, string, any, any) error { return nil }})
 		data, err := svc.Download(context.Background(), "")
 		require.Error(t, err)
 		assert.Nil(t, data)
@@ -202,9 +223,10 @@ func TestExportJobsDownload(t *testing.T) {
 	})
 
 	t.Run("backend error", func(t *testing.T) {
+		t.Parallel()
+
 		expectedErr := fmt.Errorf("export not ready")
 		mb := &mockBackend{
-			t:      t,
 			callFn: func(context.Context, string, string, any, any) error { return nil },
 			callRawFn: func(_ context.Context, _, _ string, _ any) ([]byte, error) {
 				return nil, expectedErr
@@ -227,7 +249,7 @@ func TestExportJobsCreateBackendError(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("backend error: conflict")
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, _, _ any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
 		return expectedErr
 	}}
 
@@ -245,7 +267,7 @@ func TestExportJobsGetBackendError(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("backend error: not found")
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, _, _ any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
 		return expectedErr
 	}}
 
@@ -261,7 +283,7 @@ func TestExportJobsListBackendError(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("backend error: internal")
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, _, _ any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
 		return expectedErr
 	}}
 
@@ -278,7 +300,7 @@ func TestExportJobsCancelBackendError(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("backend error: internal")
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, _, _ any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
 		return expectedErr
 	}}
 

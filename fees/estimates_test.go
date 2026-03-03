@@ -35,6 +35,8 @@ var testEstimate = Estimate{
 // ---------------------------------------------------------------------------
 
 func TestEstimatesCalculate(t *testing.T) {
+	t.Parallel()
+
 	backend := &mockBackend{
 		callFn: func(_ context.Context, method, path string, body, result any) error {
 			assert.Equal(t, "POST", method)
@@ -69,6 +71,8 @@ func TestEstimatesCalculate(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestEstimatesCalculateNilInput(t *testing.T) {
+	t.Parallel()
+
 	svc := newEstimatesService(&mockBackend{})
 
 	est, err := svc.Calculate(context.Background(), nil)
@@ -89,6 +93,8 @@ func TestEstimatesCalculateNilInput(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestEstimatesCalculateBackendError(t *testing.T) {
+	t.Parallel()
+
 	backend := &mockBackend{
 		callFn: func(_ context.Context, _, _ string, _, _ any) error {
 			return fmt.Errorf("service unavailable")
@@ -114,6 +120,8 @@ func TestEstimatesCalculateBackendError(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestEstimatesCalculateInputForwarded(t *testing.T) {
+	t.Parallel()
+
 	backend := &mockBackend{
 		callFn: func(_ context.Context, _, _ string, body, result any) error {
 			// Verify the input was passed through by checking body is not nil

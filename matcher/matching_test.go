@@ -41,10 +41,12 @@ var testAdjustment = Adjustment{
 // ---------------------------------------------------------------------------
 
 func TestMatchingRun(t *testing.T) {
+	t.Parallel()
+
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		mb := &mockBackend{t: t, callFn: func(_ context.Context, method, path string, body, result any) error {
+		mb := &mockBackend{callFn: func(_ context.Context, method, path string, body, result any) error {
 			assert.Equal(t, "POST", method)
 			assert.Equal(t, "/matching/run", path)
 			assert.NotNil(t, body)
@@ -54,9 +56,7 @@ func TestMatchingRun(t *testing.T) {
 			require.True(t, ok, "body should be *matchRunInput")
 			assert.Equal(t, "ctx-1", input.ContextID)
 
-			unmarshalInto(t, testMatchResult, result)
-
-			return nil
+			return unmarshalInto(testMatchResult, result)
 		}}
 
 		svc := newMatchingService(mb)
@@ -76,7 +76,7 @@ func TestMatchingRun(t *testing.T) {
 	t.Run("empty contextID", func(t *testing.T) {
 		t.Parallel()
 
-		svc := newMatchingService(&mockBackend{t: t, callFn: noopCallFn})
+		svc := newMatchingService(&mockBackend{callFn: noopCallFn})
 		got, err := svc.Run(context.Background(), "")
 
 		require.Error(t, err)
@@ -92,7 +92,7 @@ func TestMatchingRun(t *testing.T) {
 	t.Run("backend error", func(t *testing.T) {
 		t.Parallel()
 
-		mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, _, _ any) error {
+		mb := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
 			return errors.New("context not found")
 		}}
 
@@ -110,10 +110,12 @@ func TestMatchingRun(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestMatchingManual(t *testing.T) {
+	t.Parallel()
+
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		mb := &mockBackend{t: t, callFn: func(_ context.Context, method, path string, body, result any) error {
+		mb := &mockBackend{callFn: func(_ context.Context, method, path string, body, result any) error {
 			assert.Equal(t, "POST", method)
 			assert.Equal(t, "/matching/manual", path)
 			assert.NotNil(t, body)
@@ -124,9 +126,7 @@ func TestMatchingManual(t *testing.T) {
 			assert.Equal(t, []string{"src-1", "src-2"}, input.SourceRecordIDs)
 			assert.Equal(t, []string{"tgt-1", "tgt-2"}, input.TargetRecordIDs)
 
-			unmarshalInto(t, testMatchResult, result)
-
-			return nil
+			return unmarshalInto(testMatchResult, result)
 		}}
 
 		svc := newMatchingService(mb)
@@ -145,7 +145,7 @@ func TestMatchingManual(t *testing.T) {
 	t.Run("nil input", func(t *testing.T) {
 		t.Parallel()
 
-		svc := newMatchingService(&mockBackend{t: t, callFn: noopCallFn})
+		svc := newMatchingService(&mockBackend{callFn: noopCallFn})
 		got, err := svc.Manual(context.Background(), nil)
 
 		require.Error(t, err)
@@ -161,7 +161,7 @@ func TestMatchingManual(t *testing.T) {
 	t.Run("backend error", func(t *testing.T) {
 		t.Parallel()
 
-		mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, _, _ any) error {
+		mb := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
 			return errors.New("internal server error")
 		}}
 
@@ -183,10 +183,12 @@ func TestMatchingManual(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestMatchingAdjust(t *testing.T) {
+	t.Parallel()
+
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		mb := &mockBackend{t: t, callFn: func(_ context.Context, method, path string, body, result any) error {
+		mb := &mockBackend{callFn: func(_ context.Context, method, path string, body, result any) error {
 			assert.Equal(t, "POST", method)
 			assert.Equal(t, "/matching/adjust", path)
 			assert.NotNil(t, body)
@@ -198,9 +200,7 @@ func TestMatchingAdjust(t *testing.T) {
 			assert.Equal(t, int64(5000), input.Amount)
 			assert.Equal(t, "Rounding correction", input.Reason)
 
-			unmarshalInto(t, testAdjustment, result)
-
-			return nil
+			return unmarshalInto(testAdjustment, result)
 		}}
 
 		svc := newMatchingService(mb)
@@ -224,7 +224,7 @@ func TestMatchingAdjust(t *testing.T) {
 	t.Run("nil input", func(t *testing.T) {
 		t.Parallel()
 
-		svc := newMatchingService(&mockBackend{t: t, callFn: noopCallFn})
+		svc := newMatchingService(&mockBackend{callFn: noopCallFn})
 		got, err := svc.Adjust(context.Background(), nil)
 
 		require.Error(t, err)
@@ -240,7 +240,7 @@ func TestMatchingAdjust(t *testing.T) {
 	t.Run("backend error", func(t *testing.T) {
 		t.Parallel()
 
-		mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, _, _ any) error {
+		mb := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
 			return errors.New("conflict: adjustment already exists")
 		}}
 

@@ -22,6 +22,8 @@ import (
 // ---------------------------------------------------------------------------
 
 func TestNewEmptyClient(t *testing.T) {
+	t.Parallel()
+
 	client, err := New()
 	require.NoError(t, err)
 	require.NotNil(t, client)
@@ -39,6 +41,8 @@ func TestNewEmptyClient(t *testing.T) {
 }
 
 func TestNewWithMidaz(t *testing.T) {
+	t.Parallel()
+
 	client, err := New(
 		WithMidaz(
 			midaz.WithOnboardingURL("http://localhost:3000/v1"),
@@ -57,6 +61,8 @@ func TestNewWithMidaz(t *testing.T) {
 }
 
 func TestNewWithMidazNoAuth(t *testing.T) {
+	t.Parallel()
+
 	// Midaz without auth token should still work (NoAuth fallback).
 	client, err := New(
 		WithMidaz(
@@ -69,6 +75,8 @@ func TestNewWithMidazNoAuth(t *testing.T) {
 }
 
 func TestNewWithMatcher(t *testing.T) {
+	t.Parallel()
+
 	client, err := New(
 		WithMatcher(
 			matcher.WithBaseURL("http://localhost:3002/v1"),
@@ -83,6 +91,8 @@ func TestNewWithMatcher(t *testing.T) {
 }
 
 func TestNewWithTracer(t *testing.T) {
+	t.Parallel()
+
 	client, err := New(
 		WithTracer(
 			tracer.WithBaseURL("http://localhost:3003/v1"),
@@ -97,6 +107,8 @@ func TestNewWithTracer(t *testing.T) {
 }
 
 func TestNewWithReporter(t *testing.T) {
+	t.Parallel()
+
 	client, err := New(
 		WithReporter(
 			reporter.WithBaseURL("http://localhost:3004/v1"),
@@ -112,6 +124,8 @@ func TestNewWithReporter(t *testing.T) {
 }
 
 func TestNewWithFees(t *testing.T) {
+	t.Parallel()
+
 	client, err := New(
 		WithFees(
 			fees.WithBaseURL("http://localhost:3005/v1"),
@@ -127,6 +141,8 @@ func TestNewWithFees(t *testing.T) {
 }
 
 func TestNewWithMultipleProducts(t *testing.T) {
+	t.Parallel()
+
 	client, err := New(
 		WithMidaz(
 			midaz.WithOnboardingURL("http://localhost:3000/v1"),
@@ -165,6 +181,8 @@ func TestNewWithMultipleProducts(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestNewInvalidMidazMissingOnboardingURL(t *testing.T) {
+	t.Parallel()
+
 	_, err := New(
 		WithMidaz(
 			midaz.WithTransactionURL("http://localhost:3001/v1"),
@@ -176,6 +194,8 @@ func TestNewInvalidMidazMissingOnboardingURL(t *testing.T) {
 }
 
 func TestNewInvalidMidazMissingTransactionURL(t *testing.T) {
+	t.Parallel()
+
 	_, err := New(
 		WithMidaz(
 			midaz.WithOnboardingURL("http://localhost:3000/v1"),
@@ -187,6 +207,8 @@ func TestNewInvalidMidazMissingTransactionURL(t *testing.T) {
 }
 
 func TestNewInvalidMatcherMissingBaseURL(t *testing.T) {
+	t.Parallel()
+
 	_, err := New(
 		WithMatcher(
 			matcher.WithAPIKey("some-key"),
@@ -197,6 +219,8 @@ func TestNewInvalidMatcherMissingBaseURL(t *testing.T) {
 }
 
 func TestNewInvalidTracerMissingBaseURL(t *testing.T) {
+	t.Parallel()
+
 	_, err := New(
 		WithTracer(
 			tracer.WithAPIKey("some-key"),
@@ -207,6 +231,8 @@ func TestNewInvalidTracerMissingBaseURL(t *testing.T) {
 }
 
 func TestNewInvalidReporterMissingBaseURL(t *testing.T) {
+	t.Parallel()
+
 	_, err := New(
 		WithReporter(
 			reporter.WithOrganizationID("org-123"),
@@ -217,6 +243,8 @@ func TestNewInvalidReporterMissingBaseURL(t *testing.T) {
 }
 
 func TestNewInvalidReporterMissingOrganizationID(t *testing.T) {
+	t.Parallel()
+
 	_, err := New(
 		WithReporter(
 			reporter.WithBaseURL("http://localhost:3004/v1"),
@@ -228,6 +256,8 @@ func TestNewInvalidReporterMissingOrganizationID(t *testing.T) {
 }
 
 func TestNewInvalidFeesMissingBaseURL(t *testing.T) {
+	t.Parallel()
+
 	_, err := New(
 		WithFees(
 			fees.WithOrganizationID("org-123"),
@@ -238,6 +268,8 @@ func TestNewInvalidFeesMissingBaseURL(t *testing.T) {
 }
 
 func TestNewInvalidFeesMissingOrganizationID(t *testing.T) {
+	t.Parallel()
+
 	_, err := New(
 		WithFees(
 			fees.WithBaseURL("http://localhost:3005/v1"),
@@ -253,6 +285,8 @@ func TestNewInvalidFeesMissingOrganizationID(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestShutdownIdempotency(t *testing.T) {
+	t.Parallel()
+
 	client, err := New()
 	require.NoError(t, err)
 
@@ -268,6 +302,8 @@ func TestShutdownIdempotency(t *testing.T) {
 }
 
 func TestShutdownRespectsContext(t *testing.T) {
+	t.Parallel()
+
 	client, err := New()
 	require.NoError(t, err)
 
@@ -281,6 +317,8 @@ func TestShutdownRespectsContext(t *testing.T) {
 }
 
 func TestShutdownNilObservability(t *testing.T) {
+	t.Parallel()
+
 	// Construct a client manually to exercise the nil guard in Shutdown.
 	c := &Client{}
 	err := c.Shutdown(context.Background())
@@ -292,12 +330,16 @@ func TestShutdownNilObservability(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestWithHTTPClientNilReturnsError(t *testing.T) {
+	t.Parallel()
+
 	_, err := New(WithHTTPClient(nil))
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "HTTP client must not be nil")
 }
 
 func TestWithHTTPClientNonNil(t *testing.T) {
+	t.Parallel()
+
 	custom := &http.Client{Timeout: 5 * time.Second}
 	client, err := New(WithHTTPClient(custom))
 	require.NoError(t, err)
@@ -320,6 +362,8 @@ func TestWithDebugFalseOverridesEnv(t *testing.T) {
 }
 
 func TestWithDebugTrueExplicit(t *testing.T) {
+	t.Parallel()
+
 	// Ensure explicit WithDebug(true) still works.
 	client, err := New(WithDebug(true))
 	require.NoError(t, err)
@@ -342,6 +386,8 @@ func TestDebugEnvFallbackWhenNoOption(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestMatcherErrorParserWired(t *testing.T) {
+	t.Parallel()
+
 	// Construct a client with Matcher configured. The backend should have
 	// a non-nil error parser (matcher.ParseError). We verify this indirectly
 	// by confirming the Matcher client is initialized (the parser is
@@ -362,6 +408,8 @@ func TestMatcherErrorParserWired(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestPerProductTimeoutCreatesClonedHTTPClient(t *testing.T) {
+	t.Parallel()
+
 	// Verify that a product-specific timeout results in a different HTTP
 	// client with the overridden timeout value.
 	client, err := New(
@@ -383,6 +431,8 @@ func TestPerProductTimeoutCreatesClonedHTTPClient(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestIsLocalhostURL(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name string
 		url  string
@@ -409,6 +459,8 @@ func TestIsLocalhostURL(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := isLocalhostURL(tt.url)
 			assert.Equal(t, tt.want, got)
 		})
@@ -424,6 +476,7 @@ func TestIsLocalhostURL(t *testing.T) {
 // whatever was written to the buffer.
 func captureSlogOutput(fn func()) string {
 	var buf bytes.Buffer
+
 	original := slog.Default()
 
 	handler := slog.NewTextHandler(&buf, &slog.HandlerOptions{Level: slog.LevelWarn})

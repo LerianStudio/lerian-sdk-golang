@@ -33,6 +33,8 @@ func (f *fakeBackend) CallRaw(_ context.Context, _, _ string, _ any) ([]byte, er
 // ---------------------------------------------------------------------------
 
 func TestNewClient(t *testing.T) {
+	t.Parallel()
+
 	cfg := Config{
 		BaseURL: "http://localhost:3002/v1",
 		APIKey:  "test-key",
@@ -71,22 +73,33 @@ func TestNewClient(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestOptions(t *testing.T) {
+	t.Parallel()
+
 	t.Run("WithBaseURL", func(t *testing.T) {
+		t.Parallel()
+
 		var cfg Config
+
 		err := WithBaseURL("https://matcher.example.com/v1")(&cfg)
 		require.NoError(t, err)
 		assert.Equal(t, "https://matcher.example.com/v1", cfg.BaseURL)
 	})
 
 	t.Run("WithAPIKey", func(t *testing.T) {
+		t.Parallel()
+
 		var cfg Config
+
 		err := WithAPIKey("api-key-123")(&cfg)
 		require.NoError(t, err)
 		assert.Equal(t, "api-key-123", cfg.APIKey)
 	})
 
 	t.Run("WithTimeout", func(t *testing.T) {
+		t.Parallel()
+
 		var cfg Config
+
 		err := WithTimeout(45 * time.Second)(&cfg)
 		require.NoError(t, err)
 		assert.Equal(t, 45*time.Second, cfg.Timeout)
@@ -98,6 +111,8 @@ func TestOptions(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestConfigStringRedaction(t *testing.T) {
+	t.Parallel()
+
 	cfg := Config{
 		BaseURL: "http://localhost:3002/v1",
 		APIKey:  "super-secret-api-key",
@@ -119,6 +134,8 @@ func TestConfigStringRedaction(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestConfigMarshalJSONRedaction(t *testing.T) {
+	t.Parallel()
+
 	cfg := Config{
 		BaseURL: "http://localhost:3002/v1",
 		APIKey:  "super-secret-api-key",
@@ -141,6 +158,8 @@ func TestConfigMarshalJSONRedaction(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestErrorParserReturnsFunction(t *testing.T) {
+	t.Parallel()
+
 	parser := ErrorParser()
 	require.NotNil(t, parser)
 

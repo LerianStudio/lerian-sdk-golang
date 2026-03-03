@@ -13,6 +13,8 @@ import (
 func ptr[T any](v T) *T { return &v }
 
 func TestListOptionsJSON(t *testing.T) {
+	t.Parallel()
+
 	start := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
 	end := time.Date(2025, 12, 31, 23, 59, 59, 0, time.UTC)
 
@@ -52,12 +54,16 @@ func TestListOptionsJSON(t *testing.T) {
 }
 
 func TestListOptionsOmitempty(t *testing.T) {
+	t.Parallel()
+
 	data, err := json.Marshal(ListOptions{})
 	require.NoError(t, err)
 	assert.JSONEq(t, `{}`, string(data))
 }
 
 func TestListResponseGeneric(t *testing.T) {
+	t.Parallel()
+
 	resp := ListResponse[string]{
 		Items: []string{"a", "b"},
 		Pagination: Pagination{
@@ -78,6 +84,8 @@ func TestListResponseGeneric(t *testing.T) {
 }
 
 func TestListResponseWithInt(t *testing.T) {
+	t.Parallel()
+
 	resp := ListResponse[int]{
 		Items: []int{1, 2, 3},
 		Pagination: Pagination{
@@ -98,7 +106,11 @@ func TestListResponseWithInt(t *testing.T) {
 }
 
 func TestPaginationJSON(t *testing.T) {
+	t.Parallel()
+
 	t.Run("all fields", func(t *testing.T) {
+		t.Parallel()
+
 		p := Pagination{
 			Total:      100,
 			Page:       3,
@@ -121,6 +133,8 @@ func TestPaginationJSON(t *testing.T) {
 	})
 
 	t.Run("required fields only", func(t *testing.T) {
+		t.Parallel()
+
 		p := Pagination{
 			Total: 42,
 			Limit: 10,
@@ -141,6 +155,8 @@ func TestPaginationJSON(t *testing.T) {
 }
 
 func TestStatusJSON(t *testing.T) {
+	t.Parallel()
+
 	desc := "Account is active"
 	s := Status{
 		Code:        "ACTIVE",
@@ -164,6 +180,8 @@ func TestStatusJSON(t *testing.T) {
 }
 
 func TestStatusNilDescription(t *testing.T) {
+	t.Parallel()
+
 	s := Status{Code: "ACTIVE"}
 
 	data, err := json.Marshal(s)
@@ -177,6 +195,8 @@ func TestStatusNilDescription(t *testing.T) {
 }
 
 func TestMetadataJSON(t *testing.T) {
+	t.Parallel()
+
 	m := Metadata{
 		"key":    "value",
 		"nested": map[string]any{"a": 1},
@@ -197,6 +217,8 @@ func TestMetadataJSON(t *testing.T) {
 }
 
 func TestMetadataEmpty(t *testing.T) {
+	t.Parallel()
+
 	m := Metadata{}
 
 	data, err := json.Marshal(m)
@@ -205,7 +227,10 @@ func TestMetadataEmpty(t *testing.T) {
 }
 
 func TestMetadata_SetOnNil(t *testing.T) {
+	t.Parallel()
+
 	var m Metadata // nil
+
 	result := m.Set("key", "value")
 
 	require.NotNil(t, result, "Set on nil Metadata must return a new map")
@@ -213,6 +238,8 @@ func TestMetadata_SetOnNil(t *testing.T) {
 }
 
 func TestMetadata_SetOnExisting(t *testing.T) {
+	t.Parallel()
+
 	m := Metadata{"existing": "data"}
 	result := m.Set("newKey", 42)
 
@@ -221,7 +248,10 @@ func TestMetadata_SetOnExisting(t *testing.T) {
 }
 
 func TestMetadata_GetOnNil(t *testing.T) {
+	t.Parallel()
+
 	var m Metadata // nil
+
 	v, ok := m.Get("anything")
 
 	assert.Nil(t, v)
@@ -229,6 +259,8 @@ func TestMetadata_GetOnNil(t *testing.T) {
 }
 
 func TestMetadata_GetExisting(t *testing.T) {
+	t.Parallel()
+
 	m := Metadata{"color": "blue"}
 	v, ok := m.Get("color")
 
@@ -237,6 +269,8 @@ func TestMetadata_GetExisting(t *testing.T) {
 }
 
 func TestMetadata_GetMissing(t *testing.T) {
+	t.Parallel()
+
 	m := Metadata{"color": "blue"}
 	v, ok := m.Get("missing")
 
@@ -245,6 +279,8 @@ func TestMetadata_GetMissing(t *testing.T) {
 }
 
 func TestAddressJSON(t *testing.T) {
+	t.Parallel()
+
 	addr := Address{
 		Line1:   "123 Main St",
 		Line2:   ptr("Apt 4B"),
@@ -266,6 +302,8 @@ func TestAddressJSON(t *testing.T) {
 }
 
 func TestAddressOptionalLine2(t *testing.T) {
+	t.Parallel()
+
 	addr := Address{
 		Line1:   "456 Oak Ave",
 		ZipCode: "90210",
@@ -286,6 +324,8 @@ func TestAddressOptionalLine2(t *testing.T) {
 }
 
 func TestAddressRoundTrip(t *testing.T) {
+	t.Parallel()
+
 	original := Address{
 		Line1:   "789 Pine Rd",
 		Line2:   ptr("Suite 100"),

@@ -11,13 +11,17 @@ import (
 )
 
 func TestSourceFieldMapsCreate(t *testing.T) {
+	t.Parallel()
+
 	t.Run("success", func(t *testing.T) {
-		mb := &mockBackend{t: t, callFn: func(_ context.Context, method, path string, body, result any) error {
+		t.Parallel()
+
+		mb := &mockBackend{callFn: func(_ context.Context, method, path string, body, result any) error {
 			assert.Equal(t, "POST", method)
 			assert.Equal(t, "/source-field-maps", path)
 			assert.NotNil(t, body)
-			unmarshalInto(t, SourceFieldMap{ID: "sfm-1", FieldName: "amount"}, result)
-			return nil
+
+			return unmarshalInto(SourceFieldMap{ID: "sfm-1", FieldName: "amount"}, result)
 		}}
 		svc := newSourceFieldMapsService(mb)
 		got, err := svc.Create(context.Background(), &CreateSourceFieldMapInput{
@@ -30,7 +34,9 @@ func TestSourceFieldMapsCreate(t *testing.T) {
 	})
 
 	t.Run("nil input", func(t *testing.T) {
-		svc := newSourceFieldMapsService(&mockBackend{t: t, callFn: func(context.Context, string, string, any, any) error { return nil }})
+		t.Parallel()
+
+		svc := newSourceFieldMapsService(&mockBackend{callFn: func(context.Context, string, string, any, any) error { return nil }})
 		_, err := svc.Create(context.Background(), nil)
 		require.Error(t, err)
 		assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
@@ -38,12 +44,16 @@ func TestSourceFieldMapsCreate(t *testing.T) {
 }
 
 func TestSourceFieldMapsGet(t *testing.T) {
+	t.Parallel()
+
 	t.Run("success", func(t *testing.T) {
-		mb := &mockBackend{t: t, callFn: func(_ context.Context, method, path string, _, result any) error {
+		t.Parallel()
+
+		mb := &mockBackend{callFn: func(_ context.Context, method, path string, _, result any) error {
 			assert.Equal(t, "GET", method)
 			assert.Equal(t, "/source-field-maps/sfm-1", path)
-			unmarshalInto(t, SourceFieldMap{ID: "sfm-1"}, result)
-			return nil
+
+			return unmarshalInto(SourceFieldMap{ID: "sfm-1"}, result)
 		}}
 		svc := newSourceFieldMapsService(mb)
 		got, err := svc.Get(context.Background(), "sfm-1")
@@ -52,7 +62,9 @@ func TestSourceFieldMapsGet(t *testing.T) {
 	})
 
 	t.Run("empty id", func(t *testing.T) {
-		svc := newSourceFieldMapsService(&mockBackend{t: t, callFn: func(context.Context, string, string, any, any) error { return nil }})
+		t.Parallel()
+
+		svc := newSourceFieldMapsService(&mockBackend{callFn: func(context.Context, string, string, any, any) error { return nil }})
 		_, err := svc.Get(context.Background(), "")
 		require.Error(t, err)
 		assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
@@ -60,9 +72,12 @@ func TestSourceFieldMapsGet(t *testing.T) {
 }
 
 func TestSourceFieldMapsList(t *testing.T) {
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, method, path string, _, result any) error {
+	t.Parallel()
+
+	mb := &mockBackend{callFn: func(_ context.Context, method, path string, _, result any) error {
 		assert.Equal(t, "GET", method)
 		assert.Contains(t, path, "/source-field-maps")
+
 		return nil
 	}}
 	svc := newSourceFieldMapsService(mb)
@@ -71,14 +86,18 @@ func TestSourceFieldMapsList(t *testing.T) {
 }
 
 func TestSourceFieldMapsUpdate(t *testing.T) {
+	t.Parallel()
+
 	t.Run("success", func(t *testing.T) {
+		t.Parallel()
+
 		mappedTo := "canonical_currency"
-		mb := &mockBackend{t: t, callFn: func(_ context.Context, method, path string, body, result any) error {
+		mb := &mockBackend{callFn: func(_ context.Context, method, path string, body, result any) error {
 			assert.Equal(t, "PATCH", method)
 			assert.Equal(t, "/source-field-maps/sfm-1", path)
 			assert.NotNil(t, body)
-			unmarshalInto(t, SourceFieldMap{ID: "sfm-1", MappedTo: "canonical_currency"}, result)
-			return nil
+
+			return unmarshalInto(SourceFieldMap{ID: "sfm-1", MappedTo: "canonical_currency"}, result)
 		}}
 		svc := newSourceFieldMapsService(mb)
 		got, err := svc.Update(context.Background(), "sfm-1", &UpdateSourceFieldMapInput{MappedTo: &mappedTo})
@@ -87,14 +106,18 @@ func TestSourceFieldMapsUpdate(t *testing.T) {
 	})
 
 	t.Run("empty id", func(t *testing.T) {
-		svc := newSourceFieldMapsService(&mockBackend{t: t, callFn: func(context.Context, string, string, any, any) error { return nil }})
+		t.Parallel()
+
+		svc := newSourceFieldMapsService(&mockBackend{callFn: func(context.Context, string, string, any, any) error { return nil }})
 		_, err := svc.Update(context.Background(), "", &UpdateSourceFieldMapInput{})
 		require.Error(t, err)
 		assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
 	})
 
 	t.Run("nil input", func(t *testing.T) {
-		svc := newSourceFieldMapsService(&mockBackend{t: t, callFn: func(context.Context, string, string, any, any) error { return nil }})
+		t.Parallel()
+
+		svc := newSourceFieldMapsService(&mockBackend{callFn: func(context.Context, string, string, any, any) error { return nil }})
 		_, err := svc.Update(context.Background(), "sfm-1", nil)
 		require.Error(t, err)
 		assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
@@ -102,11 +125,16 @@ func TestSourceFieldMapsUpdate(t *testing.T) {
 }
 
 func TestSourceFieldMapsDelete(t *testing.T) {
+	t.Parallel()
+
 	t.Run("success", func(t *testing.T) {
-		mb := &mockBackend{t: t, callFn: func(_ context.Context, method, path string, _, result any) error {
+		t.Parallel()
+
+		mb := &mockBackend{callFn: func(_ context.Context, method, path string, _, result any) error {
 			assert.Equal(t, "DELETE", method)
 			assert.Equal(t, "/source-field-maps/sfm-1", path)
 			assert.Nil(t, result)
+
 			return nil
 		}}
 		svc := newSourceFieldMapsService(mb)
@@ -115,7 +143,9 @@ func TestSourceFieldMapsDelete(t *testing.T) {
 	})
 
 	t.Run("empty id", func(t *testing.T) {
-		svc := newSourceFieldMapsService(&mockBackend{t: t, callFn: func(context.Context, string, string, any, any) error { return nil }})
+		t.Parallel()
+
+		svc := newSourceFieldMapsService(&mockBackend{callFn: func(context.Context, string, string, any, any) error { return nil }})
 		err := svc.Delete(context.Background(), "")
 		require.Error(t, err)
 		assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
@@ -130,7 +160,7 @@ func TestSourceFieldMapsCreateBackendError(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("backend error: conflict")
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, _, _ any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
 		return expectedErr
 	}}
 
@@ -148,7 +178,7 @@ func TestSourceFieldMapsGetBackendError(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("backend error: not found")
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, _, _ any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
 		return expectedErr
 	}}
 
@@ -164,7 +194,7 @@ func TestSourceFieldMapsListBackendError(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("backend error: internal")
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, _, _ any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
 		return expectedErr
 	}}
 
@@ -181,7 +211,7 @@ func TestSourceFieldMapsUpdateBackendError(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("backend error: conflict")
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, _, _ any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
 		return expectedErr
 	}}
 
@@ -198,7 +228,7 @@ func TestSourceFieldMapsDeleteBackendError(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("backend error: forbidden")
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, _, _ any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
 		return expectedErr
 	}}
 

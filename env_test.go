@@ -466,6 +466,8 @@ func TestAllProductsFromEnvVars(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestEnvVarConstantValues(t *testing.T) {
+	t.Parallel()
+
 	// Verify the constant values match the documented LERIAN_* prefix.
 	// This guards against accidental renames.
 	assert.Equal(t, "LERIAN_DEBUG", envDebug)

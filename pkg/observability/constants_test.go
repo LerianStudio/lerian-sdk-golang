@@ -15,6 +15,8 @@ import (
 // ---------------------------------------------------------------------------
 
 func TestAttributeKeyConstants(t *testing.T) {
+	t.Parallel()
+
 	keys := []struct {
 		name  string
 		value string
@@ -30,6 +32,8 @@ func TestAttributeKeyConstants(t *testing.T) {
 
 	for _, k := range keys {
 		t.Run(k.name, func(t *testing.T) {
+			t.Parallel()
+
 			assert.True(t, strings.HasPrefix(k.value, "lerian."),
 				"attribute key %s (%q) must start with 'lerian.'", k.name, k.value)
 		})
@@ -41,6 +45,8 @@ func TestAttributeKeyConstants(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestMetricNameConstants(t *testing.T) {
+	t.Parallel()
+
 	metrics := []struct {
 		name  string
 		value string
@@ -52,6 +58,8 @@ func TestMetricNameConstants(t *testing.T) {
 
 	for _, m := range metrics {
 		t.Run(m.name, func(t *testing.T) {
+			t.Parallel()
+
 			assert.True(t, strings.HasPrefix(m.value, "lerian.sdk."),
 				"metric %s (%q) must start with 'lerian.sdk.'", m.name, m.value)
 		})
@@ -63,6 +71,8 @@ func TestMetricNameConstants(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestNoMidazReferences(t *testing.T) {
+	t.Parallel()
+
 	// Walk every .go source file in the package directory and ensure none
 	// of them contain the string "midaz" (case-insensitive). Test files
 	// are excluded because the assertion message itself mentions the word.
@@ -78,11 +88,13 @@ func TestNoMidazReferences(t *testing.T) {
 		}
 
 		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
 			data, rErr := os.ReadFile(filepath.Clean(name))
 			require.NoError(t, rErr)
 
 			content := strings.ToLower(string(data))
-			assert.False(t, strings.Contains(content, "midaz"),
+			assert.NotContains(t, content, "midaz",
 				"source file %s must not contain any 'midaz' references", name)
 		})
 	}

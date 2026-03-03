@@ -13,6 +13,8 @@ import (
 // ---------------------------------------------------------------------------
 
 func TestParseError(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name       string
 		statusCode int
@@ -97,6 +99,8 @@ func TestParseError(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			err := ParseError(tt.statusCode, tt.body)
 
 			require.NotNil(t, err)
@@ -114,6 +118,8 @@ func TestParseError(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestParseErrorMalformedJSON(t *testing.T) {
+	t.Parallel()
+
 	err := ParseError(400, []byte(`not json at all`))
 
 	require.NotNil(t, err)
@@ -125,6 +131,8 @@ func TestParseErrorMalformedJSON(t *testing.T) {
 }
 
 func TestParseErrorEmptyBody(t *testing.T) {
+	t.Parallel()
+
 	err := ParseError(500, []byte(""))
 
 	require.NotNil(t, err)
@@ -140,6 +148,8 @@ func TestParseErrorEmptyBody(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestParseErrorWithDetails(t *testing.T) {
+	t.Parallel()
+
 	body := []byte(`{"code":"TRC-0001","message":"multiple violations","details":{"fields":["amount","currency"]}}`)
 	err := ParseError(400, body)
 
@@ -155,6 +165,8 @@ func TestParseErrorWithDetails(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestParseErrorUnknownStatusCode(t *testing.T) {
+	t.Parallel()
+
 	err := ParseError(418, []byte(`{"code":"TRC-TEAPOT","message":"I'm a teapot"}`))
 
 	require.NotNil(t, err)
@@ -171,6 +183,8 @@ func TestParseErrorUnknownStatusCode(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestCategoryFromStatus(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		status int
 		want   sdkerrors.ErrorCategory
@@ -199,6 +213,8 @@ func TestCategoryFromStatus(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestParseErrorIsCompatible(t *testing.T) {
+	t.Parallel()
+
 	err := ParseError(404, []byte(`{"code":"TRC-0030","message":"not found"}`))
 
 	// Should match the sentinel for not-found.

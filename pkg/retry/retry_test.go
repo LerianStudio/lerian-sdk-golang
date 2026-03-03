@@ -21,6 +21,8 @@ func fastConfig() Config {
 }
 
 func TestDoSuccessFirstAttempt(t *testing.T) {
+	t.Parallel()
+
 	var calls atomic.Int32
 
 	err := Do(context.Background(), fastConfig(), func() error {
@@ -33,6 +35,8 @@ func TestDoSuccessFirstAttempt(t *testing.T) {
 }
 
 func TestDoRetryThenSuccess(t *testing.T) {
+	t.Parallel()
+
 	var calls atomic.Int32
 
 	errTransient := errors.New("transient failure")
@@ -51,6 +55,8 @@ func TestDoRetryThenSuccess(t *testing.T) {
 }
 
 func TestDoMaxRetriesExhausted(t *testing.T) {
+	t.Parallel()
+
 	var calls atomic.Int32
 
 	cfg := fastConfig()
@@ -69,6 +75,8 @@ func TestDoMaxRetriesExhausted(t *testing.T) {
 }
 
 func TestDoContextCancellation(t *testing.T) {
+	t.Parallel()
+
 	cfg := Config{
 		MaxRetries:  10,
 		BaseDelay:   50 * time.Millisecond,
@@ -100,6 +108,8 @@ func TestDoContextCancellation(t *testing.T) {
 }
 
 func TestIsRetryable(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		code int
 		want bool
@@ -121,6 +131,8 @@ func TestIsRetryable(t *testing.T) {
 }
 
 func TestJitterVariation(t *testing.T) {
+	t.Parallel()
+
 	cfg := Config{
 		MaxRetries:  3,
 		BaseDelay:   10 * time.Millisecond,
@@ -140,6 +152,7 @@ func TestJitterVariation(t *testing.T) {
 	// 20 samples, the probability of all being identical is vanishingly
 	// small (< 2^-60).
 	allSame := true
+
 	for i := 1; i < len(delays); i++ {
 		if delays[i] != delays[0] {
 			allSame = false
@@ -151,6 +164,8 @@ func TestJitterVariation(t *testing.T) {
 }
 
 func TestCalculateDelayExponentialGrowth(t *testing.T) {
+	t.Parallel()
+
 	cfg := Config{
 		MaxRetries:  5,
 		BaseDelay:   10 * time.Millisecond,
@@ -167,6 +182,8 @@ func TestCalculateDelayExponentialGrowth(t *testing.T) {
 }
 
 func TestCalculateDelayCapAtMaxDelay(t *testing.T) {
+	t.Parallel()
+
 	cfg := Config{
 		MaxRetries:  10,
 		BaseDelay:   100 * time.Millisecond,

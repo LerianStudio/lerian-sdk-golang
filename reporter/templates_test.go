@@ -53,6 +53,7 @@ func TestTemplatesCreate(t *testing.T) {
 			reader := multipart.NewReader(bytes.NewReader(rawBody.Data), boundary)
 
 			fields := make(map[string]string)
+
 			var fileData []byte
 
 			for {

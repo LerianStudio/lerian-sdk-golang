@@ -8,6 +8,8 @@ import (
 )
 
 func TestDefaultConfig(t *testing.T) {
+	t.Parallel()
+
 	cfg := DefaultConfig()
 
 	assert.Equal(t, 3, cfg.MaxRetries, "MaxRetries should default to 3")
@@ -17,6 +19,8 @@ func TestDefaultConfig(t *testing.T) {
 }
 
 func TestDefaultConfigMaxRetriesIsBelowBackendCap(t *testing.T) {
+	t.Parallel()
+
 	cfg := DefaultConfig()
 
 	// The backend caps MaxRetries at 10 (core.MaxRetriesLimit).

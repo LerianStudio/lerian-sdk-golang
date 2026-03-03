@@ -3,6 +3,7 @@ package matcher
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/LerianStudio/lerian-sdk-golang/models"
@@ -115,12 +116,12 @@ func TestReportsGetMethods(t *testing.T) {
 			t.Parallel()
 
 			resp := tt.response
-			mb := &mockBackend{t: t, callFn: func(_ context.Context, method, path string, body, result any) error {
+			mb := &mockBackend{callFn: func(_ context.Context, method, path string, body, result any) error {
 				assert.Equal(t, "GET", method)
 				assert.Equal(t, tt.expectedPath, path)
 				assert.Nil(t, body)
-				unmarshalInto(t, resp, result)
-				return nil
+
+				return unmarshalInto(resp, result)
 			}}
 
 			svc := newReportsService(mb)
@@ -132,7 +133,7 @@ func TestReportsGetMethods(t *testing.T) {
 		t.Run(tt.name+"_empty_contextID", func(t *testing.T) {
 			t.Parallel()
 
-			svc := newReportsService(&mockBackend{t: t, callFn: noopCallFn})
+			svc := newReportsService(&mockBackend{callFn: noopCallFn})
 
 			// Call with empty contextID — should use "" to trigger guard.
 			callEmpty := func() (any, error) {
@@ -159,7 +160,7 @@ func TestReportsGetMethods(t *testing.T) {
 					return svc.GetDashboard(context.Background(), "")
 				default:
 					t.Fatalf("unhandled method: %s", tt.name)
-					return nil, nil
+					return nil, fmt.Errorf("unhandled method: %s", tt.name)
 				}
 			}
 
@@ -178,7 +179,7 @@ func TestReportsGetMethods(t *testing.T) {
 func TestReportsGetReconciliationHistory(t *testing.T) {
 	t.Parallel()
 
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, method, path string, _, result any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, method, path string, _, result any) error {
 		assert.Equal(t, "GET", method)
 		assert.Contains(t, path, "/contexts/ctx-1/reports/reconciliation-history")
 
@@ -189,9 +190,8 @@ func TestReportsGetReconciliationHistory(t *testing.T) {
 			},
 			Pagination: models.Pagination{Total: 2, Limit: 10},
 		}
-		unmarshalInto(t, resp, result)
 
-		return nil
+		return unmarshalInto(resp, result)
 	}}
 
 	svc := newReportsService(mb)
@@ -211,16 +211,15 @@ func TestReportsGetReconciliationHistoryWithOptions(t *testing.T) {
 
 	var receivedPath string
 
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, _, path string, _, result any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, _, path string, _, result any) error {
 		receivedPath = path
 
 		resp := models.ListResponse[ReconciliationHistoryEntry]{
 			Items:      []ReconciliationHistoryEntry{{ID: "run-1"}},
 			Pagination: models.Pagination{Total: 1, Limit: 5},
 		}
-		unmarshalInto(t, resp, result)
 
-		return nil
+		return unmarshalInto(resp, result)
 	}}
 
 	svc := newReportsService(mb)
@@ -238,7 +237,7 @@ func TestReportsGetReconciliationHistoryWithOptions(t *testing.T) {
 func TestReportsGetSummaryBackendError(t *testing.T) {
 	t.Parallel()
 
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, _, _ any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
 		return errors.New("network timeout")
 	}}
 
@@ -254,7 +253,7 @@ func TestReportsGetMatchRateBackendError(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("backend error: internal")
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, _, _ any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
 		return expectedErr
 	}}
 
@@ -270,7 +269,7 @@ func TestReportsGetExceptionTrendBackendError(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("backend error: internal")
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, _, _ any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
 		return expectedErr
 	}}
 
@@ -286,7 +285,7 @@ func TestReportsGetAgingAnalysisBackendError(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("backend error: internal")
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, _, _ any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
 		return expectedErr
 	}}
 
@@ -302,7 +301,7 @@ func TestReportsGetSourceComparisonBackendError(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("backend error: internal")
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, _, _ any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
 		return expectedErr
 	}}
 
@@ -318,7 +317,7 @@ func TestReportsGetVolumeAnalysisBackendError(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("backend error: internal")
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, _, _ any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
 		return expectedErr
 	}}
 
@@ -334,7 +333,7 @@ func TestReportsGetDisputeMetricsBackendError(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("backend error: internal")
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, _, _ any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
 		return expectedErr
 	}}
 
@@ -350,7 +349,7 @@ func TestReportsGetFeeAnalysisBackendError(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("backend error: internal")
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, _, _ any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
 		return expectedErr
 	}}
 
@@ -366,7 +365,7 @@ func TestReportsGetPerformanceMetricsBackendError(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("backend error: internal")
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, _, _ any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
 		return expectedErr
 	}}
 
@@ -382,7 +381,7 @@ func TestReportsGetDashboardBackendError(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("backend error: internal")
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, _, _ any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
 		return expectedErr
 	}}
 
@@ -398,7 +397,7 @@ func TestReportsGetReconciliationHistoryBackendError(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("backend error: internal")
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, _, _ any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
 		return expectedErr
 	}}
 

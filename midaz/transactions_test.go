@@ -218,7 +218,9 @@ func TestTransactionsListWithOptions(t *testing.T) {
 	mock := &mockBackend{
 		callFn: func(_ context.Context, method, path string, body, result any) error {
 			assert.Equal(t, "GET", method)
+
 			receivedPath = path
+
 			assert.Nil(t, body)
 
 			resp := models.ListResponse[Transaction]{
@@ -548,5 +550,6 @@ func TestTransactionsServiceInterfaceCompliance(t *testing.T) {
 	t.Parallel()
 
 	var _ TransactionsService = (*transactionsService)(nil)
+
 	t.Log("transactionsService implements TransactionsService")
 }

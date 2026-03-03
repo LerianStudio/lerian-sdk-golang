@@ -14,6 +14,8 @@ import (
 // ---------------------------------------------------------------------------
 
 func TestPackageJSONRoundTrip(t *testing.T) {
+	t.Parallel()
+
 	desc := "Standard retail fees"
 	flatAmount := int64(500)
 	pct := "2.5"
@@ -53,6 +55,7 @@ func TestPackageJSONRoundTrip(t *testing.T) {
 	require.NoError(t, err)
 
 	var decoded Package
+
 	err = json.Unmarshal(data, &decoded)
 	require.NoError(t, err)
 
@@ -81,6 +84,8 @@ func TestPackageJSONRoundTrip(t *testing.T) {
 }
 
 func TestPackageJSONOmitsNilFields(t *testing.T) {
+	t.Parallel()
+
 	pkg := Package{
 		ID:     "pkg-002",
 		Name:   "Minimal",
@@ -101,6 +106,8 @@ func TestPackageJSONOmitsNilFields(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestEstimateJSONRoundTrip(t *testing.T) {
+	t.Parallel()
+
 	now := time.Date(2026, 3, 1, 14, 30, 0, 0, time.UTC)
 
 	original := Estimate{
@@ -135,6 +142,7 @@ func TestEstimateJSONRoundTrip(t *testing.T) {
 	require.NoError(t, err)
 
 	var decoded Estimate
+
 	err = json.Unmarshal(data, &decoded)
 	require.NoError(t, err)
 
@@ -160,6 +168,8 @@ func TestEstimateJSONRoundTrip(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestFeeJSONRoundTrip(t *testing.T) {
+	t.Parallel()
+
 	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.UTC)
 	txnID := "txn-abc-123"
 
@@ -189,6 +199,7 @@ func TestFeeJSONRoundTrip(t *testing.T) {
 	require.NoError(t, err)
 
 	var decoded Fee
+
 	err = json.Unmarshal(data, &decoded)
 	require.NoError(t, err)
 
@@ -207,6 +218,8 @@ func TestFeeJSONRoundTrip(t *testing.T) {
 }
 
 func TestFeeJSONOmitsNilTransactionID(t *testing.T) {
+	t.Parallel()
+
 	fee := Fee{
 		ID:        "fee-002",
 		PackageID: "pkg-001",
@@ -227,6 +240,8 @@ func TestFeeJSONOmitsNilTransactionID(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestFeeResultJSONRoundTrip(t *testing.T) {
+	t.Parallel()
+
 	original := FeeResult{
 		RuleType: "flat",
 		Amount:   250,
@@ -240,6 +255,7 @@ func TestFeeResultJSONRoundTrip(t *testing.T) {
 	require.NoError(t, err)
 
 	var decoded FeeResult
+
 	err = json.Unmarshal(data, &decoded)
 	require.NoError(t, err)
 
@@ -252,6 +268,8 @@ func TestFeeResultJSONRoundTrip(t *testing.T) {
 }
 
 func TestFeeResultJSONOmitsEmptyReason(t *testing.T) {
+	t.Parallel()
+
 	result := FeeResult{
 		RuleType: "percentage",
 		Amount:   100,
@@ -272,6 +290,8 @@ func TestFeeResultJSONOmitsEmptyReason(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestCalculateEstimateInputJSONRoundTrip(t *testing.T) {
+	t.Parallel()
+
 	original := CalculateEstimateInput{
 		PackageID: "pkg-001",
 		Amount:    100000,
@@ -284,6 +304,7 @@ func TestCalculateEstimateInputJSONRoundTrip(t *testing.T) {
 	require.NoError(t, err)
 
 	var decoded CalculateEstimateInput
+
 	err = json.Unmarshal(data, &decoded)
 	require.NoError(t, err)
 
@@ -299,6 +320,8 @@ func TestCalculateEstimateInputJSONRoundTrip(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestCalculateFeeInputJSONRoundTrip(t *testing.T) {
+	t.Parallel()
+
 	txnID := "txn-xyz-789"
 
 	original := CalculateFeeInput{
@@ -314,6 +337,7 @@ func TestCalculateFeeInputJSONRoundTrip(t *testing.T) {
 	require.NoError(t, err)
 
 	var decoded CalculateFeeInput
+
 	err = json.Unmarshal(data, &decoded)
 	require.NoError(t, err)
 
@@ -327,6 +351,8 @@ func TestCalculateFeeInputJSONRoundTrip(t *testing.T) {
 }
 
 func TestCalculateFeeInputJSONOmitsNilTransactionID(t *testing.T) {
+	t.Parallel()
+
 	input := CalculateFeeInput{
 		PackageID: "pkg-001",
 		Amount:    1000,
@@ -345,6 +371,8 @@ func TestCalculateFeeInputJSONOmitsNilTransactionID(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestCreatePackageInputJSONRoundTrip(t *testing.T) {
+	t.Parallel()
+
 	desc := "A test package"
 	flatAmount := int64(100)
 
@@ -367,6 +395,7 @@ func TestCreatePackageInputJSONRoundTrip(t *testing.T) {
 	require.NoError(t, err)
 
 	var decoded CreatePackageInput
+
 	err = json.Unmarshal(data, &decoded)
 	require.NoError(t, err)
 
@@ -381,6 +410,8 @@ func TestCreatePackageInputJSONRoundTrip(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestUpdatePackageInputJSONRoundTrip(t *testing.T) {
+	t.Parallel()
+
 	name := "Updated Name"
 	desc := "Updated description"
 
@@ -393,6 +424,7 @@ func TestUpdatePackageInputJSONRoundTrip(t *testing.T) {
 	require.NoError(t, err)
 
 	var decoded UpdatePackageInput
+
 	err = json.Unmarshal(data, &decoded)
 	require.NoError(t, err)
 
@@ -405,6 +437,8 @@ func TestUpdatePackageInputJSONRoundTrip(t *testing.T) {
 }
 
 func TestUpdatePackageInputJSONOmitsNilFields(t *testing.T) {
+	t.Parallel()
+
 	input := UpdatePackageInput{}
 
 	data, err := json.Marshal(input)

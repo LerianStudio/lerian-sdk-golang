@@ -231,7 +231,9 @@ func TestOperationRoutesListWithOptions(t *testing.T) {
 	mock := &mockBackend{
 		callFn: func(_ context.Context, method, path string, body, result any) error {
 			assert.Equal(t, "GET", method)
+
 			receivedPath = path
+
 			assert.Nil(t, body)
 
 			resp := models.ListResponse[OperationRoute]{
@@ -426,5 +428,6 @@ func TestOperationRoutesServiceInterfaceCompliance(t *testing.T) {
 	t.Parallel()
 
 	var _ OperationRoutesService = (*operationRoutesService)(nil)
+
 	t.Log("operationRoutesService implements OperationRoutesService")
 }

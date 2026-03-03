@@ -14,6 +14,8 @@ import (
 // ---------------------------------------------------------------------------
 
 func TestDataSourceJSONRoundTrip(t *testing.T) {
+	t.Parallel()
+
 	now := time.Date(2026, 3, 1, 12, 0, 0, 0, time.UTC)
 
 	original := DataSource{
@@ -33,6 +35,7 @@ func TestDataSourceJSONRoundTrip(t *testing.T) {
 	require.NoError(t, err)
 
 	var decoded DataSource
+
 	err = json.Unmarshal(data, &decoded)
 	require.NoError(t, err)
 
@@ -47,6 +50,8 @@ func TestDataSourceJSONRoundTrip(t *testing.T) {
 }
 
 func TestDataSourceJSONOmitsEmptyConfig(t *testing.T) {
+	t.Parallel()
+
 	ds := DataSource{
 		ID:        "ds-002",
 		Name:      "Empty Config",
@@ -67,6 +72,8 @@ func TestDataSourceJSONOmitsEmptyConfig(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestReportJSONRoundTrip(t *testing.T) {
+	t.Parallel()
+
 	now := time.Date(2026, 3, 1, 14, 30, 0, 0, time.UTC)
 	desc := "Monthly financial summary"
 	tmplID := "tmpl-abc"
@@ -100,6 +107,7 @@ func TestReportJSONRoundTrip(t *testing.T) {
 	require.NoError(t, err)
 
 	var decoded Report
+
 	err = json.Unmarshal(data, &decoded)
 	require.NoError(t, err)
 
@@ -124,6 +132,8 @@ func TestReportJSONRoundTrip(t *testing.T) {
 }
 
 func TestReportJSONOmitsOptionalNils(t *testing.T) {
+	t.Parallel()
+
 	rpt := Report{
 		ID:        "rpt-002",
 		Name:      "Minimal Report",
@@ -152,6 +162,8 @@ func TestReportJSONOmitsOptionalNils(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestTemplateJSONRoundTrip(t *testing.T) {
+	t.Parallel()
+
 	now := time.Date(2026, 2, 15, 10, 0, 0, 0, time.UTC)
 	desc := "Standard monthly report layout"
 
@@ -173,6 +185,7 @@ func TestTemplateJSONRoundTrip(t *testing.T) {
 	require.NoError(t, err)
 
 	var decoded Template
+
 	err = json.Unmarshal(data, &decoded)
 	require.NoError(t, err)
 
@@ -188,6 +201,8 @@ func TestTemplateJSONRoundTrip(t *testing.T) {
 }
 
 func TestTemplateJSONOmitsOptionalNils(t *testing.T) {
+	t.Parallel()
+
 	tmpl := Template{
 		ID:        "tmpl-min",
 		Name:      "Bare Template",
@@ -211,6 +226,8 @@ func TestTemplateJSONOmitsOptionalNils(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestCreateReportInputJSONRoundTrip(t *testing.T) {
+	t.Parallel()
+
 	desc := "Quarterly revenue breakdown"
 	tmplID := "tmpl-xyz"
 	dsID := "ds-003"
@@ -234,6 +251,7 @@ func TestCreateReportInputJSONRoundTrip(t *testing.T) {
 	require.NoError(t, err)
 
 	var decoded CreateReportInput
+
 	err = json.Unmarshal(data, &decoded)
 	require.NoError(t, err)
 
@@ -251,6 +269,8 @@ func TestCreateReportInputJSONRoundTrip(t *testing.T) {
 }
 
 func TestCreateReportInputMinimal(t *testing.T) {
+	t.Parallel()
+
 	input := CreateReportInput{
 		Name:   "Simple Report",
 		Format: "csv",
@@ -274,6 +294,8 @@ func TestCreateReportInputMinimal(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestUpdateReportInputJSONRoundTrip(t *testing.T) {
+	t.Parallel()
+
 	name := "Updated Report Name"
 	desc := "Updated description"
 
@@ -292,6 +314,7 @@ func TestUpdateReportInputJSONRoundTrip(t *testing.T) {
 	require.NoError(t, err)
 
 	var decoded UpdateReportInput
+
 	err = json.Unmarshal(data, &decoded)
 	require.NoError(t, err)
 
@@ -304,6 +327,8 @@ func TestUpdateReportInputJSONRoundTrip(t *testing.T) {
 }
 
 func TestUpdateReportInputEmpty(t *testing.T) {
+	t.Parallel()
+
 	input := UpdateReportInput{}
 
 	data, err := json.Marshal(input)
@@ -322,6 +347,8 @@ func TestUpdateReportInputEmpty(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestCreateTemplateInputJSONRoundTrip(t *testing.T) {
+	t.Parallel()
+
 	desc := "Standard layout for invoices"
 
 	original := CreateTemplateInput{
@@ -334,6 +361,7 @@ func TestCreateTemplateInputJSONRoundTrip(t *testing.T) {
 	require.NoError(t, err)
 
 	var decoded CreateTemplateInput
+
 	err = json.Unmarshal(data, &decoded)
 	require.NoError(t, err)
 

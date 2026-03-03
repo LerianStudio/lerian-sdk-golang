@@ -72,14 +72,16 @@ var testPackage = Package{
 	UpdatedAt: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
 }
 
-func strPtr(s string) *string   { return &s }
-func int64Ptr(i int64) *int64   { return &i }
+func strPtr(s string) *string { return &s }
+func int64Ptr(i int64) *int64 { return &i }
 
 // ---------------------------------------------------------------------------
 // PackagesService.Create
 // ---------------------------------------------------------------------------
 
 func TestPackagesCreate(t *testing.T) {
+	t.Parallel()
+
 	backend := &mockBackend{
 		callFn: func(_ context.Context, method, path string, body, result any) error {
 			assert.Equal(t, "POST", method)
@@ -105,6 +107,8 @@ func TestPackagesCreate(t *testing.T) {
 }
 
 func TestPackagesCreateNilInput(t *testing.T) {
+	t.Parallel()
+
 	svc := newPackagesService(&mockBackend{})
 
 	pkg, err := svc.Create(context.Background(), nil)
@@ -114,6 +118,8 @@ func TestPackagesCreateNilInput(t *testing.T) {
 }
 
 func TestPackagesCreateBackendError(t *testing.T) {
+	t.Parallel()
+
 	backend := &mockBackend{
 		callFn: func(_ context.Context, _, _ string, _, _ any) error {
 			return fmt.Errorf("network failure")
@@ -134,6 +140,8 @@ func TestPackagesCreateBackendError(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestPackagesGet(t *testing.T) {
+	t.Parallel()
+
 	backend := &mockBackend{
 		callFn: func(_ context.Context, method, path string, body, result any) error {
 			assert.Equal(t, "GET", method)
@@ -154,6 +162,8 @@ func TestPackagesGet(t *testing.T) {
 }
 
 func TestPackagesGetEmptyID(t *testing.T) {
+	t.Parallel()
+
 	svc := newPackagesService(&mockBackend{})
 
 	pkg, err := svc.Get(context.Background(), "")
@@ -163,6 +173,8 @@ func TestPackagesGetEmptyID(t *testing.T) {
 }
 
 func TestPackagesGetBackendError(t *testing.T) {
+	t.Parallel()
+
 	backend := &mockBackend{
 		callFn: func(_ context.Context, _, _ string, _, _ any) error {
 			return fmt.Errorf("not found")
@@ -181,6 +193,8 @@ func TestPackagesGetBackendError(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestPackagesList(t *testing.T) {
+	t.Parallel()
+
 	backend := &mockBackend{
 		callFn: func(_ context.Context, method, path string, body, result any) error {
 			assert.Equal(t, "GET", method)
@@ -211,6 +225,8 @@ func TestPackagesList(t *testing.T) {
 }
 
 func TestPackagesListNilOptions(t *testing.T) {
+	t.Parallel()
+
 	backend := &mockBackend{
 		callFn: func(_ context.Context, method, path string, _, result any) error {
 			assert.Equal(t, "GET", method)
@@ -239,6 +255,8 @@ func TestPackagesListNilOptions(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestPackagesUpdate(t *testing.T) {
+	t.Parallel()
+
 	updated := testPackage
 	updated.Name = "Premium Fees"
 
@@ -263,6 +281,8 @@ func TestPackagesUpdate(t *testing.T) {
 }
 
 func TestPackagesUpdateEmptyID(t *testing.T) {
+	t.Parallel()
+
 	svc := newPackagesService(&mockBackend{})
 	name := "Test"
 	input := &UpdatePackageInput{Name: &name}
@@ -274,6 +294,8 @@ func TestPackagesUpdateEmptyID(t *testing.T) {
 }
 
 func TestPackagesUpdateNilInput(t *testing.T) {
+	t.Parallel()
+
 	svc := newPackagesService(&mockBackend{})
 
 	pkg, err := svc.Update(context.Background(), "pkg-001", nil)
@@ -283,6 +305,8 @@ func TestPackagesUpdateNilInput(t *testing.T) {
 }
 
 func TestPackagesUpdateBackendError(t *testing.T) {
+	t.Parallel()
+
 	backend := &mockBackend{
 		callFn: func(_ context.Context, _, _ string, _, _ any) error {
 			return fmt.Errorf("server error")
@@ -303,6 +327,8 @@ func TestPackagesUpdateBackendError(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestPackagesDelete(t *testing.T) {
+	t.Parallel()
+
 	backend := &mockBackend{
 		callFn: func(_ context.Context, method, path string, body, result any) error {
 			assert.Equal(t, "DELETE", method)
@@ -321,6 +347,8 @@ func TestPackagesDelete(t *testing.T) {
 }
 
 func TestPackagesDeleteEmptyID(t *testing.T) {
+	t.Parallel()
+
 	svc := newPackagesService(&mockBackend{})
 
 	err := svc.Delete(context.Background(), "")
@@ -329,6 +357,8 @@ func TestPackagesDeleteEmptyID(t *testing.T) {
 }
 
 func TestPackagesDeleteBackendError(t *testing.T) {
+	t.Parallel()
+
 	backend := &mockBackend{
 		callFn: func(_ context.Context, _, _ string, _, _ any) error {
 			return fmt.Errorf("delete failed")

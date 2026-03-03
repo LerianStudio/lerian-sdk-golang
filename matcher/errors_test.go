@@ -15,6 +15,8 @@ import (
 // ---------------------------------------------------------------------------
 
 func TestParseError_ValidJSON(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name       string
 		statusCode int
@@ -109,6 +111,8 @@ func TestParseError_ValidJSON(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := ParseError(tc.statusCode, []byte(tc.body))
 
 			require.NotNil(t, got)
@@ -127,6 +131,8 @@ func TestParseError_ValidJSON(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestParseError_InvalidJSON(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name       string
 		statusCode int
@@ -161,6 +167,8 @@ func TestParseError_InvalidJSON(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := ParseError(tc.statusCode, []byte(tc.body))
 
 			require.NotNil(t, got)
@@ -179,6 +187,8 @@ func TestParseError_InvalidJSON(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestParseError_SentinelMatching(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name       string
 		statusCode int
@@ -197,6 +207,8 @@ func TestParseError_SentinelMatching(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := ParseError(tc.statusCode, []byte(body))
 			assert.True(t, stderrors.Is(got, tc.sentinel),
 				"expected errors.Is(err, %v) to be true", tc.sentinel.Category)
@@ -209,6 +221,8 @@ func TestParseError_SentinelMatching(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestCategoryFromStatus(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		status int
 		want   sdkerrors.ErrorCategory
@@ -238,6 +252,8 @@ func TestCategoryFromStatus(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestErrorParser(t *testing.T) {
+	t.Parallel()
+
 	parser := ErrorParser()
 	require.NotNil(t, parser)
 

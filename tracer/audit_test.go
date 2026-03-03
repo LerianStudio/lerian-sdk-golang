@@ -140,6 +140,7 @@ func TestAuditEventsListWithCursor(t *testing.T) {
 	mock := &mockBackend{
 		callFn: func(_ context.Context, method, path string, body, result any) error {
 			callCount++
+
 			assert.Equal(t, "GET", method)
 			assert.Nil(t, body)
 

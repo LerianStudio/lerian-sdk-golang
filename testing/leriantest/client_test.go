@@ -23,6 +23,8 @@ import (
 // ---------------------------------------------------------------------------
 
 func TestNewFakeClient(t *testing.T) {
+	t.Parallel()
+
 	client := leriantest.NewFakeClient()
 
 	assert.NotNil(t, client.Midaz, "Midaz should be non-nil")
@@ -84,6 +86,8 @@ func TestNewFakeClient(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestFakeMidazCRUD(t *testing.T) {
+	t.Parallel()
+
 	ctx := context.Background()
 	client := leriantest.NewFakeClient()
 
@@ -139,6 +143,8 @@ func TestFakeMidazCRUD(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestFakeMidazLedgersCRUD(t *testing.T) {
+	t.Parallel()
+
 	ctx := context.Background()
 	client := leriantest.NewFakeClient()
 
@@ -167,6 +173,8 @@ func TestFakeMidazLedgersCRUD(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestFakeTransactionLifecycle(t *testing.T) {
+	t.Parallel()
+
 	ctx := context.Background()
 	client := leriantest.NewFakeClient()
 
@@ -212,6 +220,8 @@ func TestFakeTransactionLifecycle(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestFakeSeedData(t *testing.T) {
+	t.Parallel()
+
 	ctx := context.Background()
 	client := leriantest.NewFakeClient(
 		leriantest.WithSeedOrganizations(
@@ -249,6 +259,8 @@ func TestFakeSeedData(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestFakeErrorInjection(t *testing.T) {
+	t.Parallel()
+
 	ctx := context.Background()
 	injectedErr := errors.New("injected: service unavailable")
 
@@ -275,6 +287,8 @@ func TestFakeErrorInjection(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestFakeConcurrentAccess(t *testing.T) {
+	t.Parallel()
+
 	ctx := context.Background()
 	client := leriantest.NewFakeClient()
 
@@ -294,7 +308,7 @@ func TestFakeConcurrentAccess(t *testing.T) {
 				LegalName:     "Concurrent Org",
 				LegalDocument: "doc",
 			})
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			ids[idx] = org.ID
 		}(i)
@@ -310,7 +324,7 @@ func TestFakeConcurrentAccess(t *testing.T) {
 			defer wg.Done()
 
 			org, err := client.Midaz.Organizations.Get(ctx, ids[idx])
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, ids[idx], org.ID)
 		}(i)
 	}
@@ -329,6 +343,8 @@ func TestFakeConcurrentAccess(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestFakeAccountLookups(t *testing.T) {
+	t.Parallel()
+
 	ctx := context.Background()
 	client := leriantest.NewFakeClient()
 
@@ -364,6 +380,8 @@ func TestFakeAccountLookups(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestFakeNotFoundErrors(t *testing.T) {
+	t.Parallel()
+
 	ctx := context.Background()
 	client := leriantest.NewFakeClient()
 
@@ -384,6 +402,8 @@ func TestFakeNotFoundErrors(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestFakeMatcherRoundTrip(t *testing.T) {
+	t.Parallel()
+
 	ctx := context.Background()
 	client := leriantest.NewFakeClient()
 
@@ -423,6 +443,8 @@ func TestFakeMatcherRoundTrip(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestFakeTracerRuleLifecycle(t *testing.T) {
+	t.Parallel()
+
 	ctx := context.Background()
 	client := leriantest.NewFakeClient()
 
@@ -479,6 +501,8 @@ func createPendingTx(t *testing.T) (*lerian.Client, context.Context, *midaz.Tran
 }
 
 func TestTransactionStateMachine_CommitFromPending(t *testing.T) {
+	t.Parallel()
+
 	client, ctx, tx := createPendingTx(t)
 
 	committed, err := client.Midaz.Transactions.Commit(ctx, "org-1", "ledger-1", tx.ID)
@@ -487,6 +511,8 @@ func TestTransactionStateMachine_CommitFromPending(t *testing.T) {
 }
 
 func TestTransactionStateMachine_CancelFromPending(t *testing.T) {
+	t.Parallel()
+
 	client, ctx, tx := createPendingTx(t)
 
 	cancelled, err := client.Midaz.Transactions.Cancel(ctx, "org-1", "ledger-1", tx.ID)
@@ -495,6 +521,8 @@ func TestTransactionStateMachine_CancelFromPending(t *testing.T) {
 }
 
 func TestTransactionStateMachine_RevertFromCommitted(t *testing.T) {
+	t.Parallel()
+
 	client, ctx, tx := createPendingTx(t)
 
 	// First commit so the transaction reaches "committed" state.
@@ -507,6 +535,8 @@ func TestTransactionStateMachine_RevertFromCommitted(t *testing.T) {
 }
 
 func TestTransactionStateMachine_CommitFromCancelled(t *testing.T) {
+	t.Parallel()
+
 	client, ctx, tx := createPendingTx(t)
 
 	// Cancel first.
@@ -521,6 +551,8 @@ func TestTransactionStateMachine_CommitFromCancelled(t *testing.T) {
 }
 
 func TestTransactionStateMachine_CancelFromCommitted(t *testing.T) {
+	t.Parallel()
+
 	client, ctx, tx := createPendingTx(t)
 
 	// Commit first.
@@ -535,6 +567,8 @@ func TestTransactionStateMachine_CancelFromCommitted(t *testing.T) {
 }
 
 func TestTransactionStateMachine_RevertFromPending(t *testing.T) {
+	t.Parallel()
+
 	client, ctx, tx := createPendingTx(t)
 
 	// Attempt to revert a pending transaction -- should fail.
@@ -567,6 +601,8 @@ func createNOrgs(t *testing.T, n int) (*lerian.Client, context.Context) {
 }
 
 func TestFakePaginationDefaultPageSize(t *testing.T) {
+	t.Parallel()
+
 	// With 25 items and nil opts (default page size = 10), Collect should
 	// still return all items -- the iterator transparently fetches all pages.
 	client, ctx := createNOrgs(t, 25)
@@ -583,6 +619,8 @@ func TestFakePaginationDefaultPageSize(t *testing.T) {
 }
 
 func TestFakePaginationWithLimit(t *testing.T) {
+	t.Parallel()
+
 	// Create 15 orgs, list with Limit=5. Collect should return all 15
 	// across 3 pages.
 	client, ctx := createNOrgs(t, 15)
@@ -594,6 +632,8 @@ func TestFakePaginationWithLimit(t *testing.T) {
 }
 
 func TestFakePaginationCursorProgression(t *testing.T) {
+	t.Parallel()
+
 	// Create 10 orgs, list with Limit=3. Use CollectN to manually walk
 	// through pages: expect 3 + 3 + 3 + 1 = 10.
 	client, ctx := createNOrgs(t, 10)
@@ -635,6 +675,8 @@ func TestFakePaginationCursorProgression(t *testing.T) {
 }
 
 func TestFakePaginationEmptyStore(t *testing.T) {
+	t.Parallel()
+
 	ctx := context.Background()
 	client := leriantest.NewFakeClient()
 

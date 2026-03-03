@@ -226,6 +226,7 @@ func TestPortfoliosListWithOptions(t *testing.T) {
 	mock := &mockBackend{
 		callFn: func(_ context.Context, method, path string, body, result any) error {
 			assert.Equal(t, "GET", method)
+
 			receivedPath = path
 
 			resp := models.ListResponse[Portfolio]{
@@ -454,5 +455,6 @@ func TestPortfoliosServiceInterfaceCompliance(t *testing.T) {
 	t.Parallel()
 
 	var _ PortfoliosService = (*portfoliosService)(nil)
+
 	t.Log("portfoliosService implements PortfoliosService")
 }

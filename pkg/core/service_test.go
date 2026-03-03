@@ -336,6 +336,7 @@ func TestActionNilInput(t *testing.T) {
 		callFn: func(_ context.Context, method, path string, body, result any) error {
 			assert.Equal(t, "POST", method)
 			assert.Equal(t, "/accounts/acc-1/activate", path)
+
 			receivedBody = body
 
 			return unmarshalInto(testOrg{ID: "acc-1", Name: "active"}, result)
@@ -406,6 +407,7 @@ func TestList(t *testing.T) {
 
 	// Collect all items.
 	ctx := context.Background()
+
 	var items []testOrg
 
 	for iter.Next(ctx) {
@@ -426,7 +428,9 @@ func TestListWithOptions(t *testing.T) {
 	mock := &mockBackend{
 		callFn: func(_ context.Context, method, path string, body, result any) error {
 			assert.Equal(t, "GET", method)
+
 			receivedPath = path
+
 			assert.Nil(t, body)
 
 			resp := models.ListResponse[testOrg]{
@@ -467,6 +471,7 @@ func TestListWithCursor(t *testing.T) {
 	mock := &mockBackend{
 		callFn: func(_ context.Context, method, path string, body, result any) error {
 			callCount++
+
 			assert.Equal(t, "GET", method)
 			assert.Nil(t, body)
 
@@ -506,6 +511,7 @@ func TestListWithCursor(t *testing.T) {
 	iter := List[testOrg](context.Background(), svc, "/organizations", nil)
 
 	ctx := context.Background()
+
 	var items []testOrg
 
 	for iter.Next(ctx) {

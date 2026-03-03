@@ -14,6 +14,8 @@ import (
 // ---------------------------------------------------------------------------
 
 func TestParseError(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name           string
 		statusCode     int
@@ -25,9 +27,9 @@ func TestParseError(t *testing.T) {
 		wantStatusCode int
 	}{
 		{
-			name:       "400 validation with JSON body",
-			statusCode: 400,
-			body:       []byte(`{"code":"invalid_format","message":"report format must be pdf, csv, or xlsx"}`),
+			name:           "400 validation with JSON body",
+			statusCode:     400,
+			body:           []byte(`{"code":"invalid_format","message":"report format must be pdf, csv, or xlsx"}`),
 			wantCategory:   sdkerrors.CategoryValidation,
 			wantCode:       sdkerrors.ErrorCode("invalid_format"),
 			wantMessage:    "report format must be pdf, csv, or xlsx",
@@ -35,9 +37,9 @@ func TestParseError(t *testing.T) {
 			wantStatusCode: 400,
 		},
 		{
-			name:       "401 authentication with JSON body",
-			statusCode: 401,
-			body:       []byte(`{"code":"token_expired","message":"authentication token has expired"}`),
+			name:           "401 authentication with JSON body",
+			statusCode:     401,
+			body:           []byte(`{"code":"token_expired","message":"authentication token has expired"}`),
 			wantCategory:   sdkerrors.CategoryAuthentication,
 			wantCode:       sdkerrors.ErrorCode("token_expired"),
 			wantMessage:    "authentication token has expired",
@@ -45,9 +47,9 @@ func TestParseError(t *testing.T) {
 			wantStatusCode: 401,
 		},
 		{
-			name:       "403 authorization with JSON body",
-			statusCode: 403,
-			body:       []byte(`{"code":"insufficient_permissions","message":"you do not have access to this report"}`),
+			name:           "403 authorization with JSON body",
+			statusCode:     403,
+			body:           []byte(`{"code":"insufficient_permissions","message":"you do not have access to this report"}`),
 			wantCategory:   sdkerrors.CategoryAuthorization,
 			wantCode:       sdkerrors.ErrorCode("insufficient_permissions"),
 			wantMessage:    "you do not have access to this report",
@@ -55,9 +57,9 @@ func TestParseError(t *testing.T) {
 			wantStatusCode: 403,
 		},
 		{
-			name:       "404 not found with JSON body",
-			statusCode: 404,
-			body:       []byte(`{"code":"report_not_found","message":"report rpt-999 does not exist"}`),
+			name:           "404 not found with JSON body",
+			statusCode:     404,
+			body:           []byte(`{"code":"report_not_found","message":"report rpt-999 does not exist"}`),
 			wantCategory:   sdkerrors.CategoryNotFound,
 			wantCode:       sdkerrors.ErrorCode("report_not_found"),
 			wantMessage:    "report rpt-999 does not exist",
@@ -65,9 +67,9 @@ func TestParseError(t *testing.T) {
 			wantStatusCode: 404,
 		},
 		{
-			name:       "409 conflict with JSON body",
-			statusCode: 409,
-			body:       []byte(`{"code":"duplicate_name","message":"a report with this name already exists"}`),
+			name:           "409 conflict with JSON body",
+			statusCode:     409,
+			body:           []byte(`{"code":"duplicate_name","message":"a report with this name already exists"}`),
 			wantCategory:   sdkerrors.CategoryConflict,
 			wantCode:       sdkerrors.ErrorCode("duplicate_name"),
 			wantMessage:    "a report with this name already exists",
@@ -75,9 +77,9 @@ func TestParseError(t *testing.T) {
 			wantStatusCode: 409,
 		},
 		{
-			name:       "429 rate limit with JSON body",
-			statusCode: 429,
-			body:       []byte(`{"code":"rate_exceeded","message":"too many requests, try again later"}`),
+			name:           "429 rate limit with JSON body",
+			statusCode:     429,
+			body:           []byte(`{"code":"rate_exceeded","message":"too many requests, try again later"}`),
 			wantCategory:   sdkerrors.CategoryRateLimit,
 			wantCode:       sdkerrors.ErrorCode("rate_exceeded"),
 			wantMessage:    "too many requests, try again later",
@@ -85,9 +87,9 @@ func TestParseError(t *testing.T) {
 			wantStatusCode: 429,
 		},
 		{
-			name:       "500 internal server error with JSON body",
-			statusCode: 500,
-			body:       []byte(`{"code":"internal_error","message":"an unexpected error occurred"}`),
+			name:           "500 internal server error with JSON body",
+			statusCode:     500,
+			body:           []byte(`{"code":"internal_error","message":"an unexpected error occurred"}`),
 			wantCategory:   sdkerrors.CategoryInternal,
 			wantCode:       sdkerrors.ErrorCode("internal_error"),
 			wantMessage:    "an unexpected error occurred",
@@ -95,9 +97,9 @@ func TestParseError(t *testing.T) {
 			wantStatusCode: 500,
 		},
 		{
-			name:       "502 bad gateway maps to internal",
-			statusCode: 502,
-			body:       []byte(`{"code":"upstream_error","message":"upstream service unavailable"}`),
+			name:           "502 bad gateway maps to internal",
+			statusCode:     502,
+			body:           []byte(`{"code":"upstream_error","message":"upstream service unavailable"}`),
 			wantCategory:   sdkerrors.CategoryInternal,
 			wantCode:       sdkerrors.ErrorCode("upstream_error"),
 			wantMessage:    "upstream service unavailable",
@@ -105,9 +107,9 @@ func TestParseError(t *testing.T) {
 			wantStatusCode: 502,
 		},
 		{
-			name:       "503 service unavailable maps to internal",
-			statusCode: 503,
-			body:       []byte(`{"code":"service_down","message":"service temporarily unavailable"}`),
+			name:           "503 service unavailable maps to internal",
+			statusCode:     503,
+			body:           []byte(`{"code":"service_down","message":"service temporarily unavailable"}`),
 			wantCategory:   sdkerrors.CategoryInternal,
 			wantCode:       sdkerrors.ErrorCode("service_down"),
 			wantMessage:    "service temporarily unavailable",
@@ -115,9 +117,9 @@ func TestParseError(t *testing.T) {
 			wantStatusCode: 503,
 		},
 		{
-			name:       "invalid JSON body falls back to raw message",
-			statusCode: 500,
-			body:       []byte(`this is not json`),
+			name:           "invalid JSON body falls back to raw message",
+			statusCode:     500,
+			body:           []byte(`this is not json`),
 			wantCategory:   sdkerrors.CategoryInternal,
 			wantCode:       "",
 			wantMessage:    "this is not json",
@@ -125,9 +127,9 @@ func TestParseError(t *testing.T) {
 			wantStatusCode: 500,
 		},
 		{
-			name:       "empty body falls back to empty message",
-			statusCode: 404,
-			body:       []byte(``),
+			name:           "empty body falls back to empty message",
+			statusCode:     404,
+			body:           []byte(``),
 			wantCategory:   sdkerrors.CategoryNotFound,
 			wantCode:       "",
 			wantMessage:    "",
@@ -135,9 +137,9 @@ func TestParseError(t *testing.T) {
 			wantStatusCode: 404,
 		},
 		{
-			name:       "HTML body treated as invalid JSON",
-			statusCode: 502,
-			body:       []byte(`<html><body>Bad Gateway</body></html>`),
+			name:           "HTML body treated as invalid JSON",
+			statusCode:     502,
+			body:           []byte(`<html><body>Bad Gateway</body></html>`),
 			wantCategory:   sdkerrors.CategoryInternal,
 			wantCode:       "",
 			wantMessage:    "<html><body>Bad Gateway</body></html>",
@@ -145,9 +147,9 @@ func TestParseError(t *testing.T) {
 			wantStatusCode: 502,
 		},
 		{
-			name:       "unknown 4xx status defaults to internal category",
-			statusCode: 418,
-			body:       []byte(`{"code":"teapot","message":"I am a teapot"}`),
+			name:           "unknown 4xx status defaults to internal category",
+			statusCode:     418,
+			body:           []byte(`{"code":"teapot","message":"I am a teapot"}`),
 			wantCategory:   sdkerrors.CategoryInternal,
 			wantCode:       sdkerrors.ErrorCode("teapot"),
 			wantMessage:    "I am a teapot",
@@ -158,6 +160,8 @@ func TestParseError(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			sdkErr := ParseError(tc.statusCode, tc.body)
 			require.NotNil(t, sdkErr)
 
@@ -175,6 +179,8 @@ func TestParseError(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestParseErrorSentinelMatching(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name       string
 		statusCode int
@@ -193,6 +199,8 @@ func TestParseErrorSentinelMatching(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			sdkErr := ParseError(tc.statusCode, body)
 			assert.True(t, errors.Is(sdkErr, tc.sentinel),
 				"ParseError(%d) should match %v via errors.Is", tc.statusCode, tc.sentinel.Category)
@@ -205,6 +213,8 @@ func TestParseErrorSentinelMatching(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestCategoryFromStatus(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		status   int
 		expected sdkerrors.ErrorCategory

@@ -14,6 +14,8 @@ import (
 // ---------------------------------------------------------------------------
 
 func TestParseError(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name       string
 		statusCode int
@@ -98,6 +100,8 @@ func TestParseError(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			err := ParseError(tc.statusCode, tc.body)
 
 			require.NotNil(t, err)
@@ -115,6 +119,8 @@ func TestParseError(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestParseErrorInvalidJSON(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name       string
 		statusCode int
@@ -139,6 +145,8 @@ func TestParseErrorInvalidJSON(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			err := ParseError(tc.statusCode, tc.body)
 
 			require.NotNil(t, err)
@@ -157,6 +165,8 @@ func TestParseErrorInvalidJSON(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestParseErrorSentinelMatching(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name     string
 		status   int
@@ -175,6 +185,8 @@ func TestParseErrorSentinelMatching(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			err := ParseError(tc.status, body)
 			assert.True(t, stderrors.Is(err, tc.sentinel),
 				"ParseError(%d, ...) should match %v", tc.status, tc.sentinel)
@@ -187,6 +199,8 @@ func TestParseErrorSentinelMatching(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestMidazErrorCodeConstants(t *testing.T) {
+	t.Parallel()
+
 	assert.Equal(t, sdkerrors.ErrorCode("0040"), CodeNotFound)
 	assert.Equal(t, sdkerrors.ErrorCode("0005"), CodeAlreadyExists)
 	assert.Equal(t, sdkerrors.ErrorCode("0029"), CodeInsufficientBalance)
@@ -200,6 +214,8 @@ func TestMidazErrorCodeConstants(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestCategoryFromStatus(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		status int
 		want   sdkerrors.ErrorCategory

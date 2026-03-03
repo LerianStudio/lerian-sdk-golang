@@ -16,8 +16,12 @@ import (
 // ---------------------------------------------------------------------------
 
 func TestDisputesCreate(t *testing.T) {
+	t.Parallel()
+
 	t.Run("success", func(t *testing.T) {
-		mb := &mockBackend{t: t, callFn: func(_ context.Context, method, path string, body, result any) error {
+		t.Parallel()
+
+		mb := &mockBackend{callFn: func(_ context.Context, method, path string, body, result any) error {
 			assert.Equal(t, "POST", method)
 			assert.Equal(t, "/disputes", path)
 			assert.NotNil(t, body)
@@ -27,9 +31,7 @@ func TestDisputesCreate(t *testing.T) {
 			assert.Equal(t, "ctx-1", input.ContextID)
 			assert.Equal(t, "incorrect match", input.Reason)
 
-			unmarshalInto(t, Dispute{ID: "dsp-1", ContextID: "ctx-1", Reason: "incorrect match", Status: "open"}, result)
-
-			return nil
+			return unmarshalInto(Dispute{ID: "dsp-1", ContextID: "ctx-1", Reason: "incorrect match", Status: "open"}, result)
 		}}
 
 		svc := newDisputesService(mb)
@@ -45,7 +47,9 @@ func TestDisputesCreate(t *testing.T) {
 	})
 
 	t.Run("nil input", func(t *testing.T) {
-		svc := newDisputesService(&mockBackend{t: t, callFn: func(context.Context, string, string, any, any) error { return nil }})
+		t.Parallel()
+
+		svc := newDisputesService(&mockBackend{callFn: func(context.Context, string, string, any, any) error { return nil }})
 		_, err := svc.Create(context.Background(), nil)
 		require.Error(t, err)
 		assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
@@ -57,13 +61,16 @@ func TestDisputesCreate(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestDisputesGet(t *testing.T) {
+	t.Parallel()
+
 	t.Run("success", func(t *testing.T) {
-		mb := &mockBackend{t: t, callFn: func(_ context.Context, method, path string, _, result any) error {
+		t.Parallel()
+
+		mb := &mockBackend{callFn: func(_ context.Context, method, path string, _, result any) error {
 			assert.Equal(t, "GET", method)
 			assert.Equal(t, "/disputes/dsp-1", path)
-			unmarshalInto(t, Dispute{ID: "dsp-1", Status: "open"}, result)
 
-			return nil
+			return unmarshalInto(Dispute{ID: "dsp-1", Status: "open"}, result)
 		}}
 
 		svc := newDisputesService(mb)
@@ -73,7 +80,9 @@ func TestDisputesGet(t *testing.T) {
 	})
 
 	t.Run("empty id", func(t *testing.T) {
-		svc := newDisputesService(&mockBackend{t: t, callFn: func(context.Context, string, string, any, any) error { return nil }})
+		t.Parallel()
+
+		svc := newDisputesService(&mockBackend{callFn: func(context.Context, string, string, any, any) error { return nil }})
 		_, err := svc.Get(context.Background(), "")
 		require.Error(t, err)
 		assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
@@ -85,7 +94,9 @@ func TestDisputesGet(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestDisputesList(t *testing.T) {
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, method, path string, _, result any) error {
+	t.Parallel()
+
+	mb := &mockBackend{callFn: func(_ context.Context, method, path string, _, result any) error {
 		assert.Equal(t, "GET", method)
 		assert.Contains(t, path, "/disputes")
 
@@ -96,9 +107,8 @@ func TestDisputesList(t *testing.T) {
 			},
 			Pagination: models.Pagination{Total: 2, Limit: 10},
 		}
-		unmarshalInto(t, resp, result)
 
-		return nil
+		return unmarshalInto(resp, result)
 	}}
 
 	svc := newDisputesService(mb)
@@ -113,18 +123,19 @@ func TestDisputesList(t *testing.T) {
 }
 
 func TestDisputesListWithOptions(t *testing.T) {
+	t.Parallel()
+
 	var receivedPath string
 
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, _, path string, _, result any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, _, path string, _, result any) error {
 		receivedPath = path
 
 		resp := models.ListResponse[Dispute]{
 			Items:      []Dispute{{ID: "dsp-1"}},
 			Pagination: models.Pagination{Total: 1, Limit: 25},
 		}
-		unmarshalInto(t, resp, result)
 
-		return nil
+		return unmarshalInto(resp, result)
 	}}
 
 	svc := newDisputesService(mb)
@@ -141,9 +152,13 @@ func TestDisputesListWithOptions(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestDisputesUpdate(t *testing.T) {
+	t.Parallel()
+
 	t.Run("success", func(t *testing.T) {
+		t.Parallel()
+
 		reason := "updated reason"
-		mb := &mockBackend{t: t, callFn: func(_ context.Context, method, path string, body, result any) error {
+		mb := &mockBackend{callFn: func(_ context.Context, method, path string, body, result any) error {
 			assert.Equal(t, "PATCH", method)
 			assert.Equal(t, "/disputes/dsp-1", path)
 			assert.NotNil(t, body)
@@ -152,9 +167,7 @@ func TestDisputesUpdate(t *testing.T) {
 			require.True(t, ok)
 			assert.Equal(t, "updated reason", *input.Reason)
 
-			unmarshalInto(t, Dispute{ID: "dsp-1", Reason: "updated reason"}, result)
-
-			return nil
+			return unmarshalInto(Dispute{ID: "dsp-1", Reason: "updated reason"}, result)
 		}}
 
 		svc := newDisputesService(mb)
@@ -164,14 +177,18 @@ func TestDisputesUpdate(t *testing.T) {
 	})
 
 	t.Run("empty id", func(t *testing.T) {
-		svc := newDisputesService(&mockBackend{t: t, callFn: func(context.Context, string, string, any, any) error { return nil }})
+		t.Parallel()
+
+		svc := newDisputesService(&mockBackend{callFn: func(context.Context, string, string, any, any) error { return nil }})
 		_, err := svc.Update(context.Background(), "", &UpdateDisputeInput{})
 		require.Error(t, err)
 		assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
 	})
 
 	t.Run("nil input", func(t *testing.T) {
-		svc := newDisputesService(&mockBackend{t: t, callFn: func(context.Context, string, string, any, any) error { return nil }})
+		t.Parallel()
+
+		svc := newDisputesService(&mockBackend{callFn: func(context.Context, string, string, any, any) error { return nil }})
 		_, err := svc.Update(context.Background(), "dsp-1", nil)
 		require.Error(t, err)
 		assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
@@ -183,8 +200,12 @@ func TestDisputesUpdate(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestDisputesResolve(t *testing.T) {
+	t.Parallel()
+
 	t.Run("success", func(t *testing.T) {
-		mb := &mockBackend{t: t, callFn: func(_ context.Context, method, path string, body, result any) error {
+		t.Parallel()
+
+		mb := &mockBackend{callFn: func(_ context.Context, method, path string, body, result any) error {
 			assert.Equal(t, "POST", method)
 			assert.Equal(t, "/disputes/dsp-1/resolve", path)
 			assert.NotNil(t, body)
@@ -194,9 +215,8 @@ func TestDisputesResolve(t *testing.T) {
 			assert.Equal(t, "records confirmed as correct", input.Resolution)
 
 			resolution := "records confirmed as correct"
-			unmarshalInto(t, Dispute{ID: "dsp-1", Status: "resolved", Resolution: &resolution}, result)
 
-			return nil
+			return unmarshalInto(Dispute{ID: "dsp-1", Status: "resolved", Resolution: &resolution}, result)
 		}}
 
 		svc := newDisputesService(mb)
@@ -210,14 +230,18 @@ func TestDisputesResolve(t *testing.T) {
 	})
 
 	t.Run("empty id", func(t *testing.T) {
-		svc := newDisputesService(&mockBackend{t: t, callFn: func(context.Context, string, string, any, any) error { return nil }})
+		t.Parallel()
+
+		svc := newDisputesService(&mockBackend{callFn: func(context.Context, string, string, any, any) error { return nil }})
 		_, err := svc.Resolve(context.Background(), "", &ResolveDisputeInput{Resolution: "test"})
 		require.Error(t, err)
 		assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
 	})
 
 	t.Run("nil input", func(t *testing.T) {
-		svc := newDisputesService(&mockBackend{t: t, callFn: func(context.Context, string, string, any, any) error { return nil }})
+		t.Parallel()
+
+		svc := newDisputesService(&mockBackend{callFn: func(context.Context, string, string, any, any) error { return nil }})
 		_, err := svc.Resolve(context.Background(), "dsp-1", nil)
 		require.Error(t, err)
 		assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
@@ -229,14 +253,17 @@ func TestDisputesResolve(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestDisputesEscalate(t *testing.T) {
+	t.Parallel()
+
 	t.Run("success", func(t *testing.T) {
-		mb := &mockBackend{t: t, callFn: func(_ context.Context, method, path string, body, result any) error {
+		t.Parallel()
+
+		mb := &mockBackend{callFn: func(_ context.Context, method, path string, body, result any) error {
 			assert.Equal(t, "POST", method)
 			assert.Equal(t, "/disputes/dsp-1/escalate", path)
 			assert.Nil(t, body)
-			unmarshalInto(t, Dispute{ID: "dsp-1", Status: "escalated"}, result)
 
-			return nil
+			return unmarshalInto(Dispute{ID: "dsp-1", Status: "escalated"}, result)
 		}}
 
 		svc := newDisputesService(mb)
@@ -246,7 +273,9 @@ func TestDisputesEscalate(t *testing.T) {
 	})
 
 	t.Run("empty id", func(t *testing.T) {
-		svc := newDisputesService(&mockBackend{t: t, callFn: func(context.Context, string, string, any, any) error { return nil }})
+		t.Parallel()
+
+		svc := newDisputesService(&mockBackend{callFn: func(context.Context, string, string, any, any) error { return nil }})
 		_, err := svc.Escalate(context.Background(), "")
 		require.Error(t, err)
 		assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
@@ -261,7 +290,7 @@ func TestDisputesCreateBackendError(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("backend error: conflict")
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, _, _ any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
 		return expectedErr
 	}}
 
@@ -279,7 +308,7 @@ func TestDisputesGetBackendError(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("backend error: not found")
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, _, _ any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
 		return expectedErr
 	}}
 
@@ -295,7 +324,7 @@ func TestDisputesListBackendError(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("backend error: internal")
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, _, _ any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
 		return expectedErr
 	}}
 
@@ -312,7 +341,7 @@ func TestDisputesUpdateBackendError(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("backend error: conflict")
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, _, _ any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
 		return expectedErr
 	}}
 
@@ -329,7 +358,7 @@ func TestDisputesResolveBackendError(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("backend error: internal")
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, _, _ any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
 		return expectedErr
 	}}
 
@@ -345,7 +374,7 @@ func TestDisputesEscalateBackendError(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("backend error: internal")
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, _, _ any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
 		return expectedErr
 	}}
 

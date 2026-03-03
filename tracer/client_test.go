@@ -46,6 +46,8 @@ func (f *fakeBackend) CallRaw(_ context.Context, method, path string, _ any) ([]
 // ---------------------------------------------------------------------------
 
 func TestNewClientReturnsNonNil(t *testing.T) {
+	t.Parallel()
+
 	backend := &fakeBackend{}
 	cfg := Config{
 		BaseURL: "http://localhost:3003/v1",
@@ -58,6 +60,8 @@ func TestNewClientReturnsNonNil(t *testing.T) {
 }
 
 func TestNewClientStoresConfig(t *testing.T) {
+	t.Parallel()
+
 	backend := &fakeBackend{}
 	cfg := Config{
 		BaseURL: "http://localhost:3003/v1",
@@ -73,6 +77,8 @@ func TestNewClientStoresConfig(t *testing.T) {
 }
 
 func TestNewClientStoresBackend(t *testing.T) {
+	t.Parallel()
+
 	backend := &fakeBackend{}
 	cfg := Config{BaseURL: "http://localhost:3003/v1"}
 
@@ -86,6 +92,8 @@ func TestNewClientStoresBackend(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestNewClientServiceFieldsAreWired(t *testing.T) {
+	t.Parallel()
+
 	backend := &fakeBackend{}
 	cfg := Config{BaseURL: "http://localhost:3003/v1"}
 
@@ -103,27 +111,38 @@ func TestNewClientServiceFieldsAreWired(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestWithBaseURL(t *testing.T) {
+	t.Parallel()
+
 	var cfg Config
+
 	err := WithBaseURL("http://example.com/v1")(&cfg)
 	require.NoError(t, err)
 	assert.Equal(t, "http://example.com/v1", cfg.BaseURL)
 }
 
 func TestWithAPIKey(t *testing.T) {
+	t.Parallel()
+
 	var cfg Config
+
 	err := WithAPIKey("secret-key-123")(&cfg)
 	require.NoError(t, err)
 	assert.Equal(t, "secret-key-123", cfg.APIKey)
 }
 
 func TestWithTimeout(t *testing.T) {
+	t.Parallel()
+
 	var cfg Config
+
 	err := WithTimeout(30 * time.Second)(&cfg)
 	require.NoError(t, err)
 	assert.Equal(t, 30*time.Second, cfg.Timeout)
 }
 
 func TestOptionsComposeCorrectly(t *testing.T) {
+	t.Parallel()
+
 	var cfg Config
 
 	opts := []Option{
@@ -143,6 +162,8 @@ func TestOptionsComposeCorrectly(t *testing.T) {
 }
 
 func TestOptionsLastWins(t *testing.T) {
+	t.Parallel()
+
 	var cfg Config
 
 	opts := []Option{
@@ -163,6 +184,8 @@ func TestOptionsLastWins(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestConfigStringRedaction(t *testing.T) {
+	t.Parallel()
+
 	cfg := Config{
 		BaseURL: "http://localhost:3003/v1",
 		APIKey:  "super-secret-api-key",
@@ -184,6 +207,8 @@ func TestConfigStringRedaction(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestConfigMarshalJSONRedaction(t *testing.T) {
+	t.Parallel()
+
 	cfg := Config{
 		BaseURL: "http://localhost:3003/v1",
 		APIKey:  "super-secret-api-key",
@@ -199,12 +224,4 @@ func TestConfigMarshalJSONRedaction(t *testing.T) {
 	assert.Contains(t, s, "http://localhost:3003/v1", "BaseURL should be visible")
 	assert.NotContains(t, s, "super-secret-api-key",
 		"MarshalJSON must not contain the actual API key")
-}
-
-// ---------------------------------------------------------------------------
-// Default timeout constant
-// ---------------------------------------------------------------------------
-
-func TestDefaultTimeoutValue(t *testing.T) {
-	assert.Equal(t, 10*time.Second, defaultTimeout)
 }

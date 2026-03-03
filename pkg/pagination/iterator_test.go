@@ -25,6 +25,7 @@ func stringFetcher(pages [][]string, counter *atomic.Int32) PageFetcher[string] 
 		counter.Add(1)
 
 		idx := 0
+
 		if cursor != "" {
 			// Parse the cursor to determine the page index.
 			for i, c := range "0123456789" {
@@ -55,6 +56,7 @@ func intFetcher(pages [][]int, counter *atomic.Int32) PageFetcher[int] {
 		counter.Add(1)
 
 		idx := 0
+
 		if cursor != "" {
 			for i, c := range "0123456789" {
 				if cursor == string(c) {
@@ -82,6 +84,8 @@ func intFetcher(pages [][]int, counter *atomic.Int32) PageFetcher[int] {
 // ---------------------------------------------------------------------------
 
 func TestSinglePageIteration(t *testing.T) {
+	t.Parallel()
+
 	var calls atomic.Int32
 
 	fetcher := stringFetcher([][]string{{"a", "b", "c"}}, &calls)
@@ -103,6 +107,8 @@ func TestSinglePageIteration(t *testing.T) {
 }
 
 func TestMultiPageIteration(t *testing.T) {
+	t.Parallel()
+
 	var calls atomic.Int32
 
 	// 3 pages: [1,2] -> [3,4] -> [5]
@@ -122,6 +128,8 @@ func TestMultiPageIteration(t *testing.T) {
 }
 
 func TestEmptyResult(t *testing.T) {
+	t.Parallel()
+
 	var calls atomic.Int32
 
 	// Fetcher returns empty page immediately.
@@ -139,6 +147,8 @@ func TestEmptyResult(t *testing.T) {
 }
 
 func TestErrorOnFirstPage(t *testing.T) {
+	t.Parallel()
+
 	errFetch := errors.New("network timeout")
 
 	fetcher := func(_ context.Context, _ string) ([]string, string, error) {
@@ -153,11 +163,15 @@ func TestErrorOnFirstPage(t *testing.T) {
 }
 
 func TestErrorOnSecondPage(t *testing.T) {
+	t.Parallel()
+
 	errFetch := errors.New("server error on page 2")
+
 	var calls atomic.Int32
 
 	fetcher := func(_ context.Context, cursor string) ([]string, string, error) {
 		calls.Add(1)
+
 		if cursor == "" {
 			// First page succeeds.
 			return []string{"x", "y"}, "page2", nil
@@ -181,6 +195,8 @@ func TestErrorOnSecondPage(t *testing.T) {
 }
 
 func TestCollect(t *testing.T) {
+	t.Parallel()
+
 	var calls atomic.Int32
 
 	// 3 pages totaling 7 items.
@@ -196,6 +212,8 @@ func TestCollect(t *testing.T) {
 }
 
 func TestCollectWithError(t *testing.T) {
+	t.Parallel()
+
 	errFetch := errors.New("fetch failed")
 
 	fetcher := func(_ context.Context, cursor string) ([]int, string, error) {
@@ -214,6 +232,8 @@ func TestCollectWithError(t *testing.T) {
 }
 
 func TestCollectN(t *testing.T) {
+	t.Parallel()
+
 	var calls atomic.Int32
 
 	// 3 pages of 5 items each = 15 items total.
@@ -237,6 +257,8 @@ func TestCollectN(t *testing.T) {
 }
 
 func TestCollectNExceedsTotal(t *testing.T) {
+	t.Parallel()
+
 	var calls atomic.Int32
 
 	// Single page with 3 items.
@@ -253,6 +275,8 @@ func TestCollectNExceedsTotal(t *testing.T) {
 }
 
 func TestAll(t *testing.T) {
+	t.Parallel()
+
 	var calls atomic.Int32
 
 	// 2 pages: ["hello", "world"] and ["foo"]
@@ -260,10 +284,11 @@ func TestAll(t *testing.T) {
 	fetcher := stringFetcher(pages, &calls)
 	it := NewIterator(fetcher)
 
-	var items []string
+	items := make([]string, 0, 3)
 
 	for item, err := range it.All() {
 		require.NoError(t, err, "All should not yield errors on success")
+
 		items = append(items, item)
 	}
 
@@ -272,6 +297,8 @@ func TestAll(t *testing.T) {
 }
 
 func TestAllWithError(t *testing.T) {
+	t.Parallel()
+
 	errPage2 := errors.New("page 2 failed")
 
 	fetcher := func(_ context.Context, cursor string) ([]string, string, error) {
@@ -285,6 +312,7 @@ func TestAllWithError(t *testing.T) {
 	it := NewIterator(fetcher)
 
 	var items []string
+
 	var gotErr error
 
 	for item, err := range it.All() {
@@ -302,6 +330,8 @@ func TestAllWithError(t *testing.T) {
 }
 
 func TestForEachConcurrent(t *testing.T) {
+	t.Parallel()
+
 	var calls atomic.Int32
 
 	pages := [][]int{{1, 2, 3, 4, 5}, {6, 7, 8, 9, 10}}
@@ -309,11 +339,13 @@ func TestForEachConcurrent(t *testing.T) {
 	it := NewIterator(fetcher)
 
 	var mu sync.Mutex
+
 	var processed []int
 
 	errs := ForEachConcurrent(context.Background(), it, 3,
 		func(_ context.Context, item int) error {
 			mu.Lock()
+
 			processed = append(processed, item)
 			mu.Unlock()
 
@@ -332,6 +364,8 @@ func TestForEachConcurrent(t *testing.T) {
 }
 
 func TestForEachConcurrentErrors(t *testing.T) {
+	t.Parallel()
+
 	var calls atomic.Int32
 
 	pages := [][]int{{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}}
@@ -353,6 +387,8 @@ func TestForEachConcurrentErrors(t *testing.T) {
 }
 
 func TestSinglePassSemantics(t *testing.T) {
+	t.Parallel()
+
 	var calls atomic.Int32
 
 	pages := [][]string{{"a", "b"}, {"c"}}
@@ -383,6 +419,8 @@ func TestSinglePassSemantics(t *testing.T) {
 }
 
 func TestContextCancellationDuringIteration(t *testing.T) {
+	t.Parallel()
+
 	// Create a fetcher where the second page respects context cancellation.
 	fetcher := func(ctx context.Context, cursor string) ([]int, string, error) {
 		if cursor == "" {
@@ -428,6 +466,8 @@ func TestContextCancellationDuringIteration(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestIteratorWithSingleItem(t *testing.T) {
+	t.Parallel()
+
 	var calls atomic.Int32
 
 	pages := [][]string{{"only"}}
@@ -442,6 +482,8 @@ func TestIteratorWithSingleItem(t *testing.T) {
 }
 
 func TestCollectOnFreshIterator(t *testing.T) {
+	t.Parallel()
+
 	// Collect on an iterator that hasn't had Next called yet.
 	var calls atomic.Int32
 
@@ -456,11 +498,14 @@ func TestCollectOnFreshIterator(t *testing.T) {
 }
 
 func TestForEachConcurrentWithIteratorError(t *testing.T) {
+	t.Parallel()
+
 	errPage := errors.New("page fetch error")
 
 	callCount := 0
 	fetcher := func(_ context.Context, cursor string) ([]int, string, error) {
 		callCount++
+
 		if cursor == "" {
 			return []int{1, 2}, "next", nil
 		}
@@ -482,6 +527,8 @@ func TestForEachConcurrentWithIteratorError(t *testing.T) {
 }
 
 func TestForEachConcurrentWithZeroWorkers(t *testing.T) {
+	t.Parallel()
+
 	// workers=0 previously caused a deadlock because make(chan struct{}, 0)
 	// creates an unbuffered channel, blocking the first send forever.
 	// The guard should clamp workers to 1, allowing normal execution.
@@ -492,14 +539,17 @@ func TestForEachConcurrentWithZeroWorkers(t *testing.T) {
 	it := NewIterator(fetcher)
 
 	var mu sync.Mutex
+
 	var processed []int
 
 	// Use a timeout to catch deadlocks: if this blocks for 5 seconds, the test fails.
 	done := make(chan []error, 1)
+
 	go func() {
 		done <- ForEachConcurrent(context.Background(), it, 0,
 			func(_ context.Context, item int) error {
 				mu.Lock()
+
 				processed = append(processed, item)
 				mu.Unlock()
 
@@ -522,6 +572,8 @@ func TestForEachConcurrentWithZeroWorkers(t *testing.T) {
 }
 
 func TestForEachConcurrentWithNegativeWorkers(t *testing.T) {
+	t.Parallel()
+
 	// workers=-1 previously caused a panic because make(chan struct{}, -1)
 	// panics at runtime. The guard should clamp workers to 1.
 	var calls atomic.Int32
@@ -531,13 +583,16 @@ func TestForEachConcurrentWithNegativeWorkers(t *testing.T) {
 	it := NewIterator(fetcher)
 
 	var mu sync.Mutex
+
 	var processed []int
 
 	done := make(chan []error, 1)
+
 	go func() {
 		done <- ForEachConcurrent(context.Background(), it, -1,
 			func(_ context.Context, item int) error {
 				mu.Lock()
+
 				processed = append(processed, item)
 				mu.Unlock()
 
@@ -558,6 +613,8 @@ func TestForEachConcurrentWithNegativeWorkers(t *testing.T) {
 }
 
 func TestCollectN_Zero(t *testing.T) {
+	t.Parallel()
+
 	var calls atomic.Int32
 
 	pages := [][]int{{1, 2, 3}}
@@ -573,6 +630,8 @@ func TestCollectN_Zero(t *testing.T) {
 }
 
 func TestCollectN_Negative(t *testing.T) {
+	t.Parallel()
+
 	var calls atomic.Int32
 
 	pages := [][]int{{1, 2, 3}}
@@ -588,6 +647,8 @@ func TestCollectN_Negative(t *testing.T) {
 }
 
 func TestAllCtx_CancelledContext(t *testing.T) {
+	t.Parallel()
+
 	// Fetcher where page 2 is slow enough that a cancelled context
 	// will prevent it from completing.
 	fetcher := func(ctx context.Context, cursor string) ([]int, string, error) {
@@ -608,6 +669,7 @@ func TestAllCtx_CancelledContext(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	var items []int
+
 	var gotErr error
 
 	for item, err := range it.AllCtx(ctx) {
@@ -634,7 +696,10 @@ func TestAllCtx_CancelledContext(t *testing.T) {
 }
 
 func TestAllCtx_WithValues(t *testing.T) {
+	t.Parallel()
+
 	type ctxKey string
+
 	const testKey ctxKey = "test-key"
 
 	// Fetcher that reads a value from the context and includes it in results.
@@ -655,10 +720,11 @@ func TestAllCtx_WithValues(t *testing.T) {
 
 	ctx := context.WithValue(context.Background(), testKey, "hello")
 
-	var items []string
+	items := make([]string, 0, 2)
 
 	for item, err := range it.AllCtx(ctx) {
 		require.NoError(t, err, "AllCtx should not yield errors when context carries value")
+
 		items = append(items, item)
 	}
 

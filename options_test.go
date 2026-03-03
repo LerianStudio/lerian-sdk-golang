@@ -15,18 +15,24 @@ import (
 // ---------------------------------------------------------------------------
 
 func TestWithDebug(t *testing.T) {
+	t.Parallel()
+
 	client, err := New(WithDebug(true))
 	require.NoError(t, err)
 	assert.True(t, client.debug, "debug should be true")
 }
 
 func TestWithDebugFalse(t *testing.T) {
+	t.Parallel()
+
 	client, err := New(WithDebug(false))
 	require.NoError(t, err)
 	assert.False(t, client.debug, "debug should be false")
 }
 
 func TestWithRetry(t *testing.T) {
+	t.Parallel()
+
 	client, err := New(WithRetry(5, 1*time.Second))
 	require.NoError(t, err)
 	assert.Equal(t, 5, client.retryConfig.MaxRetries)
@@ -34,6 +40,8 @@ func TestWithRetry(t *testing.T) {
 }
 
 func TestWithRetryZeroDisables(t *testing.T) {
+	t.Parallel()
+
 	client, err := New(WithRetry(0, 0))
 	require.NoError(t, err)
 	assert.Equal(t, 0, client.retryConfig.MaxRetries)
@@ -41,6 +49,8 @@ func TestWithRetryZeroDisables(t *testing.T) {
 }
 
 func TestWithHTTPClient(t *testing.T) {
+	t.Parallel()
+
 	custom := &http.Client{Timeout: 99 * time.Second}
 
 	client, err := New(WithHTTPClient(custom))
@@ -49,6 +59,8 @@ func TestWithHTTPClient(t *testing.T) {
 }
 
 func TestWithHTTPClientUsedInProduct(t *testing.T) {
+	t.Parallel()
+
 	// Verify that the custom HTTP client propagates to product backends.
 	custom := &http.Client{Timeout: 42 * time.Second}
 
@@ -64,6 +76,8 @@ func TestWithHTTPClientUsedInProduct(t *testing.T) {
 }
 
 func TestWithObservabilityAllDisabled(t *testing.T) {
+	t.Parallel()
+
 	client, err := New(WithObservability(false, false, false))
 	require.NoError(t, err)
 	assert.NotNil(t, client.observability)
@@ -71,6 +85,8 @@ func TestWithObservabilityAllDisabled(t *testing.T) {
 }
 
 func TestWithCollectorEndpoint(t *testing.T) {
+	t.Parallel()
+
 	client, err := New(WithCollectorEndpoint("http://collector:4318"))
 	require.NoError(t, err)
 	assert.Equal(t, "http://collector:4318", client.otelEndpoint)
@@ -81,6 +97,8 @@ func TestWithCollectorEndpoint(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestDefaultRetryConfig(t *testing.T) {
+	t.Parallel()
+
 	client, err := New()
 	require.NoError(t, err)
 	// DefaultConfig() values from pkg/retry.
@@ -89,6 +107,8 @@ func TestDefaultRetryConfig(t *testing.T) {
 }
 
 func TestDefaultHTTPClient(t *testing.T) {
+	t.Parallel()
+
 	client, err := New()
 	require.NoError(t, err)
 	assert.NotNil(t, client.httpClient)
@@ -96,6 +116,8 @@ func TestDefaultHTTPClient(t *testing.T) {
 }
 
 func TestDefaultJSONPool(t *testing.T) {
+	t.Parallel()
+
 	client, err := New()
 	require.NoError(t, err)
 	assert.NotNil(t, client.jsonPool)
@@ -106,6 +128,8 @@ func TestDefaultJSONPool(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestOptionsAppliedInOrder(t *testing.T) {
+	t.Parallel()
+
 	// Later options should override earlier ones.
 	client, err := New(
 		WithRetry(1, 100*time.Millisecond),
@@ -117,6 +141,8 @@ func TestOptionsAppliedInOrder(t *testing.T) {
 }
 
 func TestOptionErrorPropagation(t *testing.T) {
+	t.Parallel()
+
 	// A failing option should prevent client creation.
 	badOption := Option(func(_ *Client) error {
 		return assert.AnError

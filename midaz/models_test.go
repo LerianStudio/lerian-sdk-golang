@@ -18,6 +18,8 @@ func ptr[T any](v T) *T { return &v }
 // ---------------------------------------------------------------------------
 
 func TestOrganizationJSONRoundTrip(t *testing.T) {
+	t.Parallel()
+
 	now := time.Date(2026, 3, 1, 12, 0, 0, 0, time.UTC)
 
 	tests := []struct {
@@ -65,12 +67,15 @@ func TestOrganizationJSONRoundTrip(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			data, err := json.Marshal(tc.org)
 			require.NoError(t, err)
 
 			// Verify expected keys exist.
 			raw := make(map[string]json.RawMessage)
 			require.NoError(t, json.Unmarshal(data, &raw))
+
 			for _, key := range tc.keys {
 				assert.Contains(t, raw, key, "expected key %q in JSON", key)
 			}
@@ -97,6 +102,8 @@ func TestOrganizationJSONRoundTrip(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestTransactionJSONRoundTrip(t *testing.T) {
+	t.Parallel()
+
 	now := time.Date(2026, 3, 1, 14, 30, 0, 0, time.UTC)
 
 	tests := []struct {
@@ -147,11 +154,14 @@ func TestTransactionJSONRoundTrip(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			data, err := json.Marshal(tc.tx)
 			require.NoError(t, err)
 
 			raw := make(map[string]json.RawMessage)
 			require.NoError(t, json.Unmarshal(data, &raw))
+
 			for _, key := range tc.keys {
 				assert.Contains(t, raw, key, "expected key %q in JSON", key)
 			}
@@ -178,6 +188,8 @@ func TestTransactionJSONRoundTrip(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestTransactionSourceJSONRoundTrip(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name   string
 		source TransactionSource
@@ -230,11 +242,14 @@ func TestTransactionSourceJSONRoundTrip(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			data, err := json.Marshal(tc.source)
 			require.NoError(t, err)
 
 			raw := make(map[string]json.RawMessage)
 			require.NoError(t, json.Unmarshal(data, &raw))
+
 			for _, key := range tc.keys {
 				assert.Contains(t, raw, key, "expected key %q in JSON", key)
 			}
@@ -268,6 +283,8 @@ func TestTransactionSourceJSONRoundTrip(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestBalanceJSONRoundTrip(t *testing.T) {
+	t.Parallel()
+
 	now := time.Date(2026, 3, 1, 10, 0, 0, 0, time.UTC)
 
 	bal := Balance{
@@ -309,6 +326,8 @@ func TestBalanceJSONRoundTrip(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestOperationJSONRoundTrip(t *testing.T) {
+	t.Parallel()
+
 	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.UTC)
 
 	op := Operation{
@@ -348,6 +367,8 @@ func TestOperationJSONRoundTrip(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestCreateOrganizationInputJSON(t *testing.T) {
+	t.Parallel()
+
 	input := CreateOrganizationInput{
 		LegalName:     "NewCo",
 		LegalDocument: "111222333",
@@ -367,6 +388,8 @@ func TestCreateOrganizationInputJSON(t *testing.T) {
 }
 
 func TestUpdateOrganizationInputOmitsNilFields(t *testing.T) {
+	t.Parallel()
+
 	// Only update legalName, leave everything else nil.
 	input := UpdateOrganizationInput{
 		LegalName: ptr("Updated Name"),
@@ -390,6 +413,8 @@ func TestUpdateOrganizationInputOmitsNilFields(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestLedgerJSONKeys(t *testing.T) {
+	t.Parallel()
+
 	now := time.Now().UTC()
 	l := Ledger{
 		ID:             "led-001",
@@ -412,6 +437,8 @@ func TestLedgerJSONKeys(t *testing.T) {
 }
 
 func TestAssetJSONKeys(t *testing.T) {
+	t.Parallel()
+
 	now := time.Now().UTC()
 	a := Asset{
 		ID:             "ast-001",
@@ -437,6 +464,8 @@ func TestAssetJSONKeys(t *testing.T) {
 }
 
 func TestPortfolioJSONRoundTrip(t *testing.T) {
+	t.Parallel()
+
 	now := time.Now().UTC()
 	p := Portfolio{
 		ID:             "pf-001",

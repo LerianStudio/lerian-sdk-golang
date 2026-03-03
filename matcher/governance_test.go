@@ -19,7 +19,7 @@ import (
 func TestGovernanceListArchives(t *testing.T) {
 	t.Parallel()
 
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, method, path string, _, result any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, method, path string, _, result any) error {
 		assert.Equal(t, "GET", method)
 		assert.Contains(t, path, "/archives")
 
@@ -30,9 +30,8 @@ func TestGovernanceListArchives(t *testing.T) {
 			},
 			Pagination: models.Pagination{Total: 2, Limit: 10},
 		}
-		unmarshalInto(t, resp, result)
 
-		return nil
+		return unmarshalInto(resp, result)
 	}}
 
 	svc := newGovernanceService(mb)
@@ -52,16 +51,15 @@ func TestGovernanceListArchivesWithOptions(t *testing.T) {
 
 	var receivedPath string
 
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, _, path string, _, result any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, _, path string, _, result any) error {
 		receivedPath = path
 
 		resp := models.ListResponse[Archive]{
 			Items:      []Archive{{ID: "arc-1"}},
 			Pagination: models.Pagination{Total: 1, Limit: 5},
 		}
-		unmarshalInto(t, resp, result)
 
-		return nil
+		return unmarshalInto(resp, result)
 	}}
 
 	svc := newGovernanceService(mb)
@@ -80,19 +78,18 @@ func TestGovernanceListArchivesWithOptions(t *testing.T) {
 func TestGovernanceGetArchive(t *testing.T) {
 	t.Parallel()
 
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, method, path string, body, result any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, method, path string, body, result any) error {
 		assert.Equal(t, "GET", method)
 		assert.Equal(t, "/archives/arc-1", path)
 		assert.Nil(t, body)
-		unmarshalInto(t, Archive{
+
+		return unmarshalInto(Archive{
 			ID:          "arc-1",
 			ContextID:   "ctx-1",
 			Type:        "monthly",
 			RecordCount: 500,
 			CreatedAt:   time.Date(2026, 1, 15, 0, 0, 0, 0, time.UTC),
 		}, result)
-
-		return nil
 	}}
 
 	svc := newGovernanceService(mb)
@@ -109,7 +106,7 @@ func TestGovernanceGetArchive(t *testing.T) {
 func TestGovernanceGetArchiveEmptyID(t *testing.T) {
 	t.Parallel()
 
-	svc := newGovernanceService(&mockBackend{t: t, callFn: noopCallFn})
+	svc := newGovernanceService(&mockBackend{callFn: noopCallFn})
 	got, err := svc.GetArchive(context.Background(), "")
 
 	require.Error(t, err)
@@ -120,7 +117,7 @@ func TestGovernanceGetArchiveEmptyID(t *testing.T) {
 func TestGovernanceGetArchiveBackendError(t *testing.T) {
 	t.Parallel()
 
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, _, _ any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
 		return errors.New("backend failure")
 	}}
 
@@ -139,7 +136,7 @@ func TestGovernanceGetArchiveBackendError(t *testing.T) {
 func TestGovernanceListAuditLogs(t *testing.T) {
 	t.Parallel()
 
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, method, path string, _, result any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, method, path string, _, result any) error {
 		assert.Equal(t, "GET", method)
 		assert.Contains(t, path, "/audit-logs")
 
@@ -150,9 +147,8 @@ func TestGovernanceListAuditLogs(t *testing.T) {
 			},
 			Pagination: models.Pagination{Total: 2, Limit: 10},
 		}
-		unmarshalInto(t, resp, result)
 
-		return nil
+		return unmarshalInto(resp, result)
 	}}
 
 	svc := newGovernanceService(mb)
@@ -174,11 +170,12 @@ func TestGovernanceListAuditLogs(t *testing.T) {
 func TestGovernanceGetAuditLog(t *testing.T) {
 	t.Parallel()
 
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, method, path string, body, result any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, method, path string, body, result any) error {
 		assert.Equal(t, "GET", method)
 		assert.Equal(t, "/audit-logs/log-1", path)
 		assert.Nil(t, body)
-		unmarshalInto(t, AuditLog{
+
+		return unmarshalInto(AuditLog{
 			ID:         "log-1",
 			ContextID:  "ctx-1",
 			Action:     "create",
@@ -186,8 +183,6 @@ func TestGovernanceGetAuditLog(t *testing.T) {
 			Resource:   "context",
 			ResourceID: "ctx-1",
 		}, result)
-
-		return nil
 	}}
 
 	svc := newGovernanceService(mb)
@@ -203,7 +198,7 @@ func TestGovernanceGetAuditLog(t *testing.T) {
 func TestGovernanceGetAuditLogEmptyID(t *testing.T) {
 	t.Parallel()
 
-	svc := newGovernanceService(&mockBackend{t: t, callFn: noopCallFn})
+	svc := newGovernanceService(&mockBackend{callFn: noopCallFn})
 	got, err := svc.GetAuditLog(context.Background(), "")
 
 	require.Error(t, err)
@@ -214,7 +209,7 @@ func TestGovernanceGetAuditLogEmptyID(t *testing.T) {
 func TestGovernanceGetAuditLogBackendError(t *testing.T) {
 	t.Parallel()
 
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, _, _ any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
 		return errors.New("service unavailable")
 	}}
 
@@ -234,7 +229,7 @@ func TestGovernanceListArchivesBackendError(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("backend error: internal")
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, _, _ any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
 		return expectedErr
 	}}
 
@@ -251,7 +246,7 @@ func TestGovernanceListAuditLogsBackendError(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("backend error: internal")
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, _, _ any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
 		return expectedErr
 	}}
 

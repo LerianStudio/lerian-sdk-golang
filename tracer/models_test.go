@@ -14,12 +14,16 @@ import (
 // ---------------------------------------------------------------------------
 
 func TestRuleStatusConstants(t *testing.T) {
+	t.Parallel()
+
 	assert.Equal(t, RuleStatus("DRAFT"), RuleStatusDraft)
 	assert.Equal(t, RuleStatus("ACTIVE"), RuleStatusActive)
 	assert.Equal(t, RuleStatus("INACTIVE"), RuleStatusInactive)
 }
 
 func TestRuleStatusJSON(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name   string
 		status RuleStatus
@@ -32,11 +36,14 @@ func TestRuleStatusJSON(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			data, err := json.Marshal(tt.status)
 			require.NoError(t, err)
 			assert.Equal(t, tt.want, string(data))
 
 			var got RuleStatus
+
 			err = json.Unmarshal(data, &got)
 			require.NoError(t, err)
 			assert.Equal(t, tt.status, got)
@@ -49,6 +56,8 @@ func TestRuleStatusJSON(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestRuleJSONRoundTrip(t *testing.T) {
+	t.Parallel()
+
 	desc := "AML screening rule"
 	now := time.Date(2026, 3, 1, 12, 0, 0, 0, time.UTC)
 
@@ -62,8 +71,8 @@ func TestRuleJSONRoundTrip(t *testing.T) {
 			{Field: "amount", Operator: "gt", Value: float64(10000)},
 			{Field: "currency", Operator: "eq", Value: "USD"},
 		},
-		Actions:  []string{"flag", "notify"},
-		Metadata: map[string]any{"region": "US"},
+		Actions:   []string{"flag", "notify"},
+		Metadata:  map[string]any{"region": "US"},
 		CreatedAt: now,
 		UpdatedAt: now,
 	}
@@ -72,6 +81,7 @@ func TestRuleJSONRoundTrip(t *testing.T) {
 	require.NoError(t, err)
 
 	var got Rule
+
 	err = json.Unmarshal(data, &got)
 	require.NoError(t, err)
 
@@ -93,6 +103,8 @@ func TestRuleJSONRoundTrip(t *testing.T) {
 }
 
 func TestRuleOmitsEmptyOptionalFields(t *testing.T) {
+	t.Parallel()
+
 	rule := Rule{
 		ID:     "rule-002",
 		Name:   "Minimal Rule",
@@ -116,6 +128,8 @@ func TestRuleOmitsEmptyOptionalFields(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestLimitJSONRoundTrip(t *testing.T) {
+	t.Parallel()
+
 	desc := "Daily wire transfer cap"
 	currency := "USD"
 	now := time.Date(2026, 3, 1, 14, 30, 0, 0, time.UTC)
@@ -138,6 +152,7 @@ func TestLimitJSONRoundTrip(t *testing.T) {
 	require.NoError(t, err)
 
 	var got Limit
+
 	err = json.Unmarshal(data, &got)
 	require.NoError(t, err)
 
@@ -156,6 +171,8 @@ func TestLimitJSONRoundTrip(t *testing.T) {
 }
 
 func TestLimitOmitsEmptyOptionalFields(t *testing.T) {
+	t.Parallel()
+
 	limit := Limit{
 		ID:        "lim-002",
 		Name:      "Bare Limit",
@@ -178,6 +195,8 @@ func TestLimitOmitsEmptyOptionalFields(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestValidationJSONRoundTrip(t *testing.T) {
+	t.Parallel()
+
 	now := time.Date(2026, 3, 2, 9, 0, 0, 0, time.UTC)
 
 	val := Validation{
@@ -195,6 +214,7 @@ func TestValidationJSONRoundTrip(t *testing.T) {
 	require.NoError(t, err)
 
 	var got Validation
+
 	err = json.Unmarshal(data, &got)
 	require.NoError(t, err)
 
@@ -208,6 +228,8 @@ func TestValidationJSONRoundTrip(t *testing.T) {
 }
 
 func TestValidationOmitsEmptyOptionalFields(t *testing.T) {
+	t.Parallel()
+
 	val := Validation{
 		ID:        "val-002",
 		Status:    "pending",
@@ -229,6 +251,8 @@ func TestValidationOmitsEmptyOptionalFields(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestAuditEventJSONRoundTrip(t *testing.T) {
+	t.Parallel()
+
 	now := time.Date(2026, 3, 2, 10, 15, 0, 0, time.UTC)
 
 	event := AuditEvent{
@@ -247,6 +271,7 @@ func TestAuditEventJSONRoundTrip(t *testing.T) {
 	require.NoError(t, err)
 
 	var got AuditEvent
+
 	err = json.Unmarshal(data, &got)
 	require.NoError(t, err)
 
@@ -263,6 +288,8 @@ func TestAuditEventJSONRoundTrip(t *testing.T) {
 }
 
 func TestAuditEventOmitsEmptyDetails(t *testing.T) {
+	t.Parallel()
+
 	event := AuditEvent{
 		ID:         "evt-002",
 		Type:       "account",
@@ -285,6 +312,8 @@ func TestAuditEventOmitsEmptyDetails(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestAuditVerificationJSONRoundTrip(t *testing.T) {
+	t.Parallel()
+
 	now := time.Date(2026, 3, 2, 11, 0, 0, 0, time.UTC)
 
 	verification := AuditVerification{
@@ -299,6 +328,7 @@ func TestAuditVerificationJSONRoundTrip(t *testing.T) {
 	require.NoError(t, err)
 
 	var got AuditVerification
+
 	err = json.Unmarshal(data, &got)
 	require.NoError(t, err)
 
@@ -310,6 +340,8 @@ func TestAuditVerificationJSONRoundTrip(t *testing.T) {
 }
 
 func TestAuditVerificationInvalidHash(t *testing.T) {
+	t.Parallel()
+
 	now := time.Date(2026, 3, 2, 11, 5, 0, 0, time.UTC)
 
 	verification := AuditVerification{
@@ -324,6 +356,7 @@ func TestAuditVerificationInvalidHash(t *testing.T) {
 	require.NoError(t, err)
 
 	var got AuditVerification
+
 	err = json.Unmarshal(data, &got)
 	require.NoError(t, err)
 
@@ -335,6 +368,8 @@ func TestAuditVerificationInvalidHash(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestCreateRuleInputJSON(t *testing.T) {
+	t.Parallel()
+
 	desc := "Checks high-value transfers"
 	input := CreateRuleInput{
 		Name:        "High Value Check",
@@ -351,6 +386,7 @@ func TestCreateRuleInputJSON(t *testing.T) {
 	require.NoError(t, err)
 
 	var got CreateRuleInput
+
 	err = json.Unmarshal(data, &got)
 	require.NoError(t, err)
 
@@ -368,6 +404,8 @@ func TestCreateRuleInputJSON(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestUpdateRuleInputPartialJSON(t *testing.T) {
+	t.Parallel()
+
 	name := "Updated Name"
 	priority := 3
 
@@ -393,6 +431,8 @@ func TestUpdateRuleInputPartialJSON(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestCreateLimitInputJSON(t *testing.T) {
+	t.Parallel()
+
 	currency := "EUR"
 	input := CreateLimitInput{
 		Name:      "Monthly Cap",
@@ -406,6 +446,7 @@ func TestCreateLimitInputJSON(t *testing.T) {
 	require.NoError(t, err)
 
 	var got CreateLimitInput
+
 	err = json.Unmarshal(data, &got)
 	require.NoError(t, err)
 
@@ -422,6 +463,8 @@ func TestCreateLimitInputJSON(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestUpdateLimitInputPartialJSON(t *testing.T) {
+	t.Parallel()
+
 	newMax := int64(500000)
 	input := UpdateLimitInput{
 		MaxAmount: &newMax,
@@ -443,6 +486,8 @@ func TestUpdateLimitInputPartialJSON(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestCreateValidationInputJSON(t *testing.T) {
+	t.Parallel()
+
 	input := CreateValidationInput{
 		Transaction: map[string]any{
 			"amount":   float64(7500),
@@ -457,6 +502,7 @@ func TestCreateValidationInputJSON(t *testing.T) {
 	require.NoError(t, err)
 
 	var got CreateValidationInput
+
 	err = json.Unmarshal(data, &got)
 	require.NoError(t, err)
 

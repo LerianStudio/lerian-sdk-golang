@@ -11,13 +11,17 @@ import (
 )
 
 func TestSchedulesCreate(t *testing.T) {
+	t.Parallel()
+
 	t.Run("success", func(t *testing.T) {
-		mb := &mockBackend{t: t, callFn: func(_ context.Context, method, path string, body, result any) error {
+		t.Parallel()
+
+		mb := &mockBackend{callFn: func(_ context.Context, method, path string, body, result any) error {
 			assert.Equal(t, "POST", method)
 			assert.Equal(t, "/schedules", path)
 			assert.NotNil(t, body)
-			unmarshalInto(t, Schedule{ID: "sched-1", Name: "daily"}, result)
-			return nil
+
+			return unmarshalInto(Schedule{ID: "sched-1", Name: "daily"}, result)
 		}}
 		svc := newSchedulesService(mb)
 		got, err := svc.Create(context.Background(), &CreateScheduleInput{
@@ -30,7 +34,9 @@ func TestSchedulesCreate(t *testing.T) {
 	})
 
 	t.Run("nil input", func(t *testing.T) {
-		svc := newSchedulesService(&mockBackend{t: t, callFn: func(context.Context, string, string, any, any) error { return nil }})
+		t.Parallel()
+
+		svc := newSchedulesService(&mockBackend{callFn: func(context.Context, string, string, any, any) error { return nil }})
 		_, err := svc.Create(context.Background(), nil)
 		require.Error(t, err)
 		assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
@@ -38,12 +44,16 @@ func TestSchedulesCreate(t *testing.T) {
 }
 
 func TestSchedulesGet(t *testing.T) {
+	t.Parallel()
+
 	t.Run("success", func(t *testing.T) {
-		mb := &mockBackend{t: t, callFn: func(_ context.Context, method, path string, _, result any) error {
+		t.Parallel()
+
+		mb := &mockBackend{callFn: func(_ context.Context, method, path string, _, result any) error {
 			assert.Equal(t, "GET", method)
 			assert.Equal(t, "/schedules/sched-1", path)
-			unmarshalInto(t, Schedule{ID: "sched-1"}, result)
-			return nil
+
+			return unmarshalInto(Schedule{ID: "sched-1"}, result)
 		}}
 		svc := newSchedulesService(mb)
 		got, err := svc.Get(context.Background(), "sched-1")
@@ -52,7 +62,9 @@ func TestSchedulesGet(t *testing.T) {
 	})
 
 	t.Run("empty id", func(t *testing.T) {
-		svc := newSchedulesService(&mockBackend{t: t, callFn: func(context.Context, string, string, any, any) error { return nil }})
+		t.Parallel()
+
+		svc := newSchedulesService(&mockBackend{callFn: func(context.Context, string, string, any, any) error { return nil }})
 		_, err := svc.Get(context.Background(), "")
 		require.Error(t, err)
 		assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
@@ -60,9 +72,12 @@ func TestSchedulesGet(t *testing.T) {
 }
 
 func TestSchedulesList(t *testing.T) {
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, method, path string, _, result any) error {
+	t.Parallel()
+
+	mb := &mockBackend{callFn: func(_ context.Context, method, path string, _, result any) error {
 		assert.Equal(t, "GET", method)
 		assert.Contains(t, path, "/schedules")
+
 		return nil
 	}}
 	svc := newSchedulesService(mb)
@@ -71,14 +86,18 @@ func TestSchedulesList(t *testing.T) {
 }
 
 func TestSchedulesUpdate(t *testing.T) {
+	t.Parallel()
+
 	t.Run("success", func(t *testing.T) {
+		t.Parallel()
+
 		name := "weekly"
-		mb := &mockBackend{t: t, callFn: func(_ context.Context, method, path string, body, result any) error {
+		mb := &mockBackend{callFn: func(_ context.Context, method, path string, body, result any) error {
 			assert.Equal(t, "PATCH", method)
 			assert.Equal(t, "/schedules/sched-1", path)
 			assert.NotNil(t, body)
-			unmarshalInto(t, Schedule{ID: "sched-1", Name: "weekly"}, result)
-			return nil
+
+			return unmarshalInto(Schedule{ID: "sched-1", Name: "weekly"}, result)
 		}}
 		svc := newSchedulesService(mb)
 		got, err := svc.Update(context.Background(), "sched-1", &UpdateScheduleInput{Name: &name})
@@ -87,14 +106,18 @@ func TestSchedulesUpdate(t *testing.T) {
 	})
 
 	t.Run("empty id", func(t *testing.T) {
-		svc := newSchedulesService(&mockBackend{t: t, callFn: func(context.Context, string, string, any, any) error { return nil }})
+		t.Parallel()
+
+		svc := newSchedulesService(&mockBackend{callFn: func(context.Context, string, string, any, any) error { return nil }})
 		_, err := svc.Update(context.Background(), "", &UpdateScheduleInput{})
 		require.Error(t, err)
 		assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
 	})
 
 	t.Run("nil input", func(t *testing.T) {
-		svc := newSchedulesService(&mockBackend{t: t, callFn: func(context.Context, string, string, any, any) error { return nil }})
+		t.Parallel()
+
+		svc := newSchedulesService(&mockBackend{callFn: func(context.Context, string, string, any, any) error { return nil }})
 		_, err := svc.Update(context.Background(), "sched-1", nil)
 		require.Error(t, err)
 		assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
@@ -102,11 +125,16 @@ func TestSchedulesUpdate(t *testing.T) {
 }
 
 func TestSchedulesDelete(t *testing.T) {
+	t.Parallel()
+
 	t.Run("success", func(t *testing.T) {
-		mb := &mockBackend{t: t, callFn: func(_ context.Context, method, path string, _, result any) error {
+		t.Parallel()
+
+		mb := &mockBackend{callFn: func(_ context.Context, method, path string, _, result any) error {
 			assert.Equal(t, "DELETE", method)
 			assert.Equal(t, "/schedules/sched-1", path)
 			assert.Nil(t, result)
+
 			return nil
 		}}
 		svc := newSchedulesService(mb)
@@ -115,7 +143,9 @@ func TestSchedulesDelete(t *testing.T) {
 	})
 
 	t.Run("empty id", func(t *testing.T) {
-		svc := newSchedulesService(&mockBackend{t: t, callFn: func(context.Context, string, string, any, any) error { return nil }})
+		t.Parallel()
+
+		svc := newSchedulesService(&mockBackend{callFn: func(context.Context, string, string, any, any) error { return nil }})
 		err := svc.Delete(context.Background(), "")
 		require.Error(t, err)
 		assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
@@ -130,7 +160,7 @@ func TestSchedulesCreateBackendError(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("backend error: conflict")
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, _, _ any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
 		return expectedErr
 	}}
 
@@ -148,7 +178,7 @@ func TestSchedulesGetBackendError(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("backend error: not found")
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, _, _ any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
 		return expectedErr
 	}}
 
@@ -164,7 +194,7 @@ func TestSchedulesListBackendError(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("backend error: internal")
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, _, _ any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
 		return expectedErr
 	}}
 
@@ -181,7 +211,7 @@ func TestSchedulesUpdateBackendError(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("backend error: conflict")
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, _, _ any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
 		return expectedErr
 	}}
 
@@ -198,7 +228,7 @@ func TestSchedulesDeleteBackendError(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("backend error: forbidden")
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, _, _ any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
 		return expectedErr
 	}}
 

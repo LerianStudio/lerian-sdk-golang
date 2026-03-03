@@ -14,6 +14,8 @@ import (
 // ---------------------------------------------------------------------------
 
 func TestErrorCategoryConstants(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		constant ErrorCategory
 		want     string
@@ -32,6 +34,8 @@ func TestErrorCategoryConstants(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.want, func(t *testing.T) {
+			t.Parallel()
+
 			assert.Equal(t, tc.want, string(tc.constant))
 		})
 	}
@@ -42,6 +46,8 @@ func TestErrorCategoryConstants(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestErrorStruct(t *testing.T) {
+	t.Parallel()
+
 	inner := fmt.Errorf("disk full")
 
 	e := &Error{
@@ -76,6 +82,8 @@ func TestErrorStruct(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestErrorString(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name string
 		err  *Error
@@ -132,6 +140,8 @@ func TestErrorString(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := tc.err.Error()
 			assert.Equal(t, tc.want, got)
 		})
@@ -143,6 +153,8 @@ func TestErrorString(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestErrorIs(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name   string
 		err    *Error
@@ -189,6 +201,8 @@ func TestErrorIs(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := tc.err.Is(tc.target)
 			assert.Equal(t, tc.want, got)
 		})
@@ -196,6 +210,8 @@ func TestErrorIs(t *testing.T) {
 
 	// Also verify Is returns false for non-Error targets.
 	t.Run("non-Error target returns false", func(t *testing.T) {
+		t.Parallel()
+
 		e := &Error{Category: CategoryNetwork}
 		got := e.Is(fmt.Errorf("plain error"))
 		assert.False(t, got)
@@ -207,6 +223,8 @@ func TestErrorIs(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestSentinelErrors(t *testing.T) {
+	t.Parallel()
+
 	sentinels := []struct {
 		name     string
 		sentinel *Error
@@ -226,6 +244,8 @@ func TestSentinelErrors(t *testing.T) {
 
 	for _, s := range sentinels {
 		t.Run(s.name+"_positive", func(t *testing.T) {
+			t.Parallel()
+
 			// A rich error with the same category should match the sentinel.
 			rich := &Error{
 				Product:   "ledger",
@@ -238,6 +258,8 @@ func TestSentinelErrors(t *testing.T) {
 		})
 
 		t.Run(s.name+"_negative", func(t *testing.T) {
+			t.Parallel()
+
 			// Pick a category that is definitely different.
 			differentCategory := CategoryInternal
 			if s.category == CategoryInternal {
@@ -261,6 +283,8 @@ func TestSentinelErrors(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestErrorsAs(t *testing.T) {
+	t.Parallel()
+
 	original := &Error{
 		Product:    "ledger",
 		Category:   CategoryNotFound,
@@ -291,9 +315,13 @@ func TestErrorsAs(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestFactoryFunctions(t *testing.T) {
+	t.Parallel()
+
 	innerErr := fmt.Errorf("connection reset by peer")
 
 	t.Run("NewValidation", func(t *testing.T) {
+		t.Parallel()
+
 		e := NewValidation("accounts.Create", "Account", "name is required")
 		assert.Equal(t, "sdk", e.Product)
 		assert.Equal(t, CategoryValidation, e.Category)
@@ -307,6 +335,8 @@ func TestFactoryFunctions(t *testing.T) {
 	})
 
 	t.Run("NewNotFound", func(t *testing.T) {
+		t.Parallel()
+
 		e := NewNotFound("accounts.Get", "Account", "acc-99")
 		assert.Equal(t, "sdk", e.Product)
 		assert.Equal(t, CategoryNotFound, e.Category)
@@ -320,6 +350,8 @@ func TestFactoryFunctions(t *testing.T) {
 	})
 
 	t.Run("NewAuthentication", func(t *testing.T) {
+		t.Parallel()
+
 		e := NewAuthentication("ledger", "auth.Login", "invalid token")
 		assert.Equal(t, "ledger", e.Product)
 		assert.Equal(t, CategoryAuthentication, e.Category)
@@ -331,6 +363,8 @@ func TestFactoryFunctions(t *testing.T) {
 	})
 
 	t.Run("NewAuthorization", func(t *testing.T) {
+		t.Parallel()
+
 		e := NewAuthorization("ledger", "accounts.Delete", "insufficient privileges")
 		assert.Equal(t, "ledger", e.Product)
 		assert.Equal(t, CategoryAuthorization, e.Category)
@@ -342,6 +376,8 @@ func TestFactoryFunctions(t *testing.T) {
 	})
 
 	t.Run("NewConflict", func(t *testing.T) {
+		t.Parallel()
+
 		e := NewConflict("ledger", "accounts.Create", "Account", "duplicate account name")
 		assert.Equal(t, "ledger", e.Product)
 		assert.Equal(t, CategoryConflict, e.Category)
@@ -354,6 +390,8 @@ func TestFactoryFunctions(t *testing.T) {
 	})
 
 	t.Run("NewNetwork", func(t *testing.T) {
+		t.Parallel()
+
 		e := NewNetwork("ledger", "health.Check", innerErr)
 		assert.Equal(t, "ledger", e.Product)
 		assert.Equal(t, CategoryNetwork, e.Category)
@@ -367,6 +405,8 @@ func TestFactoryFunctions(t *testing.T) {
 	})
 
 	t.Run("NewTimeout", func(t *testing.T) {
+		t.Parallel()
+
 		timeoutErr := fmt.Errorf("context deadline exceeded")
 		e := NewTimeout("transaction", "transactions.Commit", timeoutErr)
 		assert.Equal(t, "transaction", e.Product)
@@ -380,6 +420,8 @@ func TestFactoryFunctions(t *testing.T) {
 	})
 
 	t.Run("NewCancellation", func(t *testing.T) {
+		t.Parallel()
+
 		cancelErr := fmt.Errorf("context canceled")
 		e := NewCancellation("sdk", "batch.Run", cancelErr)
 		assert.Equal(t, "sdk", e.Product)
@@ -393,6 +435,8 @@ func TestFactoryFunctions(t *testing.T) {
 	})
 
 	t.Run("NewInternal", func(t *testing.T) {
+		t.Parallel()
+
 		e := NewInternal("ledger", "accounts.Sync", "unexpected nil pointer", innerErr)
 		assert.Equal(t, "ledger", e.Product)
 		assert.Equal(t, CategoryInternal, e.Category)
@@ -410,7 +454,11 @@ func TestFactoryFunctions(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestUnwrapChain(t *testing.T) {
+	t.Parallel()
+
 	t.Run("unwrap returns inner error", func(t *testing.T) {
+		t.Parallel()
+
 		inner := fmt.Errorf("root cause")
 		e := &Error{
 			Category:  CategoryNetwork,
@@ -422,6 +470,8 @@ func TestUnwrapChain(t *testing.T) {
 	})
 
 	t.Run("unwrap returns nil when no inner error", func(t *testing.T) {
+		t.Parallel()
+
 		e := &Error{
 			Category:  CategoryValidation,
 			Operation: "test",
@@ -431,6 +481,8 @@ func TestUnwrapChain(t *testing.T) {
 	})
 
 	t.Run("deep unwrap chain", func(t *testing.T) {
+		t.Parallel()
+
 		root := fmt.Errorf("disk I/O error")
 		mid := fmt.Errorf("storage layer: %w", root)
 		top := NewInternal("ledger", "persist", "write failed", mid)
@@ -446,27 +498,38 @@ func TestUnwrapChain(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestErrorNilFields(t *testing.T) {
+	t.Parallel()
+
 	t.Run("minimal error does not panic", func(t *testing.T) {
+		t.Parallel()
+
 		e := &Error{Category: CategoryInternal}
 		// Should not panic. Output: "[] internal during : "
 		require.NotPanics(t, func() {
 			_ = e.Error()
 		})
+
 		got := e.Error()
 		assert.Contains(t, got, "internal")
 	})
 
 	t.Run("zero-value Error does not panic", func(t *testing.T) {
+		t.Parallel()
+
 		e := &Error{}
+
 		require.NotPanics(t, func() {
 			_ = e.Error()
 		})
 	})
 
 	t.Run("sentinel error string does not panic", func(t *testing.T) {
+		t.Parallel()
+
 		require.NotPanics(t, func() {
 			_ = ErrNotFound.Error()
 		})
+
 		got := ErrNotFound.Error()
 		assert.Contains(t, got, "not_found")
 	})
@@ -477,6 +540,8 @@ func TestErrorNilFields(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestErrorCodeType(t *testing.T) {
+	t.Parallel()
+
 	code := ErrorCode("invalid_amount")
 	assert.Equal(t, "invalid_amount", string(code))
 
@@ -490,6 +555,8 @@ func TestErrorCodeType(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestErrorImplementsErrorInterface(t *testing.T) {
+	t.Parallel()
+
 	// Compile-time check that *Error satisfies error.
 	var _ error = (*Error)(nil)
 }
@@ -499,7 +566,11 @@ func TestErrorImplementsErrorInterface(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestFactoryNilError(t *testing.T) {
+	t.Parallel()
+
 	t.Run("NewNetwork with nil err does not panic", func(t *testing.T) {
+		t.Parallel()
+
 		require.NotPanics(t, func() {
 			e := NewNetwork("ledger", "health.Check", nil)
 			assert.Equal(t, "ledger", e.Product)
@@ -512,6 +583,8 @@ func TestFactoryNilError(t *testing.T) {
 	})
 
 	t.Run("NewTimeout with nil err does not panic", func(t *testing.T) {
+		t.Parallel()
+
 		require.NotPanics(t, func() {
 			e := NewTimeout("transaction", "transactions.Commit", nil)
 			assert.Equal(t, "transaction", e.Product)
@@ -524,6 +597,8 @@ func TestFactoryNilError(t *testing.T) {
 	})
 
 	t.Run("NewCancellation with nil err does not panic", func(t *testing.T) {
+		t.Parallel()
+
 		require.NotPanics(t, func() {
 			e := NewCancellation("sdk", "batch.Run", nil)
 			assert.Equal(t, "sdk", e.Product)
@@ -541,6 +616,8 @@ func TestFactoryNilError(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestCategoryFromStatus(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		status int
 		want   ErrorCategory
@@ -558,6 +635,8 @@ func TestCategoryFromStatus(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(fmt.Sprintf("status_%d", tc.status), func(t *testing.T) {
+			t.Parallel()
+
 			got := CategoryFromStatus(tc.status)
 			assert.Equal(t, tc.want, got)
 		})

@@ -14,6 +14,8 @@ import (
 // ---------------------------------------------------------------------------
 
 func TestNewClientConstruction(t *testing.T) {
+	t.Parallel()
+
 	cfg := Config{
 		OnboardingURL:  "http://localhost:3000/v1",
 		TransactionURL: "http://localhost:3001/v1",
@@ -36,6 +38,8 @@ func TestNewClientConstruction(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestNewClientWiredServicesNotNil(t *testing.T) {
+	t.Parallel()
+
 	cfg := Config{
 		OnboardingURL:  "http://localhost:3000/v1",
 		TransactionURL: "http://localhost:3001/v1",
@@ -67,6 +71,8 @@ func TestNewClientWiredServicesNotNil(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestOptions(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name      string
 		opt       Option
@@ -76,6 +82,7 @@ func TestOptions(t *testing.T) {
 			name: "WithOnboardingURL",
 			opt:  WithOnboardingURL("http://onboard:3000"),
 			assertCfg: func(t *testing.T, c Config) {
+				t.Helper()
 				assert.Equal(t, "http://onboard:3000", c.OnboardingURL)
 			},
 		},
@@ -83,6 +90,7 @@ func TestOptions(t *testing.T) {
 			name: "WithTransactionURL",
 			opt:  WithTransactionURL("http://txn:3001"),
 			assertCfg: func(t *testing.T, c Config) {
+				t.Helper()
 				assert.Equal(t, "http://txn:3001", c.TransactionURL)
 			},
 		},
@@ -90,6 +98,7 @@ func TestOptions(t *testing.T) {
 			name: "WithAuthToken",
 			opt:  WithAuthToken("my-token"),
 			assertCfg: func(t *testing.T, c Config) {
+				t.Helper()
 				assert.Equal(t, "my-token", c.AuthToken)
 			},
 		},
@@ -97,6 +106,7 @@ func TestOptions(t *testing.T) {
 			name: "WithTimeout",
 			opt:  WithTimeout(45 * time.Second),
 			assertCfg: func(t *testing.T, c Config) {
+				t.Helper()
 				assert.Equal(t, 45*time.Second, c.Timeout)
 			},
 		},
@@ -104,7 +114,10 @@ func TestOptions(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			var cfg Config
+
 			err := tc.opt(&cfg)
 			require.NoError(t, err)
 			tc.assertCfg(t, cfg)
@@ -117,6 +130,8 @@ func TestOptions(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestErrorParserReturnsFunction(t *testing.T) {
+	t.Parallel()
+
 	parser := ErrorParser()
 	require.NotNil(t, parser, "ErrorParser() must return a non-nil function")
 
@@ -136,6 +151,8 @@ func TestErrorParserReturnsFunction(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestConfigStringRedaction(t *testing.T) {
+	t.Parallel()
+
 	cfg := Config{
 		OnboardingURL:  "http://localhost:3000/v1",
 		TransactionURL: "http://localhost:3001/v1",
@@ -159,6 +176,8 @@ func TestConfigStringRedaction(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestConfigMarshalJSONRedaction(t *testing.T) {
+	t.Parallel()
+
 	cfg := Config{
 		OnboardingURL:  "http://localhost:3000/v1",
 		TransactionURL: "http://localhost:3001/v1",
@@ -183,6 +202,8 @@ func TestConfigMarshalJSONRedaction(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestServiceInterfaceTypes(t *testing.T) {
+	t.Parallel()
+
 	// These compile-time assertions verify that each concrete entity type
 	// satisfies its corresponding service interface.
 	var (

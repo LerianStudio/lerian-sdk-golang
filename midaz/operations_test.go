@@ -142,7 +142,9 @@ func TestOperationsListWithOptions(t *testing.T) {
 	mock := &mockBackend{
 		callFn: func(_ context.Context, method, path string, body, result any) error {
 			assert.Equal(t, "GET", method)
+
 			receivedPath = path
+
 			assert.Nil(t, body)
 
 			resp := models.ListResponse[Operation]{
@@ -210,7 +212,9 @@ func TestOperationsListByTransactionWithOptions(t *testing.T) {
 	mock := &mockBackend{
 		callFn: func(_ context.Context, method, path string, body, result any) error {
 			assert.Equal(t, "GET", method)
+
 			receivedPath = path
+
 			assert.Nil(t, body)
 
 			resp := models.ListResponse[Operation]{
@@ -294,7 +298,9 @@ func TestOperationsListByAccountWithOptions(t *testing.T) {
 	mock := &mockBackend{
 		callFn: func(_ context.Context, method, path string, body, result any) error {
 			assert.Equal(t, "GET", method)
+
 			receivedPath = path
+
 			assert.Nil(t, body)
 
 			resp := models.ListResponse[Operation]{
@@ -341,5 +347,6 @@ func TestOperationsServiceInterfaceCompliance(t *testing.T) {
 	t.Parallel()
 
 	var _ OperationsService = (*operationsService)(nil)
+
 	t.Log("operationsService implements OperationsService")
 }

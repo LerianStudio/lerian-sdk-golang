@@ -208,7 +208,9 @@ func TestTransactionRoutesListWithOptions(t *testing.T) {
 	mock := &mockBackend{
 		callFn: func(_ context.Context, method, path string, body, result any) error {
 			assert.Equal(t, "GET", method)
+
 			receivedPath = path
+
 			assert.Nil(t, body)
 
 			resp := models.ListResponse[TransactionRoute]{
@@ -401,5 +403,6 @@ func TestTransactionRoutesServiceInterfaceCompliance(t *testing.T) {
 	t.Parallel()
 
 	var _ TransactionRoutesService = (*transactionRoutesService)(nil)
+
 	t.Log("transactionRoutesService implements TransactionRoutesService")
 }

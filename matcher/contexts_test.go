@@ -11,13 +11,17 @@ import (
 )
 
 func TestContextsCreate(t *testing.T) {
+	t.Parallel()
+
 	t.Run("success", func(t *testing.T) {
-		mb := &mockBackend{t: t, callFn: func(_ context.Context, method, path string, body, result any) error {
+		t.Parallel()
+
+		mb := &mockBackend{callFn: func(_ context.Context, method, path string, body, result any) error {
 			assert.Equal(t, "POST", method)
 			assert.Equal(t, "/contexts", path)
 			assert.NotNil(t, body)
-			unmarshalInto(t, Context{ID: "ctx-1", Name: "test"}, result)
-			return nil
+
+			return unmarshalInto(Context{ID: "ctx-1", Name: "test"}, result)
 		}}
 		svc := newContextsService(mb)
 		got, err := svc.Create(context.Background(), &CreateContextInput{Name: "test"})
@@ -26,7 +30,9 @@ func TestContextsCreate(t *testing.T) {
 	})
 
 	t.Run("nil input", func(t *testing.T) {
-		svc := newContextsService(&mockBackend{t: t, callFn: func(context.Context, string, string, any, any) error { return nil }})
+		t.Parallel()
+
+		svc := newContextsService(&mockBackend{callFn: func(context.Context, string, string, any, any) error { return nil }})
 		_, err := svc.Create(context.Background(), nil)
 		require.Error(t, err)
 		assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
@@ -34,12 +40,16 @@ func TestContextsCreate(t *testing.T) {
 }
 
 func TestContextsGet(t *testing.T) {
+	t.Parallel()
+
 	t.Run("success", func(t *testing.T) {
-		mb := &mockBackend{t: t, callFn: func(_ context.Context, method, path string, _, result any) error {
+		t.Parallel()
+
+		mb := &mockBackend{callFn: func(_ context.Context, method, path string, _, result any) error {
 			assert.Equal(t, "GET", method)
 			assert.Equal(t, "/contexts/ctx-1", path)
-			unmarshalInto(t, Context{ID: "ctx-1"}, result)
-			return nil
+
+			return unmarshalInto(Context{ID: "ctx-1"}, result)
 		}}
 		svc := newContextsService(mb)
 		got, err := svc.Get(context.Background(), "ctx-1")
@@ -48,7 +58,9 @@ func TestContextsGet(t *testing.T) {
 	})
 
 	t.Run("empty id", func(t *testing.T) {
-		svc := newContextsService(&mockBackend{t: t, callFn: func(context.Context, string, string, any, any) error { return nil }})
+		t.Parallel()
+
+		svc := newContextsService(&mockBackend{callFn: func(context.Context, string, string, any, any) error { return nil }})
 		_, err := svc.Get(context.Background(), "")
 		require.Error(t, err)
 		assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
@@ -56,9 +68,12 @@ func TestContextsGet(t *testing.T) {
 }
 
 func TestContextsList(t *testing.T) {
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, method, path string, _, result any) error {
+	t.Parallel()
+
+	mb := &mockBackend{callFn: func(_ context.Context, method, path string, _, result any) error {
 		assert.Equal(t, "GET", method)
 		assert.Contains(t, path, "/contexts")
+
 		return nil
 	}}
 	svc := newContextsService(mb)
@@ -67,14 +82,18 @@ func TestContextsList(t *testing.T) {
 }
 
 func TestContextsUpdate(t *testing.T) {
+	t.Parallel()
+
 	t.Run("success", func(t *testing.T) {
+		t.Parallel()
+
 		name := "updated"
-		mb := &mockBackend{t: t, callFn: func(_ context.Context, method, path string, body, result any) error {
+		mb := &mockBackend{callFn: func(_ context.Context, method, path string, body, result any) error {
 			assert.Equal(t, "PATCH", method)
 			assert.Equal(t, "/contexts/ctx-1", path)
 			assert.NotNil(t, body)
-			unmarshalInto(t, Context{ID: "ctx-1", Name: "updated"}, result)
-			return nil
+
+			return unmarshalInto(Context{ID: "ctx-1", Name: "updated"}, result)
 		}}
 		svc := newContextsService(mb)
 		got, err := svc.Update(context.Background(), "ctx-1", &UpdateContextInput{Name: &name})
@@ -83,14 +102,18 @@ func TestContextsUpdate(t *testing.T) {
 	})
 
 	t.Run("empty id", func(t *testing.T) {
-		svc := newContextsService(&mockBackend{t: t, callFn: func(context.Context, string, string, any, any) error { return nil }})
+		t.Parallel()
+
+		svc := newContextsService(&mockBackend{callFn: func(context.Context, string, string, any, any) error { return nil }})
 		_, err := svc.Update(context.Background(), "", &UpdateContextInput{})
 		require.Error(t, err)
 		assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
 	})
 
 	t.Run("nil input", func(t *testing.T) {
-		svc := newContextsService(&mockBackend{t: t, callFn: func(context.Context, string, string, any, any) error { return nil }})
+		t.Parallel()
+
+		svc := newContextsService(&mockBackend{callFn: func(context.Context, string, string, any, any) error { return nil }})
 		_, err := svc.Update(context.Background(), "ctx-1", nil)
 		require.Error(t, err)
 		assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
@@ -98,11 +121,16 @@ func TestContextsUpdate(t *testing.T) {
 }
 
 func TestContextsDelete(t *testing.T) {
+	t.Parallel()
+
 	t.Run("success", func(t *testing.T) {
-		mb := &mockBackend{t: t, callFn: func(_ context.Context, method, path string, _, result any) error {
+		t.Parallel()
+
+		mb := &mockBackend{callFn: func(_ context.Context, method, path string, _, result any) error {
 			assert.Equal(t, "DELETE", method)
 			assert.Equal(t, "/contexts/ctx-1", path)
 			assert.Nil(t, result)
+
 			return nil
 		}}
 		svc := newContextsService(mb)
@@ -111,7 +139,9 @@ func TestContextsDelete(t *testing.T) {
 	})
 
 	t.Run("empty id", func(t *testing.T) {
-		svc := newContextsService(&mockBackend{t: t, callFn: func(context.Context, string, string, any, any) error { return nil }})
+		t.Parallel()
+
+		svc := newContextsService(&mockBackend{callFn: func(context.Context, string, string, any, any) error { return nil }})
 		err := svc.Delete(context.Background(), "")
 		require.Error(t, err)
 		assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
@@ -119,13 +149,17 @@ func TestContextsDelete(t *testing.T) {
 }
 
 func TestContextsClone(t *testing.T) {
+	t.Parallel()
+
 	t.Run("success", func(t *testing.T) {
-		mb := &mockBackend{t: t, callFn: func(_ context.Context, method, path string, body, result any) error {
+		t.Parallel()
+
+		mb := &mockBackend{callFn: func(_ context.Context, method, path string, body, result any) error {
 			assert.Equal(t, "POST", method)
 			assert.Equal(t, "/contexts/ctx-1/clone", path)
 			assert.Nil(t, body)
-			unmarshalInto(t, Context{ID: "ctx-2", Name: "cloned"}, result)
-			return nil
+
+			return unmarshalInto(Context{ID: "ctx-2", Name: "cloned"}, result)
 		}}
 		svc := newContextsService(mb)
 		got, err := svc.Clone(context.Background(), "ctx-1")
@@ -135,7 +169,9 @@ func TestContextsClone(t *testing.T) {
 	})
 
 	t.Run("empty id", func(t *testing.T) {
-		svc := newContextsService(&mockBackend{t: t, callFn: func(context.Context, string, string, any, any) error { return nil }})
+		t.Parallel()
+
+		svc := newContextsService(&mockBackend{callFn: func(context.Context, string, string, any, any) error { return nil }})
 		_, err := svc.Clone(context.Background(), "")
 		require.Error(t, err)
 		assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
@@ -150,7 +186,7 @@ func TestContextsCreateBackendError(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("backend error: conflict")
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, _, _ any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
 		return expectedErr
 	}}
 
@@ -166,7 +202,7 @@ func TestContextsGetBackendError(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("backend error: not found")
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, _, _ any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
 		return expectedErr
 	}}
 
@@ -182,7 +218,7 @@ func TestContextsListBackendError(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("backend error: internal")
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, _, _ any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
 		return expectedErr
 	}}
 
@@ -199,7 +235,7 @@ func TestContextsUpdateBackendError(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("backend error: conflict")
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, _, _ any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
 		return expectedErr
 	}}
 
@@ -216,7 +252,7 @@ func TestContextsDeleteBackendError(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("backend error: forbidden")
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, _, _ any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
 		return expectedErr
 	}}
 
@@ -231,7 +267,7 @@ func TestContextsCloneBackendError(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("backend error: not found")
-	mb := &mockBackend{t: t, callFn: func(_ context.Context, _, _ string, _, _ any) error {
+	mb := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
 		return expectedErr
 	}}
 

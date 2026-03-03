@@ -15,6 +15,8 @@ type testStruct struct {
 }
 
 func TestJSONPoolRoundTrip(t *testing.T) {
+	t.Parallel()
+
 	pool := NewJSONPool()
 
 	tests := []struct {
@@ -28,6 +30,8 @@ func TestJSONPoolRoundTrip(t *testing.T) {
 			input: testStruct{Name: "test", Age: 30},
 			into:  func() any { return &testStruct{} },
 			check: func(t *testing.T, result any) {
+				t.Helper()
+
 				r := result.(*testStruct)
 				assert.Equal(t, "test", r.Name)
 				assert.Equal(t, 30, r.Age)
@@ -38,6 +42,8 @@ func TestJSONPoolRoundTrip(t *testing.T) {
 			input: []int{1, 2, 3},
 			into:  func() any { return &[]int{} },
 			check: func(t *testing.T, result any) {
+				t.Helper()
+
 				r := result.(*[]int)
 				assert.Equal(t, []int{1, 2, 3}, *r)
 			},
@@ -47,6 +53,8 @@ func TestJSONPoolRoundTrip(t *testing.T) {
 			input: map[string]string{"key": "value"},
 			into:  func() any { return &map[string]string{} },
 			check: func(t *testing.T, result any) {
+				t.Helper()
+
 				r := result.(*map[string]string)
 				assert.Equal(t, "value", (*r)["key"])
 			},
@@ -56,6 +64,8 @@ func TestJSONPoolRoundTrip(t *testing.T) {
 			input: nil,
 			into:  func() any { var v any; return &v },
 			check: func(t *testing.T, result any) {
+				t.Helper()
+
 				v := result.(*any)
 				assert.Nil(t, *v)
 			},
@@ -64,6 +74,8 @@ func TestJSONPoolRoundTrip(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			data, err := pool.Marshal(tt.input)
 			require.NoError(t, err)
 
@@ -77,6 +89,8 @@ func TestJSONPoolRoundTrip(t *testing.T) {
 }
 
 func TestJSONPoolMatchesStdlib(t *testing.T) {
+	t.Parallel()
+
 	pool := NewJSONPool()
 	input := testStruct{Name: "compare", Age: 42}
 
@@ -90,21 +104,27 @@ func TestJSONPoolMatchesStdlib(t *testing.T) {
 }
 
 func TestJSONPoolConcurrent(t *testing.T) {
+	t.Parallel()
+
 	pool := NewJSONPool()
+
 	var wg sync.WaitGroup
 
 	for i := 0; i < 50; i++ {
 		wg.Add(1)
+
 		go func(n int) {
 			defer wg.Done()
+
 			input := testStruct{Name: "goroutine", Age: n}
 
 			data, err := pool.Marshal(input)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			var result testStruct
+
 			err = pool.Unmarshal(data, &result)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, n, result.Age)
 		}(i)
 	}
@@ -117,6 +137,7 @@ func BenchmarkJSONPoolMarshal(b *testing.B) {
 	input := testStruct{Name: "bench", Age: 25}
 
 	b.ResetTimer()
+
 	for i := 0; i < b.N; i++ {
 		_, _ = pool.Marshal(input)
 	}
@@ -126,7 +147,8 @@ func BenchmarkStdlibMarshal(b *testing.B) {
 	input := testStruct{Name: "bench", Age: 25}
 
 	b.ResetTimer()
+
 	for i := 0; i < b.N; i++ {
-		_, _ = json.Marshal(input)
+		_, _ = json.Marshal(input) //nolint:errchkjson // benchmark: error deliberately ignored
 	}
 }

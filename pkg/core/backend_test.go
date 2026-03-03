@@ -21,6 +21,7 @@ import (
 
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
+	tracenoop "go.opentelemetry.io/otel/trace/noop"
 )
 
 // ---------------------------------------------------------------------------
@@ -75,6 +76,7 @@ func TestBackendCallSuccess(t *testing.T) {
 	defer ts.Close()
 
 	b := newTestBackend(ts)
+
 	var result testResponse
 
 	err := b.Call(context.Background(), http.MethodGet, "/resources/abc-123", nil, &result)
@@ -98,6 +100,7 @@ func TestBackendCallError(t *testing.T) {
 	b := newTestBackend(ts, func(cfg *BackendConfig) {
 		cfg.ErrorParser = func(statusCode int, body []byte) *sdkerrors.Error {
 			parserCalled = true
+
 			return &sdkerrors.Error{
 				Product:    "test",
 				Category:   sdkerrors.CategoryNotFound,
@@ -108,6 +111,7 @@ func TestBackendCallError(t *testing.T) {
 	})
 
 	var result testResponse
+
 	err := b.Call(context.Background(), http.MethodGet, "/resources/missing", nil, &result)
 
 	require.Error(t, err)
@@ -134,6 +138,7 @@ func TestBackendCallWithHeaders(t *testing.T) {
 	defer ts.Close()
 
 	b := newTestBackend(ts)
+
 	var result testResponse
 
 	headers := map[string]string{"X-Custom-Header": "custom-value-42"}
@@ -148,6 +153,7 @@ func TestBackendCallRaw(t *testing.T) {
 	t.Parallel()
 
 	rawPayload := `{"raw":"bytes","count":42}`
+
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprint(w, rawPayload)
@@ -180,6 +186,7 @@ func TestBackendAuthEnrichment(t *testing.T) {
 	})
 
 	var result testResponse
+
 	err := b.Call(context.Background(), http.MethodGet, "/protected", nil, &result)
 
 	require.NoError(t, err)
@@ -212,6 +219,7 @@ func TestBackendRetryOn429(t *testing.T) {
 	})
 
 	var result testResponse
+
 	err := b.Call(context.Background(), http.MethodGet, "/rate-limited", nil, &result)
 
 	require.NoError(t, err)
@@ -244,6 +252,7 @@ func TestBackendRetryOn500(t *testing.T) {
 	})
 
 	var result testResponse
+
 	err := b.Call(context.Background(), http.MethodGet, "/server-error", nil, &result)
 
 	require.NoError(t, err)
@@ -268,6 +277,7 @@ func TestBackendNoRetryOn400(t *testing.T) {
 	})
 
 	var result testResponse
+
 	err := b.Call(context.Background(), http.MethodPost, "/validate", &testRequest{Name: "bad"}, &result)
 
 	require.Error(t, err)
@@ -279,6 +289,7 @@ func TestBackendDefaultHeaders(t *testing.T) {
 	t.Parallel()
 
 	var receivedUserAgent string
+
 	var receivedSDKVersion string
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -298,6 +309,7 @@ func TestBackendDefaultHeaders(t *testing.T) {
 	})
 
 	var result testResponse
+
 	err := b.Call(context.Background(), http.MethodGet, "/with-defaults", nil, &result)
 
 	require.NoError(t, err)
@@ -321,6 +333,7 @@ func TestBackendIdempotencyKey(t *testing.T) {
 	b := newTestBackend(ts)
 
 	ctx := WithIdempotencyKey(context.Background(), "unique-key-abc-123")
+
 	var result testResponse
 
 	err := b.Call(ctx, http.MethodPost, "/transactions", &testRequest{Name: "payment"}, &result)
@@ -345,6 +358,7 @@ func TestBackendContextCancellation(t *testing.T) {
 	cancel() // Cancel immediately.
 
 	var result testResponse
+
 	err := b.Call(ctx, http.MethodGet, "/slow", nil, &result)
 
 	require.Error(t, err)
@@ -389,6 +403,7 @@ func TestBackendNilBody(t *testing.T) {
 	b := newTestBackend(ts)
 
 	var result testResponse
+
 	err := b.Call(context.Background(), http.MethodGet, "/resources", nil, &result)
 
 	require.NoError(t, err)
@@ -479,6 +494,7 @@ func TestBackendGenericErrorParser(t *testing.T) {
 			b := newTestBackend(ts)
 
 			var result testResponse
+
 			err := b.Call(context.Background(), http.MethodGet, "/test", nil, &result)
 
 			require.Error(t, err)
@@ -521,6 +537,7 @@ func TestBackendCallWithBody(t *testing.T) {
 	t.Parallel()
 
 	var receivedBody testRequest
+
 	var receivedContentType string
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -538,6 +555,7 @@ func TestBackendCallWithBody(t *testing.T) {
 	b := newTestBackend(ts)
 
 	input := &testRequest{Name: "New Resource"}
+
 	var result testResponse
 
 	err := b.Call(context.Background(), http.MethodPost, "/resources", input, &result)
@@ -565,6 +583,7 @@ func TestBackendAcceptHeader(t *testing.T) {
 	b := newTestBackend(ts)
 
 	var result testResponse
+
 	err := b.Call(context.Background(), http.MethodGet, "/test", nil, &result)
 
 	require.NoError(t, err)
@@ -588,6 +607,7 @@ func TestBackendRetryExhaustion(t *testing.T) {
 	})
 
 	var result testResponse
+
 	err := b.Call(context.Background(), http.MethodGet, "/always-fail", nil, &result)
 
 	require.Error(t, err)
@@ -613,6 +633,7 @@ func TestBackendDebugLogging(t *testing.T) {
 	})
 
 	var result testResponse
+
 	err := b.Call(context.Background(), http.MethodGet, "/debug-test", nil, &result)
 
 	require.NoError(t, err)
@@ -667,6 +688,7 @@ func TestMaskAuthorizationHeader(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
+
 			assert.Equal(t, tt.expect, MaskAuthorizationHeader(tt.input))
 		})
 	}
@@ -742,6 +764,7 @@ func TestBackendErrorParserRequestIDInjection(t *testing.T) {
 	})
 
 	var result testResponse
+
 	err := b.Call(context.Background(), http.MethodPost, "/validate", &testRequest{Name: "bad"}, &result)
 
 	require.Error(t, err)
@@ -769,6 +792,7 @@ func TestBackendErrorParserReturnsNil(t *testing.T) {
 	})
 
 	var result testResponse
+
 	err := b.Call(context.Background(), http.MethodPut, "/resource", &testRequest{Name: "conflict"}, &result)
 
 	require.Error(t, err)
@@ -804,6 +828,7 @@ func TestBackendContextDeadlineExceeded(t *testing.T) {
 	time.Sleep(5 * time.Millisecond)
 
 	var result testResponse
+
 	err := b.Call(ctx, http.MethodGet, "/timeout", nil, &result)
 
 	require.Error(t, err)
@@ -936,6 +961,7 @@ func TestBackendNetworkErrorRetry(t *testing.T) {
 	})
 
 	var result testResponse
+
 	err := b.Call(context.Background(), http.MethodGet, "/net-test", nil, &result)
 
 	require.NoError(t, err)
@@ -952,7 +978,9 @@ func TestBackendRetryOn429WithBody(t *testing.T) {
 
 		// Verify the body is re-sent on retry.
 		body, _ := io.ReadAll(r.Body)
+
 		var req testRequest
+
 		_ = json.Unmarshal(body, &req)
 
 		if count == 1 {
@@ -975,6 +1003,7 @@ func TestBackendRetryOn429WithBody(t *testing.T) {
 	})
 
 	var result testResponse
+
 	err := b.Call(context.Background(), http.MethodPost, "/create",
 		&testRequest{Name: "retry-me"}, &result)
 
@@ -995,6 +1024,7 @@ func TestBackendGenericHTTPErrorEmptyBody(t *testing.T) {
 	b := newTestBackend(ts)
 
 	var result testResponse
+
 	err := b.Call(context.Background(), http.MethodGet, "/empty-body", nil, &result)
 
 	require.Error(t, err)
@@ -1018,6 +1048,7 @@ func TestBackendGenericHTTPErrorUnknownStatusCode(t *testing.T) {
 	b := newTestBackend(ts)
 
 	var result testResponse
+
 	err := b.Call(context.Background(), http.MethodGet, "/teapot", nil, &result)
 
 	require.Error(t, err)
@@ -1044,6 +1075,7 @@ func TestBackendNetworkErrorWithClosedServer(t *testing.T) {
 	})
 
 	var result testResponse
+
 	err := b.Call(context.Background(), http.MethodGet, "/closed", nil, &result)
 
 	require.Error(t, err)
@@ -1066,6 +1098,7 @@ func TestBackendNetworkErrorWithRetry(t *testing.T) {
 	})
 
 	var result testResponse
+
 	err := b.Call(context.Background(), http.MethodGet, "/network-retry", nil, &result)
 
 	require.Error(t, err)
@@ -1125,6 +1158,7 @@ func TestBackendContextCancelDuringRetryBackoff(t *testing.T) {
 	}()
 
 	var result testResponse
+
 	err := b.Call(ctx, http.MethodGet, "/cancel-during-backoff", nil, &result)
 
 	require.Error(t, err)
@@ -1196,9 +1230,11 @@ func TestBackendContextCancelDuringNetworkRetryBackoff(t *testing.T) {
 	}()
 
 	var result testResponse
+
 	err := b.Call(ctx, http.MethodGet, "/net-cancel-backoff", nil, &result)
 
 	require.Error(t, err)
+
 	var sdkErr *sdkerrors.Error
 	require.True(t, errors.As(err, &sdkErr))
 	assert.Contains(t, []sdkerrors.ErrorCategory{
@@ -1277,6 +1313,7 @@ func TestBackendCallWithRawBody(t *testing.T) {
 	t.Parallel()
 
 	var receivedContentType string
+
 	var receivedBody string
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -1299,6 +1336,7 @@ func TestBackendCallWithRawBody(t *testing.T) {
 	}
 
 	var result testResponse
+
 	err := b.CallWithHeaders(context.Background(), http.MethodPost, "/upload",
 		headers, RawBody{Data: []byte(rawContent)}, &result)
 
@@ -1357,6 +1395,7 @@ func TestBackendRawBodyEmptyData(t *testing.T) {
 	b := newTestBackend(ts)
 
 	var result testResponse
+
 	err := b.Call(context.Background(), http.MethodPost, "/empty-raw",
 		RawBody{Data: []byte{}}, &result)
 
@@ -1374,6 +1413,7 @@ func TestBackendResponseBodyLimited(t *testing.T) {
 
 	// Create a response larger than 10 MiB.
 	const limit = 10 << 20 // 10 MiB
+
 	oversized := make([]byte, limit+1024)
 	for i := range oversized {
 		oversized[i] = 'A'
@@ -1426,6 +1466,7 @@ func TestBackendCheckRedirectStripsAuth(t *testing.T) {
 	})
 
 	var result testResponse
+
 	err := b.Call(context.Background(), http.MethodGet, "/start", nil, &result)
 
 	require.NoError(t, err)
@@ -1439,6 +1480,7 @@ func TestBackendCheckRedirectPreservesAuthSameHost(t *testing.T) {
 
 	// Single server that redirects to itself — auth should be preserved.
 	var requestCount int
+
 	var lastReceivedAuth string
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -1465,6 +1507,7 @@ func TestBackendCheckRedirectPreservesAuthSameHost(t *testing.T) {
 	})
 
 	var result testResponse
+
 	err := b.Call(context.Background(), http.MethodGet, "/start", nil, &result)
 
 	require.NoError(t, err)
@@ -1509,6 +1552,7 @@ func TestBackendRetryAfterHeaderSeconds(t *testing.T) {
 	start := time.Now()
 
 	var result testResponse
+
 	err := b.Call(context.Background(), http.MethodGet, "/rate-limited", nil, &result)
 
 	elapsed := time.Since(start)
@@ -1598,7 +1642,7 @@ type spyTracerWrapper struct {
 }
 
 func newSpyTracerWrapper() *spyTracerWrapper {
-	noopTP := trace.NewNoopTracerProvider()
+	noopTP := tracenoop.NewTracerProvider()
 
 	return &spyTracerWrapper{
 		Tracer: noopTP.Tracer("spy"),
@@ -1625,10 +1669,10 @@ func newSpyProvider() *spyProvider {
 }
 
 func (p *spyProvider) Tracer() trace.Tracer           { return p.tracer }
-func (p *spyProvider) Meter() metric.Meter             { return nil }
-func (p *spyProvider) Logger() *slog.Logger            { return slog.Default() }
-func (p *spyProvider) Shutdown(context.Context) error   { return nil }
-func (p *spyProvider) IsEnabled() bool                 { return true }
+func (p *spyProvider) Meter() metric.Meter            { return nil }
+func (p *spyProvider) Logger() *slog.Logger           { return slog.Default() }
+func (p *spyProvider) Shutdown(context.Context) error { return nil }
+func (p *spyProvider) IsEnabled() bool                { return true }
 
 func TestBackendProviderTracerCalled(t *testing.T) {
 	t.Parallel()
@@ -1649,6 +1693,7 @@ func TestBackendProviderTracerCalled(t *testing.T) {
 	})
 
 	var result testResponse
+
 	err := b.Call(context.Background(), http.MethodGet, "/traced", nil, &result)
 
 	require.NoError(t, err)
@@ -1706,6 +1751,7 @@ func TestStripAuthOnRedirectHelper(t *testing.T) {
 		t.Parallel()
 
 		req, _ := http.NewRequest(http.MethodGet, "http://evil.com/page", nil)
+
 		via := make([]*http.Request, 10)
 		for i := range via {
 			r, _ := http.NewRequest(http.MethodGet, "http://example.com/", nil)
@@ -1826,6 +1872,7 @@ func TestBackendGenericHTTPErrorTruncatesLargeBody(t *testing.T) {
 	b := newTestBackend(ts)
 
 	var result testResponse
+
 	err := b.Call(context.Background(), http.MethodGet, "/large-error", nil, &result)
 
 	require.Error(t, err)
@@ -1853,6 +1900,7 @@ func TestBackendGenericHTTPErrorSmallBodyNotTruncated(t *testing.T) {
 	b := newTestBackend(ts)
 
 	var result testResponse
+
 	err := b.Call(context.Background(), http.MethodGet, "/small-error", nil, &result)
 
 	require.Error(t, err)
@@ -1888,6 +1936,7 @@ func TestBackendDoRequestSharedBetweenCallAndCallRaw(t *testing.T) {
 
 	// Call path: should unmarshal JSON.
 	var result testResponse
+
 	err := b.Call(context.Background(), http.MethodGet, "/dry-test", nil, &result)
 	require.NoError(t, err)
 	assert.Equal(t, "dry-test", result.ID)
@@ -1896,7 +1945,7 @@ func TestBackendDoRequestSharedBetweenCallAndCallRaw(t *testing.T) {
 	// CallRaw path: should return raw bytes.
 	data, err := b.CallRaw(context.Background(), http.MethodGet, "/dry-test", nil)
 	require.NoError(t, err)
-	assert.Equal(t, responseJSON, string(data))
+	assert.JSONEq(t, responseJSON, string(data))
 }
 
 func TestBackendDoRequestRetrySharedByBothPaths(t *testing.T) {
@@ -1946,6 +1995,7 @@ func TestBackendDoRequestRetrySharedByBothPaths(t *testing.T) {
 
 	// JSON path retries correctly.
 	var result testResponse
+
 	err := b.Call(context.Background(), http.MethodGet, "/json-retry", nil, &result)
 	require.NoError(t, err)
 	assert.Equal(t, "json-ok", result.ID)

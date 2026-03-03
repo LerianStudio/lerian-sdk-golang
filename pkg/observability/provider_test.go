@@ -13,6 +13,8 @@ import (
 // ---------------------------------------------------------------------------
 
 func TestNoopProvider(t *testing.T) {
+	t.Parallel()
+
 	p := NewNoopProvider()
 
 	assert.False(t, p.IsEnabled(), "noop provider must report IsEnabled()==false")
@@ -23,6 +25,8 @@ func TestNoopProvider(t *testing.T) {
 }
 
 func TestNoopProviderShutdownIdempotent(t *testing.T) {
+	t.Parallel()
+
 	p := NewNoopProvider()
 
 	for i := 0; i < 3; i++ {
@@ -36,6 +40,8 @@ func TestNoopProviderShutdownIdempotent(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestNewProviderAllDisabled(t *testing.T) {
+	t.Parallel()
+
 	p, err := NewProvider(ProviderConfig{
 		ServiceName:    "test-svc",
 		ServiceVersion: "0.0.1",
@@ -54,6 +60,8 @@ func TestNewProviderAllDisabled(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestNewProviderWithTraces(t *testing.T) {
+	t.Parallel()
+
 	// We point the exporter at an unreachable endpoint. The OTel SDK
 	// creates the provider eagerly but exports lazily, so construction
 	// must succeed even without a running collector.
@@ -88,6 +96,8 @@ func TestNewProviderWithTraces(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestNewProviderWithMetrics(t *testing.T) {
+	t.Parallel()
+
 	p, err := NewProvider(ProviderConfig{
 		ServiceName:       "metric-test",
 		ServiceVersion:    "1.0.0",
@@ -112,6 +122,8 @@ func TestNewProviderWithMetrics(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestNewProviderWithLogs(t *testing.T) {
+	t.Parallel()
+
 	p, err := NewProvider(ProviderConfig{
 		ServiceName:    "log-test",
 		ServiceVersion: "1.0.0",
@@ -136,6 +148,8 @@ func TestNewProviderWithLogs(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestNewProviderAllEnabled(t *testing.T) {
+	t.Parallel()
+
 	p, err := NewProvider(ProviderConfig{
 		ServiceName:       "full-test",
 		ServiceVersion:    "2.0.0",
@@ -162,6 +176,8 @@ func TestNewProviderAllEnabled(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestShutdownIdempotency(t *testing.T) {
+	t.Parallel()
+
 	p, err := NewProvider(ProviderConfig{
 		ServiceName:       "idempotent-test",
 		ServiceVersion:    "1.0.0",

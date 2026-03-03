@@ -11,24 +11,32 @@ import (
 )
 
 func TestStringHelper(t *testing.T) {
+	t.Parallel()
+
 	s := String("hello")
 	require.NotNil(t, s)
 	assert.Equal(t, "hello", *s)
 }
 
 func TestIntHelper(t *testing.T) {
+	t.Parallel()
+
 	i := Int(42)
 	require.NotNil(t, i)
 	assert.Equal(t, 42, *i)
 }
 
 func TestInt64Helper(t *testing.T) {
+	t.Parallel()
+
 	i := Int64(100)
 	require.NotNil(t, i)
 	assert.Equal(t, int64(100), *i)
 }
 
 func TestBoolHelper(t *testing.T) {
+	t.Parallel()
+
 	b := Bool(true)
 	require.NotNil(t, b)
 	assert.True(t, *b)
@@ -38,12 +46,16 @@ func TestBoolHelper(t *testing.T) {
 }
 
 func TestFloat64Helper(t *testing.T) {
+	t.Parallel()
+
 	f := Float64(3.14)
 	require.NotNil(t, f)
 	assert.InDelta(t, 3.14, *f, 0.001)
 }
 
 func TestTimeHelper(t *testing.T) {
+	t.Parallel()
+
 	now := time.Now()
 	tp := Time(now)
 	require.NotNil(t, tp)
@@ -51,6 +63,8 @@ func TestTimeHelper(t *testing.T) {
 }
 
 func TestSentinelReExports(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name     string
 		factory  func() error
@@ -69,6 +83,8 @@ func TestSentinelReExports(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			err := tt.factory()
 			assert.True(t, errors.Is(err, tt.sentinel), "expected errors.Is to match %s", tt.name)
 		})
@@ -76,6 +92,8 @@ func TestSentinelReExports(t *testing.T) {
 }
 
 func TestSentinelCrossMatch(t *testing.T) {
+	t.Parallel()
+
 	// NotFound should NOT match Validation
 	err := sdkerrors.NewNotFound("Get", "Org", "org-1")
 	assert.False(t, errors.Is(err, ErrValidation))
@@ -84,8 +102,11 @@ func TestSentinelCrossMatch(t *testing.T) {
 }
 
 func TestErrorTypeAlias(t *testing.T) {
+	t.Parallel()
+
 	// Verify Error type alias works with errors.As
 	err := sdkerrors.NewNotFound("Get", "Org", "org-1")
+
 	var sdkErr *Error
 	require.True(t, errors.As(err, &sdkErr))
 	assert.Equal(t, 404, sdkErr.StatusCode)
@@ -93,6 +114,8 @@ func TestErrorTypeAlias(t *testing.T) {
 }
 
 func TestCategoryReExports(t *testing.T) {
+	t.Parallel()
+
 	assert.Equal(t, sdkerrors.CategoryNotFound, CategoryNotFound)
 	assert.Equal(t, sdkerrors.CategoryValidation, CategoryValidation)
 	assert.Equal(t, sdkerrors.CategoryAuthentication, CategoryAuthentication)

@@ -37,6 +37,8 @@ var _ core.Backend = (*fakeBackend)(nil)
 // ---------------------------------------------------------------------------
 
 func TestNewClient(t *testing.T) {
+	t.Parallel()
+
 	backend := &fakeBackend{}
 	cfg := Config{
 		BaseURL:        "http://localhost:3005/v1",
@@ -53,6 +55,8 @@ func TestNewClient(t *testing.T) {
 }
 
 func TestNewClientServiceFieldsAreWired(t *testing.T) {
+	t.Parallel()
+
 	backend := &fakeBackend{}
 	cfg := Config{
 		BaseURL:        "http://localhost:3005/v1",
@@ -70,6 +74,8 @@ func TestNewClientServiceFieldsAreWired(t *testing.T) {
 }
 
 func TestNewClientMinimalConfig(t *testing.T) {
+	t.Parallel()
+
 	backend := &fakeBackend{}
 	cfg := Config{} // all zero values
 
@@ -87,28 +93,40 @@ func TestNewClientMinimalConfig(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestWithBaseURL(t *testing.T) {
+	t.Parallel()
+
 	var cfg Config
+
 	err := WithBaseURL("http://localhost:3005/v1")(&cfg)
 	require.NoError(t, err)
 	assert.Equal(t, "http://localhost:3005/v1", cfg.BaseURL)
 }
 
 func TestWithAuthToken(t *testing.T) {
+	t.Parallel()
+
 	var cfg Config
+
 	err := WithAuthToken("secret-token")(&cfg)
 	require.NoError(t, err)
 	assert.Equal(t, "secret-token", cfg.AuthToken)
 }
 
 func TestWithOrganizationID(t *testing.T) {
+	t.Parallel()
+
 	var cfg Config
+
 	err := WithOrganizationID("org-uuid-456")(&cfg)
 	require.NoError(t, err)
 	assert.Equal(t, "org-uuid-456", cfg.OrganizationID)
 }
 
 func TestWithTimeout(t *testing.T) {
+	t.Parallel()
+
 	var cfg Config
+
 	err := WithTimeout(5_000_000_000)(&cfg) // 5 seconds in nanoseconds
 	require.NoError(t, err)
 	assert.Equal(t, 5_000_000_000, int(cfg.Timeout))
@@ -119,6 +137,8 @@ func TestWithTimeout(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestConfigStringRedaction(t *testing.T) {
+	t.Parallel()
+
 	cfg := Config{
 		BaseURL:        "http://localhost:3005/v1",
 		AuthToken:      "super-secret-token-value",
@@ -142,6 +162,8 @@ func TestConfigStringRedaction(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestConfigMarshalJSONRedaction(t *testing.T) {
+	t.Parallel()
+
 	cfg := Config{
 		BaseURL:        "http://localhost:3005/v1",
 		AuthToken:      "super-secret-token-value",

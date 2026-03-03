@@ -226,6 +226,7 @@ func TestSegmentsListWithOptions(t *testing.T) {
 	mock := &mockBackend{
 		callFn: func(_ context.Context, method, path string, body, result any) error {
 			assert.Equal(t, "GET", method)
+
 			receivedPath = path
 
 			resp := models.ListResponse[Segment]{
@@ -454,5 +455,6 @@ func TestSegmentsServiceInterfaceCompliance(t *testing.T) {
 	t.Parallel()
 
 	var _ SegmentsService = (*segmentsService)(nil)
+
 	t.Log("segmentsService implements SegmentsService")
 }

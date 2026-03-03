@@ -30,6 +30,8 @@ var (
 // ---------------------------------------------------------------------------
 
 func TestBearerTokenImplementsAuthenticator(t *testing.T) {
+	t.Parallel()
+
 	// Compile-time guarantee (var _ line above). This test simply exercises
 	// the constructor so the coverage tool sees it.
 	bt := NewBearerToken("my-token")
@@ -37,6 +39,8 @@ func TestBearerTokenImplementsAuthenticator(t *testing.T) {
 }
 
 func TestBearerTokenEnrich(t *testing.T) {
+	t.Parallel()
+
 	bt := NewBearerToken("my-token")
 	req := httptest.NewRequest(http.MethodGet, "http://example.com", nil)
 
@@ -51,11 +55,15 @@ func TestBearerTokenEnrich(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestAPIKeyImplementsAuthenticator(t *testing.T) {
+	t.Parallel()
+
 	ak := NewAPIKey("X-API-Key", "", "key")
 	assert.Equal(t, "X-API-Key", ak.Header)
 }
 
 func TestAPIKeyEnrich(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name       string
 		header     string
@@ -92,6 +100,8 @@ func TestAPIKeyEnrich(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			ak := NewAPIKey(tc.header, tc.prefix, tc.key)
 			req := httptest.NewRequest(http.MethodGet, "http://example.com", nil)
 
@@ -108,11 +118,15 @@ func TestAPIKeyEnrich(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestNoAuthImplementsAuthenticator(t *testing.T) {
+	t.Parallel()
+
 	na := NewNoAuth()
 	assert.NotNil(t, na)
 }
 
 func TestNoAuthEnrich(t *testing.T) {
+	t.Parallel()
+
 	na := NewNoAuth()
 	req := httptest.NewRequest(http.MethodGet, "http://example.com", nil)
 
@@ -166,6 +180,8 @@ func newOAuth2TestServer(t *testing.T, counter *atomic.Int64, expiresIn int64) *
 // ---------------------------------------------------------------------------
 
 func TestOAuth2Enrich(t *testing.T) {
+	t.Parallel()
+
 	var counter atomic.Int64
 
 	srv := newOAuth2TestServer(t, &counter, 3600)
@@ -182,6 +198,8 @@ func TestOAuth2Enrich(t *testing.T) {
 }
 
 func TestOAuth2TokenCaching(t *testing.T) {
+	t.Parallel()
+
 	var counter atomic.Int64
 
 	srv := newOAuth2TestServer(t, &counter, 3600)
@@ -204,6 +222,8 @@ func TestOAuth2TokenCaching(t *testing.T) {
 }
 
 func TestOAuth2TokenRefresh(t *testing.T) {
+	t.Parallel()
+
 	var counter atomic.Int64
 
 	srv := newOAuth2TestServer(t, &counter, 3600)
@@ -231,6 +251,8 @@ func TestOAuth2TokenRefresh(t *testing.T) {
 }
 
 func TestOAuth2ShortLivedTokenCaching(t *testing.T) {
+	t.Parallel()
+
 	// When ExpiresIn < expiryBuffer (30s), the cache duration should still be
 	// positive to prevent flooding the token endpoint on every API call.
 	tests := []struct {
@@ -267,6 +289,8 @@ func TestOAuth2ShortLivedTokenCaching(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			var counter atomic.Int64
 
 			srv := newOAuth2TestServer(t, &counter, tc.expiresIn)
@@ -303,6 +327,8 @@ func TestOAuth2ShortLivedTokenCaching(t *testing.T) {
 }
 
 func TestOAuth2ConcurrentSafety(t *testing.T) {
+	t.Parallel()
+
 	var counter atomic.Int64
 
 	srv := newOAuth2TestServer(t, &counter, 3600)
@@ -361,6 +387,8 @@ func (e *unexpectedHeaderError) Error() string {
 // ---------------------------------------------------------------------------
 
 func TestOAuth2TokenEndpointError(t *testing.T) {
+	t.Parallel()
+
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
 		_, _ = w.Write([]byte(`{"error":"invalid_client"}`))
@@ -378,6 +406,8 @@ func TestOAuth2TokenEndpointError(t *testing.T) {
 }
 
 func TestOAuth2MalformedJSON(t *testing.T) {
+	t.Parallel()
+
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(`not json`))
@@ -394,6 +424,8 @@ func TestOAuth2MalformedJSON(t *testing.T) {
 }
 
 func TestOAuth2EmptyAccessToken(t *testing.T) {
+	t.Parallel()
+
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
@@ -411,6 +443,8 @@ func TestOAuth2EmptyAccessToken(t *testing.T) {
 }
 
 func TestOAuth2UnreachableServer(t *testing.T) {
+	t.Parallel()
+
 	// Point to a server that doesn't exist.
 	oauth := NewOAuth2("cid", "csecret", "http://127.0.0.1:1", nil)
 	req := httptest.NewRequest(http.MethodGet, "http://example.com", nil)
@@ -422,6 +456,8 @@ func TestOAuth2UnreachableServer(t *testing.T) {
 }
 
 func TestOAuth2ScopeJoining(t *testing.T) {
+	t.Parallel()
+
 	var receivedScope string
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -450,6 +486,8 @@ func TestOAuth2ScopeJoining(t *testing.T) {
 }
 
 func TestOAuth2NoScopes(t *testing.T) {
+	t.Parallel()
+
 	var scopePresent bool
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -482,6 +520,8 @@ func TestOAuth2NoScopes(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestBearerTokenStringRedaction(t *testing.T) {
+	t.Parallel()
+
 	bt := NewBearerToken("super-secret-token-value")
 	s := bt.String()
 
@@ -491,6 +531,8 @@ func TestBearerTokenStringRedaction(t *testing.T) {
 }
 
 func TestBearerTokenMarshalJSONRedaction(t *testing.T) {
+	t.Parallel()
+
 	bt := NewBearerToken("super-secret-token-value")
 	data, err := json.Marshal(bt)
 
@@ -501,6 +543,8 @@ func TestBearerTokenMarshalJSONRedaction(t *testing.T) {
 }
 
 func TestAPIKeyStringRedaction(t *testing.T) {
+	t.Parallel()
+
 	ak := NewAPIKey("Authorization", "ApiKey ", "my-secret-key-123")
 	s := ak.String()
 
@@ -512,6 +556,8 @@ func TestAPIKeyStringRedaction(t *testing.T) {
 }
 
 func TestAPIKeyMarshalJSONRedaction(t *testing.T) {
+	t.Parallel()
+
 	ak := NewAPIKey("X-API-Key", "", "my-secret-key-123")
 	data, err := json.Marshal(ak)
 
@@ -523,6 +569,8 @@ func TestAPIKeyMarshalJSONRedaction(t *testing.T) {
 }
 
 func TestOAuth2StringRedaction(t *testing.T) {
+	t.Parallel()
+
 	oauth := NewOAuth2("my-client-id", "my-client-secret", "https://auth.example.com/token", nil)
 	s := oauth.String()
 
@@ -534,6 +582,8 @@ func TestOAuth2StringRedaction(t *testing.T) {
 }
 
 func TestOAuth2MarshalJSONRedaction(t *testing.T) {
+	t.Parallel()
+
 	oauth := NewOAuth2("my-client-id", "my-client-secret", "https://auth.example.com/token", nil)
 	data, err := json.Marshal(oauth)
 
@@ -550,6 +600,8 @@ func TestOAuth2MarshalJSONRedaction(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestOAuth2RedirectStripsAuthOnCrossDomain(t *testing.T) {
+	t.Parallel()
+
 	// "foreign" server that the token endpoint redirects to.
 	// It captures whatever Authorization header arrives.
 	var receivedAuth string
@@ -602,5 +654,6 @@ func (t *authInjectingTransport) RoundTrip(req *http.Request) (*http.Response, e
 	t.once.Do(func() {
 		req.Header.Set("Authorization", t.authValue)
 	})
+
 	return t.base.RoundTrip(req)
 }

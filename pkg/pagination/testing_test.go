@@ -10,6 +10,8 @@ import (
 )
 
 func TestNewIteratorFromSlice(t *testing.T) {
+	t.Parallel()
+
 	it := NewIteratorFromSlice([]string{"a", "b", "c"})
 	ctx := context.Background()
 
@@ -19,6 +21,8 @@ func TestNewIteratorFromSlice(t *testing.T) {
 }
 
 func TestNewIteratorFromSliceEmpty(t *testing.T) {
+	t.Parallel()
+
 	it := NewIteratorFromSlice[string](nil)
 	ctx := context.Background()
 
@@ -27,6 +31,8 @@ func TestNewIteratorFromSliceEmpty(t *testing.T) {
 }
 
 func TestNewIteratorFromSliceSingleItem(t *testing.T) {
+	t.Parallel()
+
 	it := NewIteratorFromSlice([]int{42})
 	ctx := context.Background()
 
@@ -36,6 +42,8 @@ func TestNewIteratorFromSliceSingleItem(t *testing.T) {
 }
 
 func TestNewIteratorFromSliceIterateManually(t *testing.T) {
+	t.Parallel()
+
 	it := NewIteratorFromSlice([]string{"x", "y"})
 	ctx := context.Background()
 
@@ -48,6 +56,8 @@ func TestNewIteratorFromSliceIterateManually(t *testing.T) {
 }
 
 func TestNewErrorIterator(t *testing.T) {
+	t.Parallel()
+
 	expectedErr := errors.New("connection refused")
 	it := NewErrorIterator[string](expectedErr)
 	ctx := context.Background()
@@ -57,6 +67,8 @@ func TestNewErrorIterator(t *testing.T) {
 }
 
 func TestNewErrorIteratorCollect(t *testing.T) {
+	t.Parallel()
+
 	expectedErr := errors.New("timeout")
 	it := NewErrorIterator[int](expectedErr)
 	ctx := context.Background()
@@ -67,6 +79,8 @@ func TestNewErrorIteratorCollect(t *testing.T) {
 }
 
 func TestNewIteratorFromSliceCollectN(t *testing.T) {
+	t.Parallel()
+
 	it := NewIteratorFromSlice([]int{1, 2, 3, 4, 5})
 	ctx := context.Background()
 
@@ -76,12 +90,15 @@ func TestNewIteratorFromSliceCollectN(t *testing.T) {
 }
 
 func TestNewIteratorFromSliceWithAll(t *testing.T) {
+	t.Parallel()
+
 	it := NewIteratorFromSlice([]string{"a", "b"})
 
-	var collected []string
+	collected := make([]string, 0, 2)
 
 	for item, err := range it.All() {
 		require.NoError(t, err)
+
 		collected = append(collected, item)
 	}
 
