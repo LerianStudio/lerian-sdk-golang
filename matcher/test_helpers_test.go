@@ -3,7 +3,9 @@ package matcher
 import (
 	"context"
 	"encoding/json"
-	"testing"
+	"fmt"
+
+	"github.com/LerianStudio/lerian-sdk-golang/pkg/core"
 )
 
 // mockBackend is a test double for [core.Backend] that captures the HTTP
@@ -11,17 +13,26 @@ import (
 // each test to define custom verification and response logic. The callRawFn
 // field supports services that use CallRaw (e.g., file downloads).
 type mockBackend struct {
-	t         *testing.T
-	callFn    func(ctx context.Context, method, path string, body, result any) error
-	callRawFn func(ctx context.Context, method, path string, body any) ([]byte, error)
+	callFn         func(ctx context.Context, method, path string, body, result any) error
+	callWithHdrsFn func(ctx context.Context, method, path string, headers map[string]string, body, result any) error
+	callRawFn      func(ctx context.Context, method, path string, body any) ([]byte, error)
 }
 
 func (m *mockBackend) Call(ctx context.Context, method, path string, body, result any) error {
-	return m.callFn(ctx, method, path, body, result)
+	if m.callFn != nil {
+		return m.callFn(ctx, method, path, body, result)
+	}
+
+	return fmt.Errorf("mockBackend.Call not configured")
 }
 
-func (m *mockBackend) CallWithHeaders(ctx context.Context, method, path string, _ map[string]string, body, result any) error {
-	return m.callFn(ctx, method, path, body, result)
+func (m *mockBackend) CallWithHeaders(ctx context.Context, method, path string,
+	headers map[string]string, body, result any) error {
+	if m.callWithHdrsFn != nil {
+		return m.callWithHdrsFn(ctx, method, path, headers, body, result)
+	}
+
+	return fmt.Errorf("mockBackend.CallWithHeaders not configured")
 }
 
 func (m *mockBackend) CallRaw(ctx context.Context, method, path string, body any) ([]byte, error) {
@@ -29,21 +40,20 @@ func (m *mockBackend) CallRaw(ctx context.Context, method, path string, body any
 		return m.callRawFn(ctx, method, path, body)
 	}
 
-	return nil, nil
+	return nil, fmt.Errorf("mockBackend.CallRaw not configured")
 }
 
-// unmarshalInto marshals data to JSON and then unmarshals it into result.
-// This simulates the JSON round-trip that the real backend performs when
-// populating result pointers.
-func unmarshalInto(t *testing.T, data any, result any) {
-	t.Helper()
+// Compile-time interface compliance check.
+var _ core.Backend = (*mockBackend)(nil)
 
-	b, err := json.Marshal(data)
+// unmarshalInto uses JSON round-trip to populate the result pointer from
+// a source value. This simulates what a real backend does when deserializing
+// API responses.
+func unmarshalInto(src any, dst any) error {
+	b, err := json.Marshal(src)
 	if err != nil {
-		t.Fatal(err)
+		return err
 	}
 
-	if err := json.Unmarshal(b, result); err != nil {
-		t.Fatal(err)
-	}
+	return json.Unmarshal(b, dst)
 }
