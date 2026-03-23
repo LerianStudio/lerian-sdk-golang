@@ -8,9 +8,11 @@
 //
 // Configure via environment variables:
 //
-//	LERIAN_TRACER_URL     (default: http://localhost:3003/v1)
-//	LERIAN_TRACER_API_KEY (optional)
-//	LERIAN_DEBUG          (optional, set "true" for verbose logging)
+//	LERIAN_TRACER_URL           (default: http://localhost:3003/v1)
+//	LERIAN_TRACER_CLIENT_ID     (required with secret + token URL for OAuth2)
+//	LERIAN_TRACER_CLIENT_SECRET (required with client ID + token URL for OAuth2)
+//	LERIAN_TRACER_TOKEN_URL     (required with client ID + secret for OAuth2)
+//	LERIAN_DEBUG                (optional, set "true" for verbose logging)
 package main
 
 import (
@@ -28,14 +30,13 @@ func main() {
 	// -----------------------------------------------------------------------
 	// Step 1: Create the SDK client configured for the Tracer product.
 	//
-	// Tracer uses X-API-Key header authentication. The base URL covers all
-	// Tracer endpoints (rules, validations, limits, audit events).
+	// Tracer uses OAuth2 client credentials. The base URL covers all Tracer
+	// endpoints (rules, validations, limits, audit events).
 	// -----------------------------------------------------------------------
 	// NOTE: Use HTTPS URLs in production. HTTP is only for local development.
 	client, err := lerian.New(
 		lerian.WithTracer(
 			tracer.WithBaseURL(envOr("LERIAN_TRACER_URL", "http://localhost:3003/v1")),
-			tracer.WithAPIKey(os.Getenv("LERIAN_TRACER_API_KEY")),
 		),
 		lerian.WithDebug(os.Getenv("LERIAN_DEBUG") == "true"),
 	)

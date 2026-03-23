@@ -8,9 +8,11 @@
 //
 // Configure via environment variables:
 //
-//	LERIAN_MIDAZ_ONBOARDING_URL  (default: http://localhost:3000/v1)
-//	LERIAN_MIDAZ_TRANSACTION_URL (default: http://localhost:3001/v1)
-//	LERIAN_MIDAZ_AUTH_TOKEN       (optional)
+//	LERIAN_MIDAZ_ONBOARDING_URL   (default: http://localhost:3000/v1)
+//	LERIAN_MIDAZ_TRANSACTION_URL  (default: http://localhost:3001/v1)
+//	LERIAN_MIDAZ_CLIENT_ID        (required with secret + token URL for OAuth2)
+//	LERIAN_MIDAZ_CLIENT_SECRET    (required with client ID + token URL for OAuth2)
+//	LERIAN_MIDAZ_TOKEN_URL        (required with client ID + secret for OAuth2)
 //	LERIAN_DEBUG                  (optional, set "true" for verbose logging)
 package main
 
@@ -30,15 +32,13 @@ func main() {
 	// Step 1: Create the SDK client configured for the Midaz product.
 	//
 	// WithMidaz() requires at minimum the two service URLs (onboarding and
-	// transaction). An auth token is optional and depends on whether the
-	// target environment enforces authentication.
+	// transaction). Authentication is configured with OAuth2 client credentials.
 	// -----------------------------------------------------------------------
 	// NOTE: Use HTTPS URLs in production. HTTP is only for local development.
 	client, err := lerian.New(
 		lerian.WithMidaz(
 			midaz.WithOnboardingURL(envOr("LERIAN_MIDAZ_ONBOARDING_URL", "http://localhost:3000/v1")),
 			midaz.WithTransactionURL(envOr("LERIAN_MIDAZ_TRANSACTION_URL", "http://localhost:3001/v1")),
-			midaz.WithAuthToken(os.Getenv("LERIAN_MIDAZ_AUTH_TOKEN")),
 		),
 		lerian.WithDebug(os.Getenv("LERIAN_DEBUG") == "true"),
 	)

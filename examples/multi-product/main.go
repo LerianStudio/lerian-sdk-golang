@@ -9,13 +9,19 @@
 //
 // Configure via environment variables:
 //
-//	LERIAN_MIDAZ_ONBOARDING_URL  (default: http://localhost:3000/v1)
-//	LERIAN_MIDAZ_TRANSACTION_URL (default: http://localhost:3001/v1)
-//	LERIAN_MIDAZ_AUTH_TOKEN       (optional)
+//	LERIAN_MIDAZ_ONBOARDING_URL   (default: http://localhost:3000/v1)
+//	LERIAN_MIDAZ_TRANSACTION_URL  (default: http://localhost:3001/v1)
+//	LERIAN_MIDAZ_CLIENT_ID        (required with secret + token URL for OAuth2)
+//	LERIAN_MIDAZ_CLIENT_SECRET    (required with client ID + token URL for OAuth2)
+//	LERIAN_MIDAZ_TOKEN_URL        (required with client ID + secret for OAuth2)
 //	LERIAN_TRACER_URL             (default: http://localhost:3003/v1)
-//	LERIAN_TRACER_API_KEY         (optional)
+//	LERIAN_TRACER_CLIENT_ID       (required with secret + token URL for OAuth2)
+//	LERIAN_TRACER_CLIENT_SECRET   (required with client ID + token URL for OAuth2)
+//	LERIAN_TRACER_TOKEN_URL       (required with client ID + secret for OAuth2)
 //	LERIAN_MATCHER_URL            (default: http://localhost:3002/v1)
-//	LERIAN_MATCHER_API_KEY        (optional)
+//	LERIAN_MATCHER_CLIENT_ID      (required with secret + token URL for OAuth2)
+//	LERIAN_MATCHER_CLIENT_SECRET  (required with client ID + token URL for OAuth2)
+//	LERIAN_MATCHER_TOKEN_URL      (required with client ID + secret for OAuth2)
 //	LERIAN_DEBUG                  (optional, set "true" for verbose logging)
 package main
 
@@ -47,19 +53,16 @@ func main() {
 		lerian.WithMidaz(
 			midaz.WithOnboardingURL(envOr("LERIAN_MIDAZ_ONBOARDING_URL", "http://localhost:3000/v1")),
 			midaz.WithTransactionURL(envOr("LERIAN_MIDAZ_TRANSACTION_URL", "http://localhost:3001/v1")),
-			midaz.WithAuthToken(os.Getenv("LERIAN_MIDAZ_AUTH_TOKEN")),
 		),
 
 		// Tracer: compliance validation
 		lerian.WithTracer(
 			tracer.WithBaseURL(envOr("LERIAN_TRACER_URL", "http://localhost:3003/v1")),
-			tracer.WithAPIKey(os.Getenv("LERIAN_TRACER_API_KEY")),
 		),
 
 		// Matcher: reconciliation
 		lerian.WithMatcher(
 			matcher.WithBaseURL(envOr("LERIAN_MATCHER_URL", "http://localhost:3002/v1")),
-			matcher.WithAPIKey(os.Getenv("LERIAN_MATCHER_API_KEY")),
 		),
 
 		// Shared: debug logging across all products.

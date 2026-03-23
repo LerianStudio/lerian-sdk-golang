@@ -6,10 +6,12 @@
 //
 // Configure via environment variables:
 //
-//	LERIAN_REPORTER_URL       (default: http://localhost:3004/v1)
-//	LERIAN_REPORTER_AUTH_TOKEN (optional)
-//	LERIAN_REPORTER_ORG_ID    (required -- the organization scope)
-//	LERIAN_DEBUG              (optional, set "true" for verbose logging)
+//	LERIAN_REPORTER_URL           (default: http://localhost:3004/v1)
+//	LERIAN_REPORTER_ORG_ID        (required -- the organization scope)
+//	LERIAN_REPORTER_CLIENT_ID     (required with secret + token URL for OAuth2)
+//	LERIAN_REPORTER_CLIENT_SECRET (required with client ID + token URL for OAuth2)
+//	LERIAN_REPORTER_TOKEN_URL     (required with client ID + secret for OAuth2)
+//	LERIAN_DEBUG                  (optional, set "true" for verbose logging)
 package main
 
 import (
@@ -29,7 +31,8 @@ func main() {
 	//
 	// Reporter requires an OrganizationID which is sent as the
 	// X-Organization-Id header on every request. This scopes all report
-	// operations to a single organization. Authentication uses bearer tokens.
+	// operations to a single organization. Authentication uses OAuth2
+	// client credentials.
 	// -----------------------------------------------------------------------
 	orgID := envOr("LERIAN_REPORTER_ORG_ID", "org-placeholder-id")
 
@@ -37,7 +40,6 @@ func main() {
 	client, err := lerian.New(
 		lerian.WithReporter(
 			reporter.WithBaseURL(envOr("LERIAN_REPORTER_URL", "http://localhost:3004/v1")),
-			reporter.WithAuthToken(os.Getenv("LERIAN_REPORTER_AUTH_TOKEN")),
 			reporter.WithOrganizationID(orgID),
 		),
 		lerian.WithDebug(os.Getenv("LERIAN_DEBUG") == "true"),

@@ -79,7 +79,7 @@
 ## Security & Configuration Tips
 
 - Never commit secrets. Configure via `.env` (copy from `.env.example`).
-- Environment variables use the `LERIAN_` prefix (e.g., `LERIAN_MIDAZ_AUTH_TOKEN`).
+- Environment variables use the `LERIAN_` prefix (e.g., `LERIAN_MIDAZ_CLIENT_ID`).
 - Ensure idempotent requests by setting `X-Idempotency` header via context when needed.
 
 ## Agent-Specific Instructions

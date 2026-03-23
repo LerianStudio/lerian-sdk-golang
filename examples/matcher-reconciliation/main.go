@@ -8,9 +8,11 @@
 //
 // Configure via environment variables:
 //
-//	LERIAN_MATCHER_URL     (default: http://localhost:3002/v1)
-//	LERIAN_MATCHER_API_KEY (optional)
-//	LERIAN_DEBUG           (optional, set "true" for verbose logging)
+//	LERIAN_MATCHER_URL           (default: http://localhost:3002/v1)
+//	LERIAN_MATCHER_CLIENT_ID     (required with secret + token URL for OAuth2)
+//	LERIAN_MATCHER_CLIENT_SECRET (required with client ID + token URL for OAuth2)
+//	LERIAN_MATCHER_TOKEN_URL     (required with client ID + secret for OAuth2)
+//	LERIAN_DEBUG                 (optional, set "true" for verbose logging)
 package main
 
 import (
@@ -28,15 +30,13 @@ func main() {
 	// -----------------------------------------------------------------------
 	// Step 1: Create the SDK client configured for the Matcher product.
 	//
-	// Matcher uses API-key authentication (sent in the Authorization header
-	// with the "ApiKey " prefix). A single base URL covers all Matcher
-	// endpoints unlike Midaz which has two microservices.
+	// Matcher uses OAuth2 client credentials. A single base URL covers all
+	// Matcher endpoints unlike Midaz which has two microservices.
 	// -----------------------------------------------------------------------
 	// NOTE: Use HTTPS URLs in production. HTTP is only for local development.
 	client, err := lerian.New(
 		lerian.WithMatcher(
 			matcher.WithBaseURL(envOr("LERIAN_MATCHER_URL", "http://localhost:3002/v1")),
-			matcher.WithAPIKey(os.Getenv("LERIAN_MATCHER_API_KEY")),
 		),
 		lerian.WithDebug(os.Getenv("LERIAN_DEBUG") == "true"),
 	)

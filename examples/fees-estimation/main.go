@@ -7,10 +7,12 @@
 //
 // Configure via environment variables:
 //
-//	LERIAN_FEES_URL        (default: http://localhost:3005/v1)
-//	LERIAN_FEES_AUTH_TOKEN (optional)
-//	LERIAN_FEES_ORG_ID     (required -- the organization scope)
-//	LERIAN_DEBUG           (optional, set "true" for verbose logging)
+//	LERIAN_FEES_URL           (default: http://localhost:3005/v1)
+//	LERIAN_FEES_ORG_ID        (required -- the organization scope)
+//	LERIAN_FEES_CLIENT_ID     (required with secret + token URL for OAuth2)
+//	LERIAN_FEES_CLIENT_SECRET (required with client ID + token URL for OAuth2)
+//	LERIAN_FEES_TOKEN_URL     (required with client ID + secret for OAuth2)
+//	LERIAN_DEBUG              (optional, set "true" for verbose logging)
 package main
 
 import (
@@ -29,15 +31,16 @@ func main() {
 	// Step 1: Create the SDK client configured for the Fees product.
 	//
 	// Like Reporter, Fees requires an OrganizationID sent as the
-	// X-Organization-Id header. Authentication uses bearer tokens.
+	// X-Organization-Id header. Authentication uses OAuth2 client credentials.
 	// -----------------------------------------------------------------------
 	orgID := envOr("LERIAN_FEES_ORG_ID", "org-placeholder-id")
 
 	// NOTE: Use HTTPS URLs in production. HTTP is only for local development.
+	// OAuth2 credentials are read from LERIAN_FEES_CLIENT_ID,
+	// LERIAN_FEES_CLIENT_SECRET, and LERIAN_FEES_TOKEN_URL when set.
 	client, err := lerian.New(
 		lerian.WithFees(
 			fees.WithBaseURL(envOr("LERIAN_FEES_URL", "http://localhost:3005/v1")),
-			fees.WithAuthToken(os.Getenv("LERIAN_FEES_AUTH_TOKEN")),
 			fees.WithOrganizationID(orgID),
 		),
 		lerian.WithDebug(os.Getenv("LERIAN_DEBUG") == "true"),

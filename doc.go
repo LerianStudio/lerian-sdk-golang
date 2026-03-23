@@ -13,9 +13,10 @@
 //	    lerian.WithMidaz(
 //	        midaz.WithOnboardingURL("http://localhost:3000/v1"),
 //	        midaz.WithTransactionURL("http://localhost:3001/v1"),
-//	        midaz.WithAuthToken("my-token"),
 //	    ),
 //	)
+//	// Optional OAuth2 credentials can be loaded from:
+//	// LERIAN_MIDAZ_CLIENT_ID, LERIAN_MIDAZ_CLIENT_SECRET, LERIAN_MIDAZ_TOKEN_URL
 //	if err != nil {
 //	    log.Fatal(err)
 //	}
@@ -29,8 +30,8 @@
 // Multiple products can be configured in a single client:
 //
 //	client, err := lerian.New(
-//	    lerian.WithMidaz(midaz.WithOnboardingURL("..."), midaz.WithTransactionURL("..."), midaz.WithAuthToken("...")),
-//	    lerian.WithMatcher(matcher.WithBaseURL("..."), matcher.WithAPIKey("...")),
+//	    lerian.WithMidaz(midaz.WithOnboardingURL("..."), midaz.WithTransactionURL("..."), midaz.WithClientCredentials("...", "...", "...")),
+//	    lerian.WithMatcher(matcher.WithBaseURL("..."), matcher.WithClientCredentials("...", "...", "...")),
 //	)
 //
 // # Error Handling

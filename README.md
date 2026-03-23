@@ -34,26 +34,24 @@ func main() {
     ctx := context.Background()
 
     // Create a client with the Midaz product enabled.
-    // Configuration can also come from LERIAN_* environment variables.
+    // OAuth2 credentials can come from the matching LERIAN_MIDAZ_* env vars.
     client, err := lerian.New(
         lerian.WithMidaz(
             midaz.WithOnboardingURL("http://localhost:3000/v1"),
             midaz.WithTransactionURL("http://localhost:3001/v1"),
-            midaz.WithAuthToken("my-auth-token"),
         ),
     )
     if err != nil {
         log.Fatal(err)
     }
-    defer client.Close(ctx)
+    defer client.Shutdown(ctx)
 
     // Create an organization
-    org, err := client.Midaz.Organizations.Create(ctx, models.CreateOrganizationInput{
-        LegalName:      "Acme Corp",
-        DoingBusinessAs: ptr("Acme"),
-        LegalDocument:   "12345678000100",
-        Status:         models.Status{Code: "ACTIVE"},
-        Address: models.Address{
+    org, err := client.Midaz.Organizations.Create(ctx, &midaz.CreateOrganizationInput{
+        LegalName:     "Acme Corp",
+        LegalDocument: "12345678000100",
+        Status:        &models.Status{Code: "ACTIVE"},
+        Address: &models.Address{
             Country: "BR",
         },
     })
@@ -63,8 +61,6 @@ func main() {
 
     fmt.Printf("Created organization: %s (%s)\n", org.LegalName, org.ID)
 }
-
-func ptr(s string) *string { return &s }
 ```
 
 ## Products
@@ -83,15 +79,29 @@ Enable only the products you need:
 
 ```go
 client, err := lerian.New(
-    lerian.WithMidaz(midaz.WithAuthToken("token")),
-    lerian.WithMatcher(matcher.WithAPIKey("key")),
-    lerian.WithTracer(tracer.WithAPIKey("key")),
-    lerian.WithReporter(reporter.WithAuthToken("token")),
-    lerian.WithFees(fees.WithAuthToken("token")),
+    lerian.WithMidaz(
+        midaz.WithOnboardingURL("http://localhost:3000/v1"),
+        midaz.WithTransactionURL("http://localhost:3001/v1"),
+    ),
+    lerian.WithMatcher(
+        matcher.WithBaseURL("http://localhost:3002/v1"),
+    ),
+    lerian.WithTracer(
+        tracer.WithBaseURL("http://localhost:3003/v1"),
+    ),
+    lerian.WithReporter(
+        reporter.WithBaseURL("http://localhost:3004/v1"),
+        reporter.WithOrganizationID("org-uuid"),
+    ),
+    lerian.WithFees(
+        fees.WithBaseURL("http://localhost:3005/v1"),
+        fees.WithOrganizationID("org-uuid"),
+    ),
 )
 ```
 
 Products not enabled via `With<Product>()` will be `nil` on the client. This keeps resource usage minimal -- only backends you configure are initialized.
+When authentication is required, load each product's OAuth2 credentials via the matching `LERIAN_*_CLIENT_ID`, `LERIAN_*_CLIENT_SECRET`, and `LERIAN_*_TOKEN_URL` environment variables.
 
 ## Configuration
 
@@ -106,25 +116,35 @@ LERIAN_DEBUG=false
 # Midaz (Ledger)
 LERIAN_MIDAZ_ONBOARDING_URL=http://localhost:3000/v1
 LERIAN_MIDAZ_TRANSACTION_URL=http://localhost:3001/v1
-LERIAN_MIDAZ_AUTH_TOKEN=my-token
+LERIAN_MIDAZ_CLIENT_ID=my-client-id
+LERIAN_MIDAZ_CLIENT_SECRET=my-client-secret
+LERIAN_MIDAZ_TOKEN_URL=https://auth.example.com/token
 
 # Matcher (Rule Engine)
 LERIAN_MATCHER_URL=http://localhost:3002/v1
-LERIAN_MATCHER_API_KEY=my-key
+LERIAN_MATCHER_CLIENT_ID=my-client-id
+LERIAN_MATCHER_CLIENT_SECRET=my-client-secret
+LERIAN_MATCHER_TOKEN_URL=https://auth.example.com/token
 
 # Tracer (Audit Trail)
 LERIAN_TRACER_URL=http://localhost:3003/v1
-LERIAN_TRACER_API_KEY=my-key
+LERIAN_TRACER_CLIENT_ID=my-client-id
+LERIAN_TRACER_CLIENT_SECRET=my-client-secret
+LERIAN_TRACER_TOKEN_URL=https://auth.example.com/token
 
 # Reporter (Analytics)
 LERIAN_REPORTER_URL=http://localhost:3004/v1
-LERIAN_REPORTER_AUTH_TOKEN=my-token
 LERIAN_REPORTER_ORG_ID=org-uuid
+LERIAN_REPORTER_CLIENT_ID=my-client-id
+LERIAN_REPORTER_CLIENT_SECRET=my-client-secret
+LERIAN_REPORTER_TOKEN_URL=https://auth.example.com/token
 
 # Fees (Billing)
 LERIAN_FEES_URL=http://localhost:3005/v1
-LERIAN_FEES_AUTH_TOKEN=my-token
 LERIAN_FEES_ORG_ID=org-uuid
+LERIAN_FEES_CLIENT_ID=my-client-id
+LERIAN_FEES_CLIENT_SECRET=my-client-secret
+LERIAN_FEES_TOKEN_URL=https://auth.example.com/token
 ```
 
 ### Functional Options
@@ -135,14 +155,9 @@ Every aspect of the client is configurable through the functional options patter
 client, err := lerian.New(
     // Shared infrastructure options
     lerian.WithHTTPClient(customHTTPClient),
-    lerian.WithRetryConfig(retry.Config{
-        MaxRetries: 3,
-        BaseDelay:  500 * time.Millisecond,
-    }),
-    lerian.WithObservability(observability.Config{
-        ServiceName: "my-service",
-        Enabled:     true,
-    }),
+    lerian.WithRetry(3, 500*time.Millisecond),
+    lerian.WithObservability(true, true, false),
+    lerian.WithCollectorEndpoint("http://localhost:4318"),
 
     // Product-specific options
     lerian.WithMidaz(
