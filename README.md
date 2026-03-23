@@ -1,9 +1,9 @@
 # Lerian Go SDK
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/LerianStudio/lerian-sdk-golang.svg)](https://pkg.go.dev/github.com/LerianStudio/lerian-sdk-golang)
-[![CI](https://github.com/LerianStudio/lerian-sdk-golang/actions/workflows/ci.yml/badge.svg)](https://github.com/LerianStudio/lerian-sdk-golang/actions/workflows/ci.yml)
+[![CI](https://github.com/LerianStudio/lerian-sdk-golang/actions/workflows/go-combined-analysis.yml/badge.svg)](https://github.com/LerianStudio/lerian-sdk-golang/actions/workflows/go-combined-analysis.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/LerianStudio/lerian-sdk-golang)](https://goreportcard.com/report/github.com/LerianStudio/lerian-sdk-golang)
-[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE.md)
+[![License: Elastic-2.0](https://img.shields.io/badge/License-Elastic--2.0-blue.svg)](LICENSE.md)
 
 The official Go SDK for the **Lerian** financial infrastructure platform. This SDK provides a unified, type-safe client for all Lerian products -- from core ledger operations to transaction matching, tracing, reporting, and fee management. Built for production use in financial systems with enterprise-grade observability, retry logic, and error handling.
 
@@ -226,7 +226,8 @@ accounts, err := client.Midaz.Accounts.List(ctx, orgID, ledgerID).Collect()
 first10, err := client.Midaz.Accounts.List(ctx, orgID, ledgerID).CollectN(10)
 
 // Process concurrently with bounded parallelism
-err := client.Midaz.Accounts.List(ctx, orgID, ledgerID).ForEachConcurrent(8,
+it := client.Midaz.Accounts.List(ctx, orgID, ledgerID)
+errs := pagination.ForEachConcurrent(ctx, it, 8,
     func(ctx context.Context, account models.Account) error {
         return processAccount(ctx, account)
     },
@@ -238,18 +239,25 @@ err := client.Midaz.Accounts.List(ctx, orgID, ledgerID).ForEachConcurrent(8,
 The SDK ships with a `leriantest` package that provides a complete fake client for all 37 services. No network calls, no mocking frameworks required:
 
 ```go
-import "github.com/LerianStudio/lerian-sdk-golang/testing/leriantest"
+import (
+    "testing"
+
+    "github.com/LerianStudio/lerian-sdk-golang/midaz"
+    "github.com/LerianStudio/lerian-sdk-golang/testing/leriantest"
+    "github.com/stretchr/testify/assert"
+)
 
 func TestMyService(t *testing.T) {
-    // Create a fake client pre-loaded with test data
-    fake := leriantest.NewClient()
+    // Create a fake client pre-loaded with test data (no network, no mocks)
+    fake := leriantest.NewFakeClient(
+        leriantest.WithSeedOrganizations(midaz.Organization{
+            ID:        "org-uuid",
+            LegalName: "Test Corp",
+        }),
+    )
 
-    // Seed data
-    fake.Midaz.Organizations.Store = leriantest.NewStore(testOrg)
-
-    // Use fake.Client in your code under test -- it implements
-    // the same interface as the real client.
-    result, err := myFunction(ctx, fake.Client)
+    // fake is a *lerian.Client -- pass it directly to code under test
+    result, err := myFunction(ctx, fake)
     assert.NoError(t, err)
     assert.Equal(t, expected, result)
 }
@@ -285,10 +293,10 @@ We welcome contributions. Please follow these guidelines:
 4. Write tests for new code (target 80%+ coverage).
 5. Open a pull request with a clear description of the change.
 
-See the project's coding style and testing guidelines in [CLAUDE.md](CLAUDE.md) for detailed conventions.
+See [docs/PROJECT_RULES.md](docs/PROJECT_RULES.md) for architectural decisions, enforced patterns, and coding conventions.
 
 ## License
 
-This project is licensed under the Apache License 2.0. See [LICENSE.md](LICENSE.md) for the full text.
+This project is licensed under the [Elastic License 2.0 (ELv2)](https://www.elastic.co/licensing/elastic-license). See [LICENSE.md](LICENSE.md) for the full text.
 
-Copyright 2025 [Lerian Studio](https://lerian.studio).
+Copyright 2025-2026 [Lerian Studio](https://lerian.studio).

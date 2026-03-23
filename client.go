@@ -320,11 +320,7 @@ func validateOAuthAuthConfig(product, clientID, clientSecret, tokenURL string) e
 		return fmt.Errorf("lerian: %s: ClientID, ClientSecret, and TokenURL must all be set for OAuth2", product)
 	}
 
-	if err := validateOAuthTokenURL(product, tokenURL); err != nil {
-		return err
-	}
-
-	return nil
+	return validateOAuthTokenURL(product, tokenURL)
 }
 
 func applyMidazEnvFallbacks(cfg *midaz.Config) {

@@ -87,6 +87,7 @@ func TestBuildOAuthAuthenticatorUsesProvidedHTTPClientAndScopes(t *testing.T) {
 	customClient := &http.Client{
 		Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
 			requestCount++
+
 			assert.Equal(t, "https://auth.example.com/token", req.URL.String())
 
 			body, err := io.ReadAll(req.Body)
@@ -256,12 +257,15 @@ func TestMidazOAuth2AppliesToBothBackends(t *testing.T) {
 	t.Parallel()
 
 	var receivedScope string
+
 	var onboardingAuth string
+
 	var transactionAuth string
 
 	tokenServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		require.NoError(t, r.ParseForm())
 		receivedScope = r.FormValue("scope")
+
 		w.Header().Set("Content-Type", "application/json")
 		_, err := w.Write([]byte(`{"access_token":"midaz-token","token_type":"Bearer","expires_in":3600}`))
 		require.NoError(t, err)
@@ -309,11 +313,14 @@ func TestMidazNoAuthAppliesToBothBackends(t *testing.T) {
 	t.Parallel()
 
 	var onboardingAuth string
+
 	var transactionAuth string
 
 	onboardingServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		onboardingAuth = r.Header.Get("Authorization")
+
 		w.Header().Set("Content-Type", "application/json")
+
 		_, err := w.Write([]byte(`{"id":"org-1"}`))
 		require.NoError(t, err)
 	}))
