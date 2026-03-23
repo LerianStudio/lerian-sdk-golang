@@ -8,17 +8,15 @@
 //
 // The following authentication strategies are available:
 //
-//   - [BearerToken] -- static bearer token in the Authorization header
-//   - [APIKey] -- API key with configurable header name and prefix
 //   - [NoAuth] -- passthrough that adds no credentials
-//   - [OAuth2ClientCredentials] -- OAuth2 client-credentials flow with
-//     automatic token caching and refresh
+//   - [OAuth2] -- OAuth2 client-credentials flow with automatic token caching
+//     and refresh
 //
 // # Usage
 //
 // Authenticators are typically created by product option functions (e.g.
-// [midaz.WithAuthToken]), but can also be constructed directly:
+// [midaz.WithClientCredentials]), but can also be constructed directly:
 //
-//	authn := auth.NewBearerToken("my-token")
-//	authn.Enrich(ctx, req) // sets Authorization: Bearer my-token
+//	authn := auth.NewOAuth2("client-id", "client-secret", "https://auth.example.com/token", nil)
+//	authn.Enrich(ctx, req) // sets Authorization: Bearer <access_token>
 package auth

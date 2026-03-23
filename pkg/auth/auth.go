@@ -12,6 +12,8 @@ import (
 	"time"
 )
 
+const defaultOAuthTimeout = 10 * time.Second
+
 // Authenticator enriches an outbound HTTP request with credentials.
 // Implementations must be safe for concurrent use.
 type Authenticator interface {
@@ -19,87 +21,6 @@ type Authenticator interface {
 	// to the given request. It returns an error if the enrichment fails
 	// (e.g. a token refresh encounters a network error).
 	Enrich(ctx context.Context, req *http.Request) error
-}
-
-// ---------------------------------------------------------------------------
-// BearerToken
-// ---------------------------------------------------------------------------
-
-// BearerToken authenticates requests with a static bearer token in the
-// Authorization header.
-type BearerToken struct {
-	// Token is the raw bearer token value (without the "Bearer " prefix).
-	Token string
-}
-
-// NewBearerToken creates a BearerToken authenticator with the given token.
-func NewBearerToken(token string) *BearerToken {
-	return &BearerToken{Token: token}
-}
-
-// Enrich sets the Authorization header to "Bearer <token>".
-func (b *BearerToken) Enrich(_ context.Context, req *http.Request) error {
-	req.Header.Set("Authorization", "Bearer "+b.Token)
-	return nil
-}
-
-// String implements fmt.Stringer to prevent credential leakage in logs.
-func (b BearerToken) String() string {
-	return "BearerToken{Token: [REDACTED]}"
-}
-
-// MarshalJSON prevents credential leakage during JSON serialization.
-func (b BearerToken) MarshalJSON() ([]byte, error) {
-	return []byte(`{"type":"bearer","token":"[REDACTED]"}`), nil
-}
-
-// ---------------------------------------------------------------------------
-// APIKey
-// ---------------------------------------------------------------------------
-
-// APIKey authenticates requests by setting an arbitrary header to the
-// concatenation of a prefix and a key. This covers multiple conventions:
-//
-//   - Matcher pattern:  Header="Authorization", Prefix="ApiKey ", Key="..."
-//   - Tracer pattern:   Header="X-API-Key",     Prefix="",       Key="..."
-//   - Custom prefix:    Header="Authorization", Prefix="Token ",  Key="..."
-type APIKey struct {
-	// Header is the HTTP header name where the key is placed.
-	Header string
-	// Prefix is prepended to Key when setting the header value.
-	// It may include a trailing space if the convention requires one.
-	Prefix string
-	// Key is the API key value.
-	Key string
-}
-
-// NewAPIKey creates an APIKey authenticator. The resulting header value will
-// be Prefix+Key (e.g. "ApiKey abc123" or just "abc123" when Prefix is empty).
-func NewAPIKey(header, prefix, key string) *APIKey {
-	return &APIKey{
-		Header: header,
-		Prefix: prefix,
-		Key:    key,
-	}
-}
-
-// Enrich sets the configured header to Prefix+Key.
-func (a *APIKey) Enrich(_ context.Context, req *http.Request) error {
-	req.Header.Set(a.Header, a.Prefix+a.Key)
-	return nil
-}
-
-// String implements fmt.Stringer to prevent credential leakage in logs.
-func (a APIKey) String() string {
-	return fmt.Sprintf("APIKey{Header: %q, Prefix: %q, Key: [REDACTED]}", a.Header, a.Prefix)
-}
-
-// MarshalJSON prevents credential leakage during JSON serialization.
-func (a APIKey) MarshalJSON() ([]byte, error) {
-	return []byte(fmt.Sprintf(
-		`{"type":"apikey","header":%q,"prefix":%q,"key":"[REDACTED]"}`,
-		a.Header, a.Prefix,
-	)), nil
 }
 
 // ---------------------------------------------------------------------------
@@ -166,29 +87,61 @@ type OAuth2 struct {
 }
 
 // NewOAuth2 creates an OAuth2 authenticator for the client-credentials flow.
-// If no custom HTTP client is needed, pass nil and a default client with a
-// 10-second timeout will be used.
+// It uses a default HTTP client with a 10-second timeout.
 func NewOAuth2(clientID, clientSecret, tokenURL string, scopes []string) *OAuth2 {
-	return &OAuth2{
+	return NewOAuth2WithHTTPClient(clientID, clientSecret, tokenURL, scopes, nil)
+}
+
+// NewOAuth2WithHTTPClient creates an OAuth2 authenticator for the
+// client-credentials flow using the provided HTTP client for token requests.
+//
+// If httpClient is nil, a default client with a 10-second timeout is used.
+func NewOAuth2WithHTTPClient(clientID, clientSecret, tokenURL string, scopes []string, httpClient *http.Client) *OAuth2 {
+	oauth := &OAuth2{
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
 		TokenURL:     tokenURL,
-		Scopes:       scopes,
-		httpClient: &http.Client{
-			Timeout: 10 * time.Second,
-			CheckRedirect: func(req *http.Request, via []*http.Request) error {
-				if len(via) >= 10 {
-					return fmt.Errorf("stopped after 10 redirects")
-				}
+		Scopes:       append([]string(nil), scopes...),
+		httpClient:   httpClient,
+		nowFunc:      time.Now,
+	}
+	oauth.ensureDefaultsLocked()
 
-				if len(via) > 0 && req.URL.Host != via[0].URL.Host {
-					req.Header.Del("Authorization")
-				}
+	return oauth
+}
 
+func defaultOAuthHTTPClient() *http.Client {
+	return &http.Client{
+		Timeout: defaultOAuthTimeout,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			if len(via) >= 10 {
+				return fmt.Errorf("auth/oauth2: stopped after 10 redirects")
+			}
+
+			if len(via) == 0 {
 				return nil
-			},
+			}
+
+			if req.URL.Host != via[0].URL.Host {
+				return fmt.Errorf(
+					"auth/oauth2: refusing cross-host redirect from %q to %q",
+					via[0].URL.Host,
+					req.URL.Host,
+				)
+			}
+
+			return nil
 		},
-		nowFunc: time.Now,
+	}
+}
+
+func (o *OAuth2) ensureDefaultsLocked() {
+	if o.httpClient == nil {
+		o.httpClient = defaultOAuthHTTPClient()
+	}
+
+	if o.nowFunc == nil {
+		o.nowFunc = time.Now
 	}
 }
 
@@ -209,6 +162,7 @@ func (o *OAuth2) Enrich(ctx context.Context, req *http.Request) error {
 func (o *OAuth2) validToken(ctx context.Context) (string, error) {
 	o.mu.Lock()
 	defer o.mu.Unlock()
+	o.ensureDefaultsLocked()
 
 	now := o.nowFunc()
 	if o.token != "" && now.Before(o.expiry) {
@@ -221,6 +175,8 @@ func (o *OAuth2) validToken(ctx context.Context) (string, error) {
 // refreshToken performs the client-credentials POST and caches the result.
 // It must be called with o.mu held.
 func (o *OAuth2) refreshToken(ctx context.Context) (string, error) {
+	o.ensureDefaultsLocked()
+
 	data := url.Values{
 		"grant_type":    {"client_credentials"},
 		"client_id":     {o.ClientID},

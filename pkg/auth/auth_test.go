@@ -19,99 +19,9 @@ import (
 // ---------------------------------------------------------------------------
 
 var (
-	_ Authenticator = (*BearerToken)(nil)
-	_ Authenticator = (*APIKey)(nil)
 	_ Authenticator = (*NoAuth)(nil)
 	_ Authenticator = (*OAuth2)(nil)
 )
-
-// ---------------------------------------------------------------------------
-// BearerToken
-// ---------------------------------------------------------------------------
-
-func TestBearerTokenImplementsAuthenticator(t *testing.T) {
-	t.Parallel()
-
-	// Compile-time guarantee (var _ line above). This test simply exercises
-	// the constructor so the coverage tool sees it.
-	bt := NewBearerToken("my-token")
-	assert.Equal(t, "my-token", bt.Token)
-}
-
-func TestBearerTokenEnrich(t *testing.T) {
-	t.Parallel()
-
-	bt := NewBearerToken("my-token")
-	req := httptest.NewRequest(http.MethodGet, "http://example.com", nil)
-
-	err := bt.Enrich(context.Background(), req)
-
-	require.NoError(t, err)
-	assert.Equal(t, "Bearer my-token", req.Header.Get("Authorization"))
-}
-
-// ---------------------------------------------------------------------------
-// APIKey — table-driven
-// ---------------------------------------------------------------------------
-
-func TestAPIKeyImplementsAuthenticator(t *testing.T) {
-	t.Parallel()
-
-	ak := NewAPIKey("X-API-Key", "", "key")
-	assert.Equal(t, "X-API-Key", ak.Header)
-}
-
-func TestAPIKeyEnrich(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name       string
-		header     string
-		prefix     string
-		key        string
-		wantHeader string
-		wantValue  string
-	}{
-		{
-			name:       "Matcher pattern",
-			header:     "Authorization",
-			prefix:     "ApiKey ",
-			key:        "key-123",
-			wantHeader: "Authorization",
-			wantValue:  "ApiKey key-123",
-		},
-		{
-			name:       "Tracer pattern",
-			header:     "X-API-Key",
-			prefix:     "",
-			key:        "key-456",
-			wantHeader: "X-API-Key",
-			wantValue:  "key-456",
-		},
-		{
-			name:       "Custom prefix",
-			header:     "Authorization",
-			prefix:     "Token ",
-			key:        "key-789",
-			wantHeader: "Authorization",
-			wantValue:  "Token key-789",
-		},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
-			ak := NewAPIKey(tc.header, tc.prefix, tc.key)
-			req := httptest.NewRequest(http.MethodGet, "http://example.com", nil)
-
-			err := ak.Enrich(context.Background(), req)
-
-			require.NoError(t, err)
-			assert.Equal(t, tc.wantValue, req.Header.Get(tc.wantHeader))
-		})
-	}
-}
 
 // ---------------------------------------------------------------------------
 // NoAuth
@@ -367,10 +277,9 @@ func TestOAuth2ConcurrentSafety(t *testing.T) {
 		t.Errorf("concurrent Enrich error: %v", err)
 	}
 
-	// With the mutex, only one goroutine should have actually fetched.
-	// Others should have used the cache. Counter should be >= 1 (typically 1).
-	assert.GreaterOrEqual(t, counter.Load(), int64(1),
-		"at least one token request should have been made")
+	// With the mutex, all goroutines should share a single token fetch.
+	assert.Equal(t, int64(1), counter.Load(),
+		"all concurrent Enrich calls should share one token fetch")
 }
 
 // unexpectedHeaderError is a small error type for concurrent test reporting.
@@ -391,7 +300,7 @@ func TestOAuth2TokenEndpointError(t *testing.T) {
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
-		_, _ = w.Write([]byte(`{"error":"invalid_client"}`))
+		require.NoError(t, json.NewEncoder(w).Encode(map[string]string{"error": "invalid_client"}))
 	}))
 	defer srv.Close()
 
@@ -410,7 +319,8 @@ func TestOAuth2MalformedJSON(t *testing.T) {
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`not json`))
+		_, err := w.Write([]byte(`not json`))
+		require.NoError(t, err)
 	}))
 	defer srv.Close()
 
@@ -429,7 +339,7 @@ func TestOAuth2EmptyAccessToken(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"access_token":"","token_type":"Bearer","expires_in":3600}`))
+		require.NoError(t, json.NewEncoder(w).Encode(tokenResponse{TokenType: "Bearer", ExpiresIn: 3600}))
 	}))
 	defer srv.Close()
 
@@ -519,55 +429,6 @@ func TestOAuth2NoScopes(t *testing.T) {
 // Credential redaction tests (Issue #12)
 // ---------------------------------------------------------------------------
 
-func TestBearerTokenStringRedaction(t *testing.T) {
-	t.Parallel()
-
-	bt := NewBearerToken("super-secret-token-value")
-	s := bt.String()
-
-	assert.Contains(t, s, "[REDACTED]")
-	assert.NotContains(t, s, "super-secret-token-value",
-		"String() must not contain the actual token")
-}
-
-func TestBearerTokenMarshalJSONRedaction(t *testing.T) {
-	t.Parallel()
-
-	bt := NewBearerToken("super-secret-token-value")
-	data, err := json.Marshal(bt)
-
-	require.NoError(t, err)
-	assert.Contains(t, string(data), "[REDACTED]")
-	assert.NotContains(t, string(data), "super-secret-token-value",
-		"MarshalJSON must not contain the actual token")
-}
-
-func TestAPIKeyStringRedaction(t *testing.T) {
-	t.Parallel()
-
-	ak := NewAPIKey("Authorization", "ApiKey ", "my-secret-key-123")
-	s := ak.String()
-
-	assert.Contains(t, s, "[REDACTED]")
-	assert.Contains(t, s, "Authorization", "Header should be visible")
-	assert.Contains(t, s, "ApiKey ", "Prefix should be visible")
-	assert.NotContains(t, s, "my-secret-key-123",
-		"String() must not contain the actual key")
-}
-
-func TestAPIKeyMarshalJSONRedaction(t *testing.T) {
-	t.Parallel()
-
-	ak := NewAPIKey("X-API-Key", "", "my-secret-key-123")
-	data, err := json.Marshal(ak)
-
-	require.NoError(t, err)
-	assert.Contains(t, string(data), "[REDACTED]")
-	assert.Contains(t, string(data), "X-API-Key", "Header should be visible")
-	assert.NotContains(t, string(data), "my-secret-key-123",
-		"MarshalJSON must not contain the actual key")
-}
-
 func TestOAuth2StringRedaction(t *testing.T) {
 	t.Parallel()
 
@@ -596,64 +457,90 @@ func TestOAuth2MarshalJSONRedaction(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// OAuth2 redirect auth-header stripping test (Issue #4)
+// OAuth2 redirect and zero-value safety tests
 // ---------------------------------------------------------------------------
 
-func TestOAuth2RedirectStripsAuthOnCrossDomain(t *testing.T) {
+func TestOAuth2RedirectRejectsCrossHost(t *testing.T) {
 	t.Parallel()
 
-	// "foreign" server that the token endpoint redirects to.
-	// It captures whatever Authorization header arrives.
-	var receivedAuth string
+	var foreignHits atomic.Int64
 
-	foreign := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		receivedAuth = r.Header.Get("Authorization")
+	foreign := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		foreignHits.Add(1)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"access_token":"tok-redirect","token_type":"Bearer","expires_in":3600}`))
+		require.NoError(t, json.NewEncoder(w).Encode(tokenResponse{
+			AccessToken: "tok-redirect",
+			TokenType:   "Bearer",
+			ExpiresIn:   3600,
+		}))
 	}))
 	defer foreign.Close()
 
-	// "origin" server that returns a 302 redirect to the foreign host.
 	origin := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, foreign.URL+"/token", http.StatusFound)
+		http.Redirect(w, r, foreign.URL+"/token", http.StatusTemporaryRedirect)
 	}))
 	defer origin.Close()
 
 	oauth := NewOAuth2("cid", "csecret", origin.URL, nil)
-
-	// Manually set an Authorization header on the internal httpClient's
-	// transport to simulate a header being present on the initial request.
-	// The OAuth2 refreshToken method sets Content-Type but not Authorization
-	// on the token request itself. To properly test the redirect policy, we
-	// use a custom RoundTripper that injects an Authorization header.
-	oauth.httpClient.Transport = &authInjectingTransport{
-		base:      http.DefaultTransport,
-		authValue: "Bearer leaked-token",
-	}
-
 	req := httptest.NewRequest(http.MethodGet, "http://example.com", nil)
+
 	err := oauth.Enrich(context.Background(), req)
 
-	require.NoError(t, err)
-	assert.Empty(t, receivedAuth,
-		"Authorization header must be stripped when redirecting to a different host")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "refusing cross-host redirect")
+	assert.Equal(t, int64(0), foreignHits.Load(),
+		"token requests must not follow cross-host redirects")
 }
 
-// authInjectingTransport wraps an http.RoundTripper and injects an
-// Authorization header only on the first request. Subsequent requests
-// (i.e. redirects) are left untouched so the CheckRedirect policy is
-// the sole mechanism that decides whether Authorization survives.
-type authInjectingTransport struct {
-	base      http.RoundTripper
-	authValue string
-	once      sync.Once
+func TestOAuth2RedirectAllowsSameHost(t *testing.T) {
+	t.Parallel()
+
+	var requestCount atomic.Int64
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		count := requestCount.Add(1)
+		if count == 1 {
+			http.Redirect(w, r, "/token", http.StatusTemporaryRedirect)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		require.NoError(t, json.NewEncoder(w).Encode(tokenResponse{
+			AccessToken: "tok-same-host",
+			TokenType:   "Bearer",
+			ExpiresIn:   3600,
+		}))
+	}))
+	defer ts.Close()
+
+	oauth := NewOAuth2("cid", "csecret", ts.URL+"/start", nil)
+	req := httptest.NewRequest(http.MethodGet, "http://example.com", nil)
+
+	require.NoError(t, oauth.Enrich(context.Background(), req))
+	assert.Equal(t, "Bearer tok-same-host", req.Header.Get("Authorization"))
+	assert.Equal(t, int64(2), requestCount.Load())
 }
 
-func (t *authInjectingTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	t.once.Do(func() {
-		req.Header.Set("Authorization", t.authValue)
-	})
+func TestOAuth2ZeroValueUsesDefaults(t *testing.T) {
+	t.Parallel()
 
-	return t.base.RoundTrip(req)
+	var counter atomic.Int64
+	srv := newOAuth2TestServer(t, &counter, 3600)
+	defer srv.Close()
+
+	oauth := &OAuth2{
+		ClientID:     "cid",
+		ClientSecret: "csecret",
+		TokenURL:     srv.URL,
+	}
+	req := httptest.NewRequest(http.MethodGet, "http://example.com", nil)
+
+	require.NoError(t, oauth.Enrich(context.Background(), req))
+	assert.Equal(t, "Bearer tok-123", req.Header.Get("Authorization"))
+	assert.Equal(t, int64(1), counter.Load())
+	assert.NotNil(t, oauth.httpClient)
+	assert.NotNil(t, oauth.nowFunc)
+	assert.False(t, oauth.expiry.IsZero())
 }
