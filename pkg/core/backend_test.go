@@ -13,7 +13,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/LerianStudio/lerian-sdk-golang/pkg/auth"
 	sdkerrors "github.com/LerianStudio/lerian-sdk-golang/pkg/errors"
 	"github.com/LerianStudio/lerian-sdk-golang/pkg/retry"
 	"github.com/stretchr/testify/assert"
@@ -35,6 +34,15 @@ type testResponse struct {
 
 type testRequest struct {
 	Name string `json:"name"`
+}
+
+type staticTestAuth struct {
+	value string
+}
+
+func (a staticTestAuth) Enrich(_ context.Context, req *http.Request) error {
+	req.Header.Set("Authorization", "Bearer "+a.value)
+	return nil
 }
 
 // fastRetryConfig returns a retry config with minimal delays for fast tests.
@@ -182,7 +190,7 @@ func TestBackendAuthEnrichment(t *testing.T) {
 	defer ts.Close()
 
 	b := newTestBackend(ts, func(cfg *BackendConfig) {
-		cfg.Auth = auth.NewBearerToken("test-token-secret-123")
+		cfg.Auth = staticTestAuth{value: "test-token-secret-123"}
 	})
 
 	var result testResponse
@@ -740,7 +748,7 @@ func TestBackendDebugLogging(t *testing.T) {
 	// Just verify debug mode doesn't panic or break anything.
 	b := newTestBackend(ts, func(cfg *BackendConfig) {
 		cfg.Debug = true
-		cfg.Auth = auth.NewBearerToken("secret-token-value")
+		cfg.Auth = staticTestAuth{value: "secret-token-value"}
 	})
 
 	var result testResponse
@@ -1595,7 +1603,7 @@ func TestBackendCheckRedirectStripsAuth(t *testing.T) {
 	// Use the default httpClient (which has CheckRedirect wired).
 	b := NewBackendImpl(BackendConfig{
 		BaseURL:     originServer.URL,
-		Auth:        auth.NewBearerToken("secret-token"),
+		Auth:        staticTestAuth{value: "secret-token"},
 		RetryConfig: fastRetryConfig(0),
 	})
 
@@ -1636,7 +1644,7 @@ func TestBackendCheckRedirectPreservesAuthSameHost(t *testing.T) {
 
 	b := NewBackendImpl(BackendConfig{
 		BaseURL:     ts.URL,
-		Auth:        auth.NewBearerToken("keep-me"),
+		Auth:        staticTestAuth{value: "keep-me"},
 		RetryConfig: fastRetryConfig(0),
 	})
 

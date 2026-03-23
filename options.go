@@ -28,8 +28,8 @@ type Option func(*Client) error
 //	lerian.WithMidaz(
 //	    midaz.WithOnboardingURL("http://localhost:3000/v1"),
 //	    midaz.WithTransactionURL("http://localhost:3001/v1"),
-//	    midaz.WithAuthToken("my-token"),
 //	)
+//	// Optional OAuth2 credentials can be loaded from the matching LERIAN_MIDAZ_* env vars.
 func WithMidaz(opts ...midaz.Option) Option {
 	return func(c *Client) error {
 		c.midazRequested = true

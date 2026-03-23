@@ -183,15 +183,7 @@ func (c *Client) createBackend(
 	defaultHeaders map[string]string,
 	timeout time.Duration,
 ) *core.BackendImpl {
-	httpClient := c.httpClient
-	if timeout > 0 {
-		httpClient = &http.Client{
-			Transport:     c.httpClient.Transport,
-			CheckRedirect: c.httpClient.CheckRedirect,
-			Jar:           c.httpClient.Jar,
-			Timeout:       timeout,
-		}
-	}
+	httpClient := c.httpClientForTimeout(timeout)
 
 	return core.NewBackendImpl(core.BackendConfig{
 		BaseURL:        baseURL,
@@ -204,6 +196,23 @@ func (c *Client) createBackend(
 		HTTPClient:     httpClient,
 		Provider:       c.observability,
 	})
+}
+
+func cloneHTTPClient(base *http.Client, timeout time.Duration) *http.Client {
+	cloned := *base
+	if timeout > 0 {
+		cloned.Timeout = timeout
+	}
+
+	return &cloned
+}
+
+func (c *Client) httpClientForTimeout(timeout time.Duration) *http.Client {
+	if timeout <= 0 {
+		return c.httpClient
+	}
+
+	return cloneHTTPClient(c.httpClient, timeout)
 }
 
 // ---------------------------------------------------------------------------
@@ -247,6 +256,172 @@ func warnInsecureURL(product, rawURL string) {
 	)
 }
 
+func resolveEnvOAuthConfig(envClientID, envClientSecret, envTokenURL string) (clientID, clientSecret, tokenURL string) {
+	clientID = envOrDefault(envClientID, "")
+	clientSecret = envOrDefault(envClientSecret, "")
+	tokenURL = envOrDefault(envTokenURL, "")
+
+	return clientID, clientSecret, tokenURL
+}
+
+func applyOAuthEnvFallbacks(clientID, clientSecret, tokenURL *string,
+	envClientID, envClientSecret, envTokenURL string) {
+	if *clientID != "" || *clientSecret != "" || *tokenURL != "" {
+		return
+	}
+
+	envResolvedClientID, envResolvedClientSecret, envResolvedTokenURL := resolveEnvOAuthConfig(
+		envClientID,
+		envClientSecret,
+		envTokenURL,
+	)
+	*clientID = envResolvedClientID
+	*clientSecret = envResolvedClientSecret
+	*tokenURL = envResolvedTokenURL
+}
+
+func buildOAuthAuthenticator(clientID, clientSecret, tokenURL string, scopes []string, httpClient *http.Client) auth.Authenticator {
+	if clientID != "" && clientSecret != "" && tokenURL != "" {
+		return auth.NewOAuth2WithHTTPClient(clientID, clientSecret, tokenURL, scopes, httpClient)
+	}
+
+	return auth.NewNoAuth()
+}
+
+func validateOAuthTokenURL(product, tokenURL string) error {
+	if tokenURL == "" || isLocalhostURL(tokenURL) {
+		return nil
+	}
+
+	if strings.HasPrefix(strings.ToLower(tokenURL), "http://") {
+		return fmt.Errorf("lerian: %s: TokenURL must use HTTPS outside localhost", product)
+	}
+
+	return nil
+}
+
+func validateLegacyAuthEnvUnset(product, migrationHint string, legacyKeys ...string) error {
+	for _, legacyKey := range legacyKeys {
+		if envOrDefault(legacyKey, "") == "" {
+			continue
+		}
+
+		return fmt.Errorf("lerian: %s: %s is no longer supported; migrate to %s", product, legacyKey, migrationHint)
+	}
+
+	return nil
+}
+
+func validateOAuthAuthConfig(product, clientID, clientSecret, tokenURL string) error {
+	hasOAuthConfig := clientID != "" || clientSecret != "" || tokenURL != ""
+	hasCompleteOAuthConfig := clientID != "" && clientSecret != "" && tokenURL != ""
+
+	if hasOAuthConfig && !hasCompleteOAuthConfig {
+		return fmt.Errorf("lerian: %s: ClientID, ClientSecret, and TokenURL must all be set for OAuth2", product)
+	}
+
+	if err := validateOAuthTokenURL(product, tokenURL); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func applyMidazEnvFallbacks(cfg *midaz.Config) {
+	if cfg.OnboardingURL == "" {
+		cfg.OnboardingURL = envOrDefault(envMidazOnboardingURL, "")
+	}
+
+	if cfg.TransactionURL == "" {
+		cfg.TransactionURL = envOrDefault(envMidazTransactionURL, "")
+	}
+
+	applyOAuthEnvFallbacks(
+		&cfg.ClientID,
+		&cfg.ClientSecret,
+		&cfg.TokenURL,
+		envMidazClientID,
+		envMidazClientSecret,
+		envMidazTokenURL,
+	)
+}
+
+func buildMidazAuthenticator(cfg midaz.Config, httpClient *http.Client) auth.Authenticator {
+	return buildOAuthAuthenticator(cfg.ClientID, cfg.ClientSecret, cfg.TokenURL, cfg.Scopes, httpClient)
+}
+
+func validateMidazAuthConfig(cfg midaz.Config) error {
+	return validateOAuthAuthConfig("midaz", cfg.ClientID, cfg.ClientSecret, cfg.TokenURL)
+}
+
+func applyMatcherEnvFallbacks(cfg *matcher.Config) {
+	if cfg.BaseURL == "" {
+		cfg.BaseURL = envOrDefault(envMatcherURL, "")
+	}
+
+	applyOAuthEnvFallbacks(
+		&cfg.ClientID,
+		&cfg.ClientSecret,
+		&cfg.TokenURL,
+		envMatcherClientID,
+		envMatcherClientSecret,
+		envMatcherTokenURL,
+	)
+}
+
+func applyTracerEnvFallbacks(cfg *tracer.Config) {
+	if cfg.BaseURL == "" {
+		cfg.BaseURL = envOrDefault(envTracerURL, "")
+	}
+
+	applyOAuthEnvFallbacks(
+		&cfg.ClientID,
+		&cfg.ClientSecret,
+		&cfg.TokenURL,
+		envTracerClientID,
+		envTracerClientSecret,
+		envTracerTokenURL,
+	)
+}
+
+func applyReporterEnvFallbacks(cfg *reporter.Config) {
+	if cfg.BaseURL == "" {
+		cfg.BaseURL = envOrDefault(envReporterURL, "")
+	}
+
+	if cfg.OrganizationID == "" {
+		cfg.OrganizationID = envOrDefault(envReporterOrgID, "")
+	}
+
+	applyOAuthEnvFallbacks(
+		&cfg.ClientID,
+		&cfg.ClientSecret,
+		&cfg.TokenURL,
+		envReporterClientID,
+		envReporterClientSecret,
+		envReporterTokenURL,
+	)
+}
+
+func applyFeesEnvFallbacks(cfg *fees.Config) {
+	if cfg.BaseURL == "" {
+		cfg.BaseURL = envOrDefault(envFeesURL, "")
+	}
+
+	if cfg.OrganizationID == "" {
+		cfg.OrganizationID = envOrDefault(envFeesOrgID, "")
+	}
+
+	applyOAuthEnvFallbacks(
+		&cfg.ClientID,
+		&cfg.ClientSecret,
+		&cfg.TokenURL,
+		envFeesClientID,
+		envFeesClientSecret,
+		envFeesTokenURL,
+	)
+}
+
 // ---------------------------------------------------------------------------
 // Internal: product initializers
 // ---------------------------------------------------------------------------
@@ -266,17 +441,19 @@ func (c *Client) initMidaz() error {
 		}
 	}
 
+	if err := validateLegacyAuthEnvUnset(
+		"midaz",
+		envMidazClientID+", "+envMidazClientSecret+", and "+envMidazTokenURL,
+		envMidazLegacyAuthToken,
+	); err != nil {
+		return err
+	}
+
 	// Apply environment variable fallbacks for fields not set by options.
-	if cfg.OnboardingURL == "" {
-		cfg.OnboardingURL = envOrDefault(envMidazOnboardingURL, "")
-	}
+	applyMidazEnvFallbacks(&cfg)
 
-	if cfg.TransactionURL == "" {
-		cfg.TransactionURL = envOrDefault(envMidazTransactionURL, "")
-	}
-
-	if cfg.AuthToken == "" {
-		cfg.AuthToken = envOrDefault(envMidazAuthToken, "")
+	if err := validateMidazAuthConfig(cfg); err != nil {
+		return err
 	}
 
 	// Validate required fields.
@@ -296,13 +473,7 @@ func (c *Client) initMidaz() error {
 	warnInsecureURL("midaz (onboarding)", cfg.OnboardingURL)
 	warnInsecureURL("midaz (transaction)", cfg.TransactionURL)
 
-	// Build authenticator.
-	var authenticator auth.Authenticator
-	if cfg.AuthToken != "" {
-		authenticator = auth.NewBearerToken(cfg.AuthToken)
-	} else {
-		authenticator = auth.NewNoAuth()
-	}
+	authenticator := buildMidazAuthenticator(cfg, c.httpClientForTimeout(cfg.Timeout))
 
 	// Create backends for the two Midaz microservices with the Midaz error parser.
 	onboardingBackend := c.createBackend(cfg.OnboardingURL, authenticator, midaz.ParseError, nil, cfg.Timeout)
@@ -314,7 +485,7 @@ func (c *Client) initMidaz() error {
 }
 
 // initMatcher applies deferred Matcher options, validates the config,
-// creates a backend with APIKey auth, and constructs the Matcher client.
+// creates a backend with OAuth2 client-credentials authentication, and constructs the Matcher client.
 func (c *Client) initMatcher() error {
 	if !c.matcherRequested {
 		return nil // Matcher not requested
@@ -328,13 +499,18 @@ func (c *Client) initMatcher() error {
 		}
 	}
 
-	// Apply environment variable fallbacks for fields not set by options.
-	if cfg.BaseURL == "" {
-		cfg.BaseURL = envOrDefault(envMatcherURL, "")
+	if err := validateLegacyAuthEnvUnset(
+		"matcher",
+		envMatcherClientID+", "+envMatcherClientSecret+", and "+envMatcherTokenURL,
+		envMatcherLegacyAPIKey,
+	); err != nil {
+		return err
 	}
 
-	if cfg.APIKey == "" {
-		cfg.APIKey = envOrDefault(envMatcherAPIKey, "")
+	applyMatcherEnvFallbacks(&cfg)
+
+	if err := validateOAuthAuthConfig("matcher", cfg.ClientID, cfg.ClientSecret, cfg.TokenURL); err != nil {
+		return err
 	}
 
 	// Validate required fields.
@@ -347,13 +523,7 @@ func (c *Client) initMatcher() error {
 	// Warn about insecure (non-localhost HTTP) URLs.
 	warnInsecureURL("matcher", cfg.BaseURL)
 
-	// Build authenticator — Matcher uses "Authorization: ApiKey <key>".
-	var authenticator auth.Authenticator
-	if cfg.APIKey != "" {
-		authenticator = auth.NewAPIKey("Authorization", "ApiKey ", cfg.APIKey)
-	} else {
-		authenticator = auth.NewNoAuth()
-	}
+	authenticator := buildOAuthAuthenticator(cfg.ClientID, cfg.ClientSecret, cfg.TokenURL, cfg.Scopes, c.httpClientForTimeout(cfg.Timeout))
 
 	backend := c.createBackend(cfg.BaseURL, authenticator, matcher.ParseError, nil, cfg.Timeout)
 	c.Matcher = matcher.NewClient(backend, cfg)
@@ -362,7 +532,7 @@ func (c *Client) initMatcher() error {
 }
 
 // initTracer applies deferred Tracer options, validates the config,
-// creates a backend with X-API-Key auth, and constructs the Tracer client.
+// creates a backend with OAuth2 client-credentials authentication, and constructs the Tracer client.
 func (c *Client) initTracer() error {
 	if !c.tracerRequested {
 		return nil // Tracer not requested
@@ -376,13 +546,18 @@ func (c *Client) initTracer() error {
 		}
 	}
 
-	// Apply environment variable fallbacks for fields not set by options.
-	if cfg.BaseURL == "" {
-		cfg.BaseURL = envOrDefault(envTracerURL, "")
+	if err := validateLegacyAuthEnvUnset(
+		"tracer",
+		envTracerClientID+", "+envTracerClientSecret+", and "+envTracerTokenURL,
+		envTracerLegacyAPIKey,
+	); err != nil {
+		return err
 	}
 
-	if cfg.APIKey == "" {
-		cfg.APIKey = envOrDefault(envTracerAPIKey, "")
+	applyTracerEnvFallbacks(&cfg)
+
+	if err := validateOAuthAuthConfig("tracer", cfg.ClientID, cfg.ClientSecret, cfg.TokenURL); err != nil {
+		return err
 	}
 
 	// Validate required fields.
@@ -395,13 +570,7 @@ func (c *Client) initTracer() error {
 	// Warn about insecure (non-localhost HTTP) URLs.
 	warnInsecureURL("tracer", cfg.BaseURL)
 
-	// Build authenticator — Tracer uses "X-API-Key: <key>" header.
-	var authenticator auth.Authenticator
-	if cfg.APIKey != "" {
-		authenticator = auth.NewAPIKey("X-API-Key", "", cfg.APIKey)
-	} else {
-		authenticator = auth.NewNoAuth()
-	}
+	authenticator := buildOAuthAuthenticator(cfg.ClientID, cfg.ClientSecret, cfg.TokenURL, cfg.Scopes, c.httpClientForTimeout(cfg.Timeout))
 
 	backend := c.createBackend(cfg.BaseURL, authenticator, tracer.ParseError, nil, cfg.Timeout)
 	c.Tracer = tracer.NewClient(backend, cfg)
@@ -410,7 +579,7 @@ func (c *Client) initTracer() error {
 }
 
 // initReporter applies deferred Reporter options, validates the config,
-// creates a backend with optional BearerToken auth and X-Organization-Id
+// creates a backend with OAuth2 client-credentials authentication and X-Organization-Id
 // default header, and constructs the Reporter client.
 func (c *Client) initReporter() error {
 	if !c.reporterRequested {
@@ -425,17 +594,18 @@ func (c *Client) initReporter() error {
 		}
 	}
 
-	// Apply environment variable fallbacks for fields not set by options.
-	if cfg.BaseURL == "" {
-		cfg.BaseURL = envOrDefault(envReporterURL, "")
+	if err := validateLegacyAuthEnvUnset(
+		"reporter",
+		envReporterClientID+", "+envReporterClientSecret+", and "+envReporterTokenURL,
+		envReporterLegacyAuthToken,
+	); err != nil {
+		return err
 	}
 
-	if cfg.AuthToken == "" {
-		cfg.AuthToken = envOrDefault(envReporterAuthToken, "")
-	}
+	applyReporterEnvFallbacks(&cfg)
 
-	if cfg.OrganizationID == "" {
-		cfg.OrganizationID = envOrDefault(envReporterOrgID, "")
+	if err := validateOAuthAuthConfig("reporter", cfg.ClientID, cfg.ClientSecret, cfg.TokenURL); err != nil {
+		return err
 	}
 
 	// Validate required fields.
@@ -453,13 +623,7 @@ func (c *Client) initReporter() error {
 	// Warn about insecure (non-localhost HTTP) URLs.
 	warnInsecureURL("reporter", cfg.BaseURL)
 
-	// Build authenticator.
-	var authenticator auth.Authenticator
-	if cfg.AuthToken != "" {
-		authenticator = auth.NewBearerToken(cfg.AuthToken)
-	} else {
-		authenticator = auth.NewNoAuth()
-	}
+	authenticator := buildOAuthAuthenticator(cfg.ClientID, cfg.ClientSecret, cfg.TokenURL, cfg.Scopes, c.httpClientForTimeout(cfg.Timeout))
 
 	// Default headers include the organization scope.
 	defaultHeaders := map[string]string{
@@ -473,7 +637,7 @@ func (c *Client) initReporter() error {
 }
 
 // initFees applies deferred Fees options, validates the config, creates
-// a backend with optional BearerToken auth and X-Organization-Id default
+// a backend with OAuth2 client-credentials authentication and X-Organization-Id default
 // header, and constructs the Fees client.
 func (c *Client) initFees() error {
 	if !c.feesRequested {
@@ -488,17 +652,18 @@ func (c *Client) initFees() error {
 		}
 	}
 
-	// Apply environment variable fallbacks for fields not set by options.
-	if cfg.BaseURL == "" {
-		cfg.BaseURL = envOrDefault(envFeesURL, "")
+	if err := validateLegacyAuthEnvUnset(
+		"fees",
+		envFeesClientID+", "+envFeesClientSecret+", and "+envFeesTokenURL,
+		envFeesLegacyAuthToken,
+	); err != nil {
+		return err
 	}
 
-	if cfg.AuthToken == "" {
-		cfg.AuthToken = envOrDefault(envFeesAuthToken, "")
-	}
+	applyFeesEnvFallbacks(&cfg)
 
-	if cfg.OrganizationID == "" {
-		cfg.OrganizationID = envOrDefault(envFeesOrgID, "")
+	if err := validateOAuthAuthConfig("fees", cfg.ClientID, cfg.ClientSecret, cfg.TokenURL); err != nil {
+		return err
 	}
 
 	// Validate required fields.
@@ -516,13 +681,7 @@ func (c *Client) initFees() error {
 	// Warn about insecure (non-localhost HTTP) URLs.
 	warnInsecureURL("fees", cfg.BaseURL)
 
-	// Build authenticator.
-	var authenticator auth.Authenticator
-	if cfg.AuthToken != "" {
-		authenticator = auth.NewBearerToken(cfg.AuthToken)
-	} else {
-		authenticator = auth.NewNoAuth()
-	}
+	authenticator := buildOAuthAuthenticator(cfg.ClientID, cfg.ClientSecret, cfg.TokenURL, cfg.Scopes, c.httpClientForTimeout(cfg.Timeout))
 
 	// Default headers include the organization scope.
 	defaultHeaders := map[string]string{
