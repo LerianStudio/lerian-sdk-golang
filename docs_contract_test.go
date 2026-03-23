@@ -2,7 +2,6 @@ package lerian
 
 import (
 	"os"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -97,6 +96,6 @@ func TestClaudeAuthGuidanceMatchesCurrentEnvContract(t *testing.T) {
 	require.NoError(t, err)
 
 	text := string(content)
-	assert.True(t, strings.Contains(text, envMidazClientID))
-	assert.False(t, strings.Contains(text, "LERIAN_MIDAZ_AUTH_TOKEN"))
+	assert.Contains(t, text, envMidazClientID)
+	assert.NotContains(t, text, "LERIAN_MIDAZ_AUTH_TOKEN")
 }

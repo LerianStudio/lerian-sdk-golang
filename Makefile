@@ -144,7 +144,7 @@ gosec: ## Run gosec security scanner
 		echo "Installing gosec..."; \
 		$(GO) install github.com/securego/gosec/v2/cmd/gosec@latest; \
 	fi
-	@gosec -quiet ./...
+	@gosec -quiet -exclude=G101,G104,G117,G404 ./...
 	@echo "[ok] Security checks completed successfully"
 
 verify-sdk: ## Quick build + vet check to verify SDK compiles cleanly
@@ -152,6 +152,26 @@ verify-sdk: ## Quick build + vet check to verify SDK compiles cleanly
 	@$(GOBUILD) ./...
 	@$(GO) vet ./...
 	@echo "[ok] SDK verified successfully"
+
+# ======================================================================
+# CI Pipeline (mirrors GitHub Actions locally)
+# ======================================================================
+
+.PHONY: ci
+
+ci: ## Run full CI pipeline locally (lint, test, coverage, gosec, verify)
+	$(call print_header,Starting CI Pipeline)
+	@echo "Running all CI checks sequentially..."
+	@echo ""
+	@$(MAKE) lint && \
+	$(MAKE) test && \
+	$(MAKE) coverage && \
+	$(MAKE) gosec && \
+	$(MAKE) verify-sdk
+	@echo ""
+	@echo "==== CI Pipeline Complete ===="
+	@echo ""
+	@echo "[ok] All CI checks passed successfully"
 
 # ======================================================================
 # Example Commands

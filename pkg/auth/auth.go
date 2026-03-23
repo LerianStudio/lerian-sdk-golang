@@ -162,6 +162,7 @@ func (o *OAuth2) Enrich(ctx context.Context, req *http.Request) error {
 func (o *OAuth2) validToken(ctx context.Context) (string, error) {
 	o.mu.Lock()
 	defer o.mu.Unlock()
+
 	o.ensureDefaultsLocked()
 
 	now := o.nowFunc()

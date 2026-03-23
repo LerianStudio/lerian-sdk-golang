@@ -527,6 +527,7 @@ func TestOAuth2ZeroValueUsesDefaults(t *testing.T) {
 	t.Parallel()
 
 	var counter atomic.Int64
+
 	srv := newOAuth2TestServer(t, &counter, 3600)
 	defer srv.Close()
 
