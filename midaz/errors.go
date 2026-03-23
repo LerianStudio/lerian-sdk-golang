@@ -20,6 +20,7 @@ const (
 	CodeAssetMismatch       sdkerrors.ErrorCode = "0036"
 	CodeValidationError     sdkerrors.ErrorCode = "0003"
 	CodeAuthenticationError sdkerrors.ErrorCode = "0013"
+	CodeAccountEligibility  sdkerrors.ErrorCode = "0019"
 )
 
 // ---------------------------------------------------------------------------

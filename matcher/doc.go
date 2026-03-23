@@ -13,9 +13,9 @@
 //	client, _ := lerian.New(
 //	    lerian.WithMatcher(
 //	        matcher.WithBaseURL("http://localhost:3002/v1"),
-//	        matcher.WithAPIKey("my-api-key"),
 //	    ),
 //	)
+//	// Optional OAuth2 credentials can be loaded from the matching LERIAN_MATCHER_* env vars.
 //
 //	ctx, err := client.Matcher.Contexts.Create(ctx, &matcher.CreateContextInput{
 //	    Name: "Monthly Bank Reconciliation",

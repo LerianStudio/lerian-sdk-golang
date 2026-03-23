@@ -13,11 +13,11 @@
 //	client, _ := lerian.New(
 //	    lerian.WithTracer(
 //	        tracer.WithBaseURL("http://localhost:3003/v1"),
-//	        tracer.WithAPIKey("my-api-key"),
 //	    ),
 //	)
+//	// Optional OAuth2 credentials can be loaded from the matching LERIAN_TRACER_* env vars.
 //
-//	events, err := client.Tracer.Audit.ListEvents(ctx, orgID, ledgerID, nil)
+//	events, err := client.Tracer.AuditEvents.List(ctx, nil).Collect(ctx)
 //
 // # Available Services
 //

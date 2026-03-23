@@ -21,9 +21,17 @@ type Config struct {
 	// (e.g. "http://localhost:3002/v1"). Required.
 	BaseURL string
 
-	// APIKey is the API key used to authenticate Matcher requests.
-	// It is sent in the Authorization header with the "ApiKey " prefix.
-	APIKey string
+	// ClientID is the OAuth2 client identifier used for client-credentials auth.
+	ClientID string
+
+	// ClientSecret is the OAuth2 client secret used for client-credentials auth.
+	ClientSecret string
+
+	// TokenURL is the OAuth2 token endpoint URL used to acquire access tokens.
+	TokenURL string
+
+	// Scopes is the optional set of OAuth2 scopes requested during token acquisition.
+	Scopes []string
 
 	// Timeout overrides the default HTTP client timeout for Matcher requests.
 	// A zero value means the shared client timeout is used.
@@ -31,25 +39,25 @@ type Config struct {
 }
 
 // String implements fmt.Stringer to prevent credential leakage in logs.
-// The APIKey field is replaced with "[REDACTED]".
+// The ClientSecret field is replaced with "[REDACTED]".
 func (c Config) String() string {
 	return fmt.Sprintf(
-		"MatcherConfig{BaseURL: %q, APIKey: [REDACTED], Timeout: %s}",
-		c.BaseURL, c.Timeout,
+		"MatcherConfig{BaseURL: %q, ClientID: %q, ClientSecret: [REDACTED], TokenURL: %q, Scopes: %v, Timeout: %s}",
+		c.BaseURL, c.ClientID, c.TokenURL, c.Scopes, c.Timeout,
 	)
 }
 
 // MarshalJSON prevents credential leakage during JSON serialization.
-// The APIKey field is replaced with "[REDACTED]" in the output.
+// The ClientSecret field is replaced with "[REDACTED]" in the output.
 func (c Config) MarshalJSON() ([]byte, error) {
 	type Alias Config
 
 	return json.Marshal(&struct {
 		Alias
-		APIKey string `json:"APIKey"`
+		ClientSecret string `json:"ClientSecret"`
 	}{
-		Alias:  Alias(c),
-		APIKey: "[REDACTED]",
+		Alias:        Alias(c),
+		ClientSecret: "[REDACTED]",
 	})
 }
 
@@ -65,10 +73,21 @@ func WithBaseURL(url string) Option {
 	}
 }
 
-// WithAPIKey sets the API key for Matcher authentication.
-func WithAPIKey(key string) Option {
+// WithClientCredentials configures OAuth2 client-credentials authentication.
+func WithClientCredentials(clientID, clientSecret, tokenURL string) Option {
 	return func(c *Config) error {
-		c.APIKey = key
+		c.ClientID = clientID
+		c.ClientSecret = clientSecret
+		c.TokenURL = tokenURL
+
+		return nil
+	}
+}
+
+// WithScopes sets the OAuth2 scopes requested during token acquisition.
+func WithScopes(scopes ...string) Option {
+	return func(c *Config) error {
+		c.Scopes = append([]string(nil), scopes...)
 		return nil
 	}
 }

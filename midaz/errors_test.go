@@ -207,6 +207,16 @@ func TestMidazErrorCodeConstants(t *testing.T) {
 	assert.Equal(t, sdkerrors.ErrorCode("0036"), CodeAssetMismatch)
 	assert.Equal(t, sdkerrors.ErrorCode("0003"), CodeValidationError)
 	assert.Equal(t, sdkerrors.ErrorCode("0013"), CodeAuthenticationError)
+	assert.Equal(t, sdkerrors.ErrorCode("0019"), CodeAccountEligibility)
+}
+
+func TestParseErrorAccountEligibilityCode(t *testing.T) {
+	t.Parallel()
+
+	err := ParseError(422, []byte(`{"code":"0019","title":"Account Ineligibility Error","message":"account is not eligible"}`))
+	require.NotNil(t, err)
+	assert.Equal(t, CodeAccountEligibility, err.Code)
+	assert.Equal(t, "account is not eligible", err.Message)
 }
 
 // ---------------------------------------------------------------------------

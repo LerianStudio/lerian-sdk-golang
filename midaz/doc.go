@@ -13,9 +13,9 @@
 //	    lerian.WithMidaz(
 //	        midaz.WithOnboardingURL("http://localhost:3000/v1"),
 //	        midaz.WithTransactionURL("http://localhost:3001/v1"),
-//	        midaz.WithAuthToken("my-token"),
 //	    ),
 //	)
+//	// Optional OAuth2 credentials can be loaded from the matching LERIAN_MIDAZ_* env vars.
 //
 //	org, err := client.Midaz.Organizations.Create(ctx, &midaz.CreateOrganizationInput{
 //	    LegalName:   "Acme Corp",

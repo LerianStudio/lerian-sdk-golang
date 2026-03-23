@@ -36,16 +36,22 @@ func TestNewClient(t *testing.T) {
 	t.Parallel()
 
 	cfg := Config{
-		BaseURL: "http://localhost:3002/v1",
-		APIKey:  "test-key",
-		Timeout: 30 * time.Second,
+		BaseURL:      "http://localhost:3002/v1",
+		ClientID:     "client-id",
+		ClientSecret: "client-secret",
+		TokenURL:     "https://auth.example.com/token",
+		Scopes:       []string{"matcher:read"},
+		Timeout:      30 * time.Second,
 	}
 
 	client := NewClient(&fakeBackend{}, cfg)
 
 	require.NotNil(t, client)
 	assert.Equal(t, "http://localhost:3002/v1", client.config.BaseURL)
-	assert.Equal(t, "test-key", client.config.APIKey)
+	assert.Equal(t, "client-id", client.config.ClientID)
+	assert.Equal(t, "client-secret", client.config.ClientSecret)
+	assert.Equal(t, "https://auth.example.com/token", client.config.TokenURL)
+	assert.Equal(t, []string{"matcher:read"}, client.config.Scopes)
 	assert.Equal(t, 30*time.Second, client.config.Timeout)
 
 	// Config service accessors are wired by NewClient.
@@ -85,14 +91,26 @@ func TestOptions(t *testing.T) {
 		assert.Equal(t, "https://matcher.example.com/v1", cfg.BaseURL)
 	})
 
-	t.Run("WithAPIKey", func(t *testing.T) {
+	t.Run("WithClientCredentials", func(t *testing.T) {
 		t.Parallel()
 
 		var cfg Config
 
-		err := WithAPIKey("api-key-123")(&cfg)
+		err := WithClientCredentials("client-id", "client-secret", "https://auth.example.com/token")(&cfg)
 		require.NoError(t, err)
-		assert.Equal(t, "api-key-123", cfg.APIKey)
+		assert.Equal(t, "client-id", cfg.ClientID)
+		assert.Equal(t, "client-secret", cfg.ClientSecret)
+		assert.Equal(t, "https://auth.example.com/token", cfg.TokenURL)
+	})
+
+	t.Run("WithScopes", func(t *testing.T) {
+		t.Parallel()
+
+		var cfg Config
+
+		err := WithScopes("matcher:read", "matcher:write")(&cfg)
+		require.NoError(t, err)
+		assert.Equal(t, []string{"matcher:read", "matcher:write"}, cfg.Scopes)
 	})
 
 	t.Run("WithTimeout", func(t *testing.T) {
@@ -114,9 +132,12 @@ func TestConfigStringRedaction(t *testing.T) {
 	t.Parallel()
 
 	cfg := Config{
-		BaseURL: "http://localhost:3002/v1",
-		APIKey:  "super-secret-api-key",
-		Timeout: 30 * time.Second,
+		BaseURL:      "http://localhost:3002/v1",
+		ClientID:     "client-id",
+		ClientSecret: "super-secret-client-secret",
+		TokenURL:     "https://auth.example.com/token",
+		Scopes:       []string{"matcher:read"},
+		Timeout:      30 * time.Second,
 	}
 
 	s := cfg.String()
@@ -124,9 +145,11 @@ func TestConfigStringRedaction(t *testing.T) {
 	assert.Contains(t, s, "[REDACTED]")
 	assert.Contains(t, s, "MatcherConfig")
 	assert.Contains(t, s, "http://localhost:3002/v1", "BaseURL should be visible")
+	assert.Contains(t, s, "client-id", "ClientID should be visible")
+	assert.Contains(t, s, "https://auth.example.com/token", "TokenURL should be visible")
 	assert.Contains(t, s, "30s", "Timeout should be visible")
-	assert.NotContains(t, s, "super-secret-api-key",
-		"String() must not contain the actual API key")
+	assert.NotContains(t, s, "super-secret-client-secret",
+		"String() must not contain the actual client secret")
 }
 
 // ---------------------------------------------------------------------------
@@ -137,9 +160,12 @@ func TestConfigMarshalJSONRedaction(t *testing.T) {
 	t.Parallel()
 
 	cfg := Config{
-		BaseURL: "http://localhost:3002/v1",
-		APIKey:  "super-secret-api-key",
-		Timeout: 30 * time.Second,
+		BaseURL:      "http://localhost:3002/v1",
+		ClientID:     "client-id",
+		ClientSecret: "super-secret-client-secret",
+		TokenURL:     "https://auth.example.com/token",
+		Scopes:       []string{"matcher:read"},
+		Timeout:      30 * time.Second,
 	}
 
 	data, err := json.Marshal(cfg)
@@ -149,8 +175,10 @@ func TestConfigMarshalJSONRedaction(t *testing.T) {
 
 	assert.Contains(t, s, "[REDACTED]")
 	assert.Contains(t, s, "http://localhost:3002/v1", "BaseURL should be visible")
-	assert.NotContains(t, s, "super-secret-api-key",
-		"MarshalJSON must not contain the actual API key")
+	assert.Contains(t, s, "client-id", "ClientID should be visible")
+	assert.Contains(t, s, "https://auth.example.com/token", "TokenURL should be visible")
+	assert.NotContains(t, s, "super-secret-client-secret",
+		"MarshalJSON must not contain the actual client secret")
 }
 
 // ---------------------------------------------------------------------------

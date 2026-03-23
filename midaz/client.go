@@ -25,8 +25,17 @@ type Config struct {
 	// (e.g. "http://localhost:3001/v1"). Required.
 	TransactionURL string
 
-	// AuthToken is the bearer token used to authenticate Midaz API requests.
-	AuthToken string
+	// ClientID is the OAuth2 client identifier used for client-credentials auth.
+	ClientID string
+
+	// ClientSecret is the OAuth2 client secret used for client-credentials auth.
+	ClientSecret string
+
+	// TokenURL is the OAuth2 token endpoint URL used to acquire access tokens.
+	TokenURL string
+
+	// Scopes is the optional set of OAuth2 scopes requested during token acquisition.
+	Scopes []string
 
 	// Timeout overrides the default HTTP client timeout for Midaz requests.
 	// A zero value means the shared client timeout is used.
@@ -34,25 +43,25 @@ type Config struct {
 }
 
 // String implements fmt.Stringer to prevent credential leakage in logs.
-// The AuthToken field is replaced with "[REDACTED]".
+// The ClientSecret field is replaced with "[REDACTED]".
 func (c Config) String() string {
 	return fmt.Sprintf(
-		"MidazConfig{OnboardingURL: %q, TransactionURL: %q, AuthToken: [REDACTED], Timeout: %s}",
-		c.OnboardingURL, c.TransactionURL, c.Timeout,
+		"MidazConfig{OnboardingURL: %q, TransactionURL: %q, ClientID: %q, ClientSecret: [REDACTED], TokenURL: %q, Scopes: %v, Timeout: %s}",
+		c.OnboardingURL, c.TransactionURL, c.ClientID, c.TokenURL, c.Scopes, c.Timeout,
 	)
 }
 
 // MarshalJSON prevents credential leakage during JSON serialization.
-// The AuthToken field is replaced with "[REDACTED]" in the output.
+// The ClientSecret field is replaced with "[REDACTED]" in the output.
 func (c Config) MarshalJSON() ([]byte, error) {
 	type Alias Config
 
 	return json.Marshal(&struct {
 		Alias
-		AuthToken string `json:"AuthToken"`
+		ClientSecret string `json:"ClientSecret"`
 	}{
-		Alias:     Alias(c),
-		AuthToken: "[REDACTED]",
+		Alias:        Alias(c),
+		ClientSecret: "[REDACTED]",
 	})
 }
 
@@ -76,10 +85,24 @@ func WithTransactionURL(url string) Option {
 	}
 }
 
-// WithAuthToken sets the bearer token for Midaz API authentication.
-func WithAuthToken(token string) Option {
+// WithClientCredentials configures OAuth2 client-credentials authentication.
+// The SDK automatically acquires, caches, and refreshes access tokens using
+// the standard client_credentials grant type.
+func WithClientCredentials(clientID, clientSecret, tokenURL string) Option {
 	return func(c *Config) error {
-		c.AuthToken = token
+		c.ClientID = clientID
+		c.ClientSecret = clientSecret
+		c.TokenURL = tokenURL
+
+		return nil
+	}
+}
+
+// WithScopes sets the OAuth2 scopes requested during token acquisition.
+// It is only relevant when [WithClientCredentials] is also configured.
+func WithScopes(scopes ...string) Option {
+	return func(c *Config) error {
+		c.Scopes = append([]string(nil), scopes...)
 		return nil
 	}
 }

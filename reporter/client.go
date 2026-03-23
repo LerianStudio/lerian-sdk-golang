@@ -20,8 +20,17 @@ type Config struct {
 	// (e.g. "http://localhost:3004/v1"). Required.
 	BaseURL string
 
-	// AuthToken is the bearer token used to authenticate Reporter requests.
-	AuthToken string
+	// ClientID is the OAuth2 client identifier used for client-credentials auth.
+	ClientID string
+
+	// ClientSecret is the OAuth2 client secret used for client-credentials auth.
+	ClientSecret string
+
+	// TokenURL is the OAuth2 token endpoint URL used to acquire access tokens.
+	TokenURL string
+
+	// Scopes is the optional set of OAuth2 scopes requested during token acquisition.
+	Scopes []string
 
 	// OrganizationID is the organization scope for all Reporter operations.
 	// It is sent as the X-Organization-Id header on every request. Required.
@@ -33,25 +42,25 @@ type Config struct {
 }
 
 // String implements fmt.Stringer to prevent credential leakage in logs.
-// The AuthToken field is replaced with "[REDACTED]".
+// The ClientSecret field is replaced with "[REDACTED]".
 func (c Config) String() string {
 	return fmt.Sprintf(
-		"ReporterConfig{BaseURL: %q, AuthToken: [REDACTED], OrganizationID: %q, Timeout: %s}",
-		c.BaseURL, c.OrganizationID, c.Timeout,
+		"ReporterConfig{BaseURL: %q, ClientID: %q, ClientSecret: [REDACTED], TokenURL: %q, Scopes: %v, OrganizationID: %q, Timeout: %s}",
+		c.BaseURL, c.ClientID, c.TokenURL, c.Scopes, c.OrganizationID, c.Timeout,
 	)
 }
 
 // MarshalJSON prevents credential leakage during JSON serialization.
-// The AuthToken field is replaced with "[REDACTED]" in the output.
+// The ClientSecret field is replaced with "[REDACTED]" in the output.
 func (c Config) MarshalJSON() ([]byte, error) {
 	type Alias Config
 
 	return json.Marshal(&struct {
 		Alias
-		AuthToken string `json:"AuthToken"`
+		ClientSecret string `json:"ClientSecret"`
 	}{
-		Alias:     Alias(c),
-		AuthToken: "[REDACTED]",
+		Alias:        Alias(c),
+		ClientSecret: "[REDACTED]",
 	})
 }
 
@@ -67,10 +76,21 @@ func WithBaseURL(url string) Option {
 	}
 }
 
-// WithAuthToken sets the bearer token for Reporter API authentication.
-func WithAuthToken(token string) Option {
+// WithClientCredentials configures OAuth2 client-credentials authentication.
+func WithClientCredentials(clientID, clientSecret, tokenURL string) Option {
 	return func(c *Config) error {
-		c.AuthToken = token
+		c.ClientID = clientID
+		c.ClientSecret = clientSecret
+		c.TokenURL = tokenURL
+
+		return nil
+	}
+}
+
+// WithScopes sets the OAuth2 scopes requested during token acquisition.
+func WithScopes(scopes ...string) Option {
+	return func(c *Config) error {
+		c.Scopes = append([]string(nil), scopes...)
 		return nil
 	}
 }

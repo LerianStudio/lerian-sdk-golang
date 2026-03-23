@@ -50,9 +50,12 @@ func TestNewClientReturnsNonNil(t *testing.T) {
 
 	backend := &fakeBackend{}
 	cfg := Config{
-		BaseURL: "http://localhost:3003/v1",
-		APIKey:  "test-key",
-		Timeout: 5 * time.Second,
+		BaseURL:      "http://localhost:3003/v1",
+		ClientID:     "client-id",
+		ClientSecret: "client-secret",
+		TokenURL:     "https://auth.example.com/token",
+		Scopes:       []string{"tracer:read"},
+		Timeout:      5 * time.Second,
 	}
 
 	client := NewClient(backend, cfg)
@@ -64,15 +67,21 @@ func TestNewClientStoresConfig(t *testing.T) {
 
 	backend := &fakeBackend{}
 	cfg := Config{
-		BaseURL: "http://localhost:3003/v1",
-		APIKey:  "my-api-key",
-		Timeout: 15 * time.Second,
+		BaseURL:      "http://localhost:3003/v1",
+		ClientID:     "client-id",
+		ClientSecret: "client-secret",
+		TokenURL:     "https://auth.example.com/token",
+		Scopes:       []string{"tracer:read"},
+		Timeout:      15 * time.Second,
 	}
 
 	client := NewClient(backend, cfg)
 
 	assert.Equal(t, "http://localhost:3003/v1", client.config.BaseURL)
-	assert.Equal(t, "my-api-key", client.config.APIKey)
+	assert.Equal(t, "client-id", client.config.ClientID)
+	assert.Equal(t, "client-secret", client.config.ClientSecret)
+	assert.Equal(t, "https://auth.example.com/token", client.config.TokenURL)
+	assert.Equal(t, []string{"tracer:read"}, client.config.Scopes)
 	assert.Equal(t, 15*time.Second, client.config.Timeout)
 }
 
@@ -120,14 +129,26 @@ func TestWithBaseURL(t *testing.T) {
 	assert.Equal(t, "http://example.com/v1", cfg.BaseURL)
 }
 
-func TestWithAPIKey(t *testing.T) {
+func TestWithClientCredentials(t *testing.T) {
 	t.Parallel()
 
 	var cfg Config
 
-	err := WithAPIKey("secret-key-123")(&cfg)
+	err := WithClientCredentials("client-id", "client-secret", "https://auth.example.com/token")(&cfg)
 	require.NoError(t, err)
-	assert.Equal(t, "secret-key-123", cfg.APIKey)
+	assert.Equal(t, "client-id", cfg.ClientID)
+	assert.Equal(t, "client-secret", cfg.ClientSecret)
+	assert.Equal(t, "https://auth.example.com/token", cfg.TokenURL)
+}
+
+func TestWithScopes(t *testing.T) {
+	t.Parallel()
+
+	var cfg Config
+
+	err := WithScopes("tracer:read", "tracer:write")(&cfg)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"tracer:read", "tracer:write"}, cfg.Scopes)
 }
 
 func TestWithTimeout(t *testing.T) {
@@ -147,7 +168,8 @@ func TestOptionsComposeCorrectly(t *testing.T) {
 
 	opts := []Option{
 		WithBaseURL("http://tracer.local/v1"),
-		WithAPIKey("key-abc"),
+		WithClientCredentials("client-id", "client-secret", "https://auth.example.com/token"),
+		WithScopes("tracer:read"),
 		WithTimeout(20 * time.Second),
 	}
 
@@ -157,7 +179,10 @@ func TestOptionsComposeCorrectly(t *testing.T) {
 	}
 
 	assert.Equal(t, "http://tracer.local/v1", cfg.BaseURL)
-	assert.Equal(t, "key-abc", cfg.APIKey)
+	assert.Equal(t, "client-id", cfg.ClientID)
+	assert.Equal(t, "client-secret", cfg.ClientSecret)
+	assert.Equal(t, "https://auth.example.com/token", cfg.TokenURL)
+	assert.Equal(t, []string{"tracer:read"}, cfg.Scopes)
 	assert.Equal(t, 20*time.Second, cfg.Timeout)
 }
 
@@ -187,9 +212,12 @@ func TestConfigStringRedaction(t *testing.T) {
 	t.Parallel()
 
 	cfg := Config{
-		BaseURL: "http://localhost:3003/v1",
-		APIKey:  "super-secret-api-key",
-		Timeout: 10 * time.Second,
+		BaseURL:      "http://localhost:3003/v1",
+		ClientID:     "client-id",
+		ClientSecret: "super-secret-client-secret",
+		TokenURL:     "https://auth.example.com/token",
+		Scopes:       []string{"tracer:read"},
+		Timeout:      10 * time.Second,
 	}
 
 	s := cfg.String()
@@ -197,9 +225,11 @@ func TestConfigStringRedaction(t *testing.T) {
 	assert.Contains(t, s, "[REDACTED]")
 	assert.Contains(t, s, "TracerConfig")
 	assert.Contains(t, s, "http://localhost:3003/v1", "BaseURL should be visible")
+	assert.Contains(t, s, "client-id", "ClientID should be visible")
+	assert.Contains(t, s, "https://auth.example.com/token", "TokenURL should be visible")
 	assert.Contains(t, s, "10s", "Timeout should be visible")
-	assert.NotContains(t, s, "super-secret-api-key",
-		"String() must not contain the actual API key")
+	assert.NotContains(t, s, "super-secret-client-secret",
+		"String() must not contain the actual client secret")
 }
 
 // ---------------------------------------------------------------------------
@@ -210,9 +240,12 @@ func TestConfigMarshalJSONRedaction(t *testing.T) {
 	t.Parallel()
 
 	cfg := Config{
-		BaseURL: "http://localhost:3003/v1",
-		APIKey:  "super-secret-api-key",
-		Timeout: 10 * time.Second,
+		BaseURL:      "http://localhost:3003/v1",
+		ClientID:     "client-id",
+		ClientSecret: "super-secret-client-secret",
+		TokenURL:     "https://auth.example.com/token",
+		Scopes:       []string{"tracer:read"},
+		Timeout:      10 * time.Second,
 	}
 
 	data, err := json.Marshal(cfg)
@@ -222,6 +255,8 @@ func TestConfigMarshalJSONRedaction(t *testing.T) {
 
 	assert.Contains(t, s, "[REDACTED]")
 	assert.Contains(t, s, "http://localhost:3003/v1", "BaseURL should be visible")
-	assert.NotContains(t, s, "super-secret-api-key",
-		"MarshalJSON must not contain the actual API key")
+	assert.Contains(t, s, "client-id", "ClientID should be visible")
+	assert.Contains(t, s, "https://auth.example.com/token", "TokenURL should be visible")
+	assert.NotContains(t, s, "super-secret-client-secret",
+		"MarshalJSON must not contain the actual client secret")
 }

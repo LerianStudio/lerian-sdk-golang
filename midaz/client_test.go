@@ -19,7 +19,6 @@ func TestNewClientConstruction(t *testing.T) {
 	cfg := Config{
 		OnboardingURL:  "http://localhost:3000/v1",
 		TransactionURL: "http://localhost:3001/v1",
-		AuthToken:      "test-token",
 		Timeout:        30 * time.Second,
 	}
 
@@ -29,7 +28,6 @@ func TestNewClientConstruction(t *testing.T) {
 
 	assert.Equal(t, cfg.OnboardingURL, client.config.OnboardingURL)
 	assert.Equal(t, cfg.TransactionURL, client.config.TransactionURL)
-	assert.Equal(t, cfg.AuthToken, client.config.AuthToken)
 	assert.Equal(t, cfg.Timeout, client.config.Timeout)
 }
 
@@ -95,11 +93,21 @@ func TestOptions(t *testing.T) {
 			},
 		},
 		{
-			name: "WithAuthToken",
-			opt:  WithAuthToken("my-token"),
+			name: "WithClientCredentials",
+			opt:  WithClientCredentials("client-id", "client-secret", "https://auth.example.com/token"),
 			assertCfg: func(t *testing.T, c Config) {
 				t.Helper()
-				assert.Equal(t, "my-token", c.AuthToken)
+				assert.Equal(t, "client-id", c.ClientID)
+				assert.Equal(t, "client-secret", c.ClientSecret)
+				assert.Equal(t, "https://auth.example.com/token", c.TokenURL)
+			},
+		},
+		{
+			name: "WithScopes",
+			opt:  WithScopes("fees:read", "fees:write"),
+			assertCfg: func(t *testing.T, c Config) {
+				t.Helper()
+				assert.Equal(t, []string{"fees:read", "fees:write"}, c.Scopes)
 			},
 		},
 		{
@@ -156,7 +164,10 @@ func TestConfigStringRedaction(t *testing.T) {
 	cfg := Config{
 		OnboardingURL:  "http://localhost:3000/v1",
 		TransactionURL: "http://localhost:3001/v1",
-		AuthToken:      "super-secret-token-value",
+		ClientID:       "client-id",
+		ClientSecret:   "super-secret-client-secret",
+		TokenURL:       "https://auth.example.com/token",
+		Scopes:         []string{"midaz:transactions"},
 		Timeout:        30 * time.Second,
 	}
 
@@ -166,9 +177,11 @@ func TestConfigStringRedaction(t *testing.T) {
 	assert.Contains(t, s, "MidazConfig")
 	assert.Contains(t, s, "http://localhost:3000/v1", "OnboardingURL should be visible")
 	assert.Contains(t, s, "http://localhost:3001/v1", "TransactionURL should be visible")
+	assert.Contains(t, s, "client-id", "ClientID should be visible")
+	assert.Contains(t, s, "https://auth.example.com/token", "TokenURL should be visible")
 	assert.Contains(t, s, "30s", "Timeout should be visible")
-	assert.NotContains(t, s, "super-secret-token-value",
-		"String() must not contain the actual auth token")
+	assert.NotContains(t, s, "super-secret-client-secret",
+		"String() must not contain the actual client secret")
 }
 
 // ---------------------------------------------------------------------------
@@ -181,7 +194,10 @@ func TestConfigMarshalJSONRedaction(t *testing.T) {
 	cfg := Config{
 		OnboardingURL:  "http://localhost:3000/v1",
 		TransactionURL: "http://localhost:3001/v1",
-		AuthToken:      "super-secret-token-value",
+		ClientID:       "client-id",
+		ClientSecret:   "super-secret-client-secret",
+		TokenURL:       "https://auth.example.com/token",
+		Scopes:         []string{"midaz:transactions"},
 		Timeout:        30 * time.Second,
 	}
 
@@ -193,8 +209,10 @@ func TestConfigMarshalJSONRedaction(t *testing.T) {
 	assert.Contains(t, s, "[REDACTED]")
 	assert.Contains(t, s, "http://localhost:3000/v1", "OnboardingURL should be visible")
 	assert.Contains(t, s, "http://localhost:3001/v1", "TransactionURL should be visible")
-	assert.NotContains(t, s, "super-secret-token-value",
-		"MarshalJSON must not contain the actual auth token")
+	assert.Contains(t, s, "client-id", "ClientID should be visible")
+	assert.Contains(t, s, "https://auth.example.com/token", "TokenURL should be visible")
+	assert.NotContains(t, s, "super-secret-client-secret",
+		"MarshalJSON must not contain the actual client secret")
 }
 
 // ---------------------------------------------------------------------------

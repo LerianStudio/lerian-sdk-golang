@@ -11,10 +11,10 @@
 //	client, _ := lerian.New(
 //	    lerian.WithReporter(
 //	        reporter.WithBaseURL("http://localhost:3004/v1"),
-//	        reporter.WithAuthToken("my-token"),
 //	        reporter.WithOrganizationID("org-uuid"),
 //	    ),
 //	)
+//	// Optional OAuth2 credentials can be loaded from the matching LERIAN_REPORTER_* env vars.
 //
 //	report, err := client.Reporter.Reports.Create(ctx, &reporter.CreateReportInput{
 //	    Name: "Monthly Summary",
