@@ -80,8 +80,8 @@ type BackendConfig struct {
 
 // BackendImpl is the default [Backend] implementation. It manages the full
 // HTTP request lifecycle including JSON serialization, authentication,
-// retry with exponential backoff, idempotency-key injection, and structured
-// error classification.
+// retry with exponential backoff, tenant-ID and idempotency-key injection,
+// and structured error classification.
 //
 // BackendImpl is safe for concurrent use.
 type BackendImpl struct {
@@ -137,7 +137,7 @@ func NewBackendImpl(cfg BackendConfig) *BackendImpl {
 	if b.httpClient == nil {
 		b.httpClient = &http.Client{
 			Timeout:       defaultHTTPTimeout,
-			CheckRedirect: stripAuthOnRedirect,
+			CheckRedirect: stripSensitiveOnRedirect,
 		}
 	}
 
@@ -364,8 +364,8 @@ func (b *BackendImpl) doCallRaw(ctx context.Context, method, path string,
 // ---------------------------------------------------------------------------
 
 // buildRequest constructs an [http.Request] with all headers applied:
-// Content-Type, Accept, default headers, extra headers, idempotency key,
-// and authentication.
+// Content-Type, Accept, default headers, extra headers, tenant ID,
+// idempotency key, and authentication.
 func (b *BackendImpl) buildRequest(ctx context.Context, method, path string,
 	extraHeaders map[string]string, bodyBytes []byte) (*http.Request, error) {
 	operation := method + " " + path
@@ -388,6 +388,17 @@ func (b *BackendImpl) buildRequest(ctx context.Context, method, path string,
 
 	req.Header.Set("Accept", "application/json")
 
+	// Header precedence (last write wins):
+	//   1. Standard headers (Content-Type, Accept)
+	//   2. Default headers from BackendConfig
+	//   3. Per-call extra headers from CallWithHeaders
+	//   4. Context-injected headers (tenant ID, idempotency key)
+	//   5. Authentication headers (Authenticator.Enrich)
+	//   6. W3C trace propagation (OpenTelemetry)
+	//
+	// Context-injected values intentionally override extra headers because
+	// context represents the caller's explicit intent at the call site.
+
 	// Apply default headers from config.
 	for k, v := range b.defaultHeaders {
 		req.Header.Set(k, v)
@@ -396,6 +407,11 @@ func (b *BackendImpl) buildRequest(ctx context.Context, method, path string,
 	// Apply per-call extra headers (takes precedence over defaults).
 	for k, v := range extraHeaders {
 		req.Header.Set(k, v)
+	}
+
+	// Inject tenant ID from context if present.
+	if tenantID, ok := tenantIDFromContext(ctx); ok {
+		req.Header.Set("X-Tenant-ID", tenantID)
 	}
 
 	// Inject idempotency key from context if present.
@@ -504,15 +520,18 @@ func (b *BackendImpl) genericHTTPError(statusCode int, body []byte, requestID, o
 // Redirect safety
 // ---------------------------------------------------------------------------
 
-// stripAuthOnRedirect removes the Authorization header when following
-// redirects to a different host, preventing credential leakage.
-func stripAuthOnRedirect(req *http.Request, via []*http.Request) error {
+// stripSensitiveOnRedirect removes the Authorization, X-Tenant-ID, and
+// X-Idempotency-Key headers when following redirects to a different host,
+// preventing credential and context leakage.
+func stripSensitiveOnRedirect(req *http.Request, via []*http.Request) error {
 	if len(via) >= 10 {
 		return fmt.Errorf("stopped after 10 redirects")
 	}
 
 	if len(via) > 0 && req.URL.Host != via[0].URL.Host {
 		req.Header.Del("Authorization")
+		req.Header.Del("X-Tenant-ID")
+		req.Header.Del("X-Idempotency-Key")
 	}
 
 	return nil

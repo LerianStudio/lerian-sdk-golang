@@ -340,6 +340,35 @@ func TestBackendIdempotencyKey(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.Equal(t, "unique-key-abc-123", receivedKey)
+	assert.Equal(t, "txn-1", result.ID)
+	assert.Equal(t, "transaction", result.Name)
+}
+
+func TestBackendTenantID(t *testing.T) {
+	t.Parallel()
+
+	var receivedTenantID string
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		receivedTenantID = r.Header.Get("X-Tenant-ID")
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprint(w, `{"id":"org-1","name":"organization"}`)
+	}))
+	defer ts.Close()
+
+	b := newTestBackend(ts)
+
+	ctx := WithTenantID(context.Background(), "tenant-abc-123")
+
+	var result testResponse
+
+	err := b.Call(ctx, http.MethodGet, "/organizations", nil, &result)
+
+	require.NoError(t, err)
+	assert.Equal(t, "tenant-abc-123", receivedTenantID)
+	assert.Equal(t, "org-1", result.ID)
+	assert.Equal(t, "organization", result.Name)
 }
 
 func TestBackendContextCancellation(t *testing.T) {
@@ -509,6 +538,88 @@ func TestBackendGenericErrorParser(t *testing.T) {
 			assert.Equal(t, fmt.Sprintf("req-%d", tt.statusCode), sdkErr.RequestID)
 		})
 	}
+}
+
+func TestBackendNoTenantIDHeader(t *testing.T) {
+	t.Parallel()
+
+	var hasTenantHeader bool
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hasTenantHeader = r.Header.Get("X-Tenant-ID") != ""
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprint(w, `{"id":"1","name":"no-tenant"}`)
+	}))
+	defer ts.Close()
+
+	b := newTestBackend(ts)
+
+	var result testResponse
+
+	err := b.Call(context.Background(), http.MethodGet, "/test", nil, &result)
+
+	require.NoError(t, err)
+	assert.False(t, hasTenantHeader, "X-Tenant-ID header should not be present when context has no tenant ID")
+}
+
+func TestBackendTenantIDPrecedence(t *testing.T) {
+	t.Parallel()
+
+	var receivedTenantID string
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		receivedTenantID = r.Header.Get("X-Tenant-ID")
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprint(w, `{"id":"1","name":"precedence-test"}`)
+	}))
+	defer ts.Close()
+
+	b := newTestBackend(ts, func(cfg *BackendConfig) {
+		cfg.DefaultHeaders = map[string]string{
+			"X-Tenant-ID": "from-default",
+		}
+	})
+
+	ctx := WithTenantID(context.Background(), "from-context")
+
+	var result testResponse
+
+	err := b.CallWithHeaders(ctx, http.MethodGet, "/test",
+		map[string]string{"X-Tenant-ID": "from-extra"}, nil, &result)
+
+	require.NoError(t, err)
+	assert.Equal(t, "from-context", receivedTenantID,
+		"context-injected tenant ID should take precedence over default and extra headers")
+}
+
+func TestBackendTenantIDAndIdempotencyKey(t *testing.T) {
+	t.Parallel()
+
+	var receivedTenantID, receivedIdempotencyKey string
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		receivedTenantID = r.Header.Get("X-Tenant-ID")
+		receivedIdempotencyKey = r.Header.Get("X-Idempotency-Key")
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprint(w, `{"id":"1","name":"combined"}`)
+	}))
+	defer ts.Close()
+
+	b := newTestBackend(ts)
+
+	ctx := WithTenantID(context.Background(), "tenant-xyz")
+	ctx = WithIdempotencyKey(ctx, "idem-key-123")
+
+	var result testResponse
+
+	err := b.Call(ctx, http.MethodPost, "/test", &testRequest{Name: "combined"}, &result)
+
+	require.NoError(t, err)
+	assert.Equal(t, "tenant-xyz", receivedTenantID)
+	assert.Equal(t, "idem-key-123", receivedIdempotencyKey)
 }
 
 // ---------------------------------------------------------------------------
@@ -715,6 +826,29 @@ func TestWithIdempotencyKey(t *testing.T) {
 	key, ok = idempotencyKeyFromContext(ctx)
 	assert.False(t, ok)
 	assert.Empty(t, key)
+}
+
+func TestWithTenantID(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+
+	// No tenant ID set.
+	tenantID, ok := tenantIDFromContext(ctx)
+	assert.False(t, ok)
+	assert.Empty(t, tenantID)
+
+	// Tenant ID set.
+	ctx = WithTenantID(ctx, "tenant-abc-123")
+	tenantID, ok = tenantIDFromContext(ctx)
+	assert.True(t, ok)
+	assert.Equal(t, "tenant-abc-123", tenantID)
+
+	// Empty tenant ID should report as absent.
+	ctx = WithTenantID(context.Background(), "")
+	tenantID, ok = tenantIDFromContext(ctx)
+	assert.False(t, ok)
+	assert.Empty(t, tenantID)
 }
 
 func TestBackendCallRawWithBody(t *testing.T) {
@@ -1744,7 +1878,7 @@ func TestBackendProviderDefaultsToNoop(t *testing.T) {
 		"default provider should be noop (IsEnabled=false)")
 }
 
-func TestStripAuthOnRedirectHelper(t *testing.T) {
+func TestStripSensitiveOnRedirectHelper(t *testing.T) {
 	t.Parallel()
 
 	t.Run("stops after 10 redirects", func(t *testing.T) {
@@ -1758,7 +1892,7 @@ func TestStripAuthOnRedirectHelper(t *testing.T) {
 			via[i] = r
 		}
 
-		err := stripAuthOnRedirect(req, via)
+		err := stripSensitiveOnRedirect(req, via)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "10 redirects")
 	})
@@ -1772,7 +1906,7 @@ func TestStripAuthOnRedirectHelper(t *testing.T) {
 		origReq, _ := http.NewRequest(http.MethodGet, "http://example.com/start", nil)
 		via := []*http.Request{origReq}
 
-		err := stripAuthOnRedirect(req, via)
+		err := stripSensitiveOnRedirect(req, via)
 		require.NoError(t, err)
 		assert.Empty(t, req.Header.Get("Authorization"),
 			"Authorization should be removed on cross-domain redirect")
@@ -1787,7 +1921,7 @@ func TestStripAuthOnRedirectHelper(t *testing.T) {
 		origReq, _ := http.NewRequest(http.MethodGet, "http://example.com/start", nil)
 		via := []*http.Request{origReq}
 
-		err := stripAuthOnRedirect(req, via)
+		err := stripSensitiveOnRedirect(req, via)
 		require.NoError(t, err)
 		assert.Equal(t, "Bearer keep", req.Header.Get("Authorization"),
 			"Authorization should be preserved on same-domain redirect")
