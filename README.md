@@ -3,7 +3,7 @@
 [![Go Reference](https://pkg.go.dev/badge/github.com/LerianStudio/lerian-sdk-golang.svg)](https://pkg.go.dev/github.com/LerianStudio/lerian-sdk-golang)
 [![CI](https://github.com/LerianStudio/lerian-sdk-golang/actions/workflows/ci.yml/badge.svg)](https://github.com/LerianStudio/lerian-sdk-golang/actions/workflows/ci.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/LerianStudio/lerian-sdk-golang)](https://goreportcard.com/report/github.com/LerianStudio/lerian-sdk-golang)
-[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE.md)
+[![License: Elastic-2.0](https://img.shields.io/badge/License-Elastic--2.0-blue.svg)](LICENSE.md)
 
 The official Go SDK for the **Lerian** financial infrastructure platform. This SDK provides a unified, type-safe client for all Lerian products -- from core ledger operations to transaction matching, tracing, reporting, and fee management. Built for production use in financial systems with enterprise-grade observability, retry logic, and error handling.
 
@@ -289,6 +289,6 @@ See the project's coding style and testing guidelines in [CLAUDE.md](CLAUDE.md) 
 
 ## License
 
-This project is licensed under the Apache License 2.0. See [LICENSE.md](LICENSE.md) for the full text.
+This project is licensed under the [Elastic License 2.0 (ELv2)](https://www.elastic.co/licensing/elastic-license). See [LICENSE.md](LICENSE.md) for the full text.
 
-Copyright 2025 [Lerian Studio](https://lerian.studio).
+Copyright 2025-2026 [Lerian Studio](https://lerian.studio).
