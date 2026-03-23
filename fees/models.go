@@ -123,3 +123,89 @@ type CalculateFeeInput struct {
 	Currency      string  `json:"currency"`
 	AssetCode     string  `json:"assetCode,omitempty"`
 }
+
+// TransformTransactionInput is the request payload for DSL-based fee
+// transformation. The fees service injects fee legs into the transaction DSL
+// and returns the mutated structure.
+type TransformTransactionInput struct {
+	SegmentID   *string        `json:"segmentId,omitempty"`
+	LedgerID    string         `json:"ledgerId"`
+	Transaction TransactionDSL `json:"transaction"`
+}
+
+// TransformTransactionOutput is the response from a DSL fee transformation.
+type TransformTransactionOutput struct {
+	Transaction TransactionDSL `json:"transaction"`
+}
+
+// TransactionDSL represents the transaction DSL shape used by the fees
+// transformation endpoint. The service may mutate this structure by adding
+// fee legs and metadata to the source and distribute arrays.
+type TransactionDSL struct {
+	ChartOfAccountsGroupName string             `json:"chartOfAccountsGroupName,omitempty"`
+	Description              string             `json:"description,omitempty"`
+	Code                     string             `json:"code,omitempty"`
+	Pending                  bool               `json:"pending"`
+	Metadata                 map[string]any     `json:"metadata,omitempty"`
+	Route                    string             `json:"route,omitempty"`
+	RouteID                  *string            `json:"routeId,omitempty"`
+	TransactionDate          any                `json:"transactionDate,omitempty"`
+	Send                     TransactionDSLSend `json:"send"`
+}
+
+// TransactionDSLSend describes the send portion of the DSL.
+type TransactionDSLSend struct {
+	Asset      string                   `json:"asset"`
+	Value      any                      `json:"value"`
+	Source     TransactionDSLSource     `json:"source"`
+	Distribute TransactionDSLDistribute `json:"distribute"`
+}
+
+// TransactionDSLSource contains the debit legs.
+type TransactionDSLSource struct {
+	Remaining string              `json:"remaining,omitempty"`
+	From      []TransactionDSLLeg `json:"from"`
+}
+
+// TransactionDSLDistribute contains the credit legs.
+type TransactionDSLDistribute struct {
+	Remaining string              `json:"remaining,omitempty"`
+	To        []TransactionDSLLeg `json:"to"`
+}
+
+// TransactionDSLLeg is a single source or distribute entry.
+type TransactionDSLLeg struct {
+	Account         string                `json:"account,omitempty"`
+	AccountAlias    string                `json:"accountAlias,omitempty"`
+	BalanceKey      string                `json:"balanceKey,omitempty"`
+	Amount          *TransactionDSLAmount `json:"amount,omitempty"`
+	Share           *TransactionDSLShare  `json:"share,omitempty"`
+	Remaining       string                `json:"remaining,omitempty"`
+	Rate            *TransactionDSLRate   `json:"rate,omitempty"`
+	Route           string                `json:"route,omitempty"`
+	RouteID         *string               `json:"routeId,omitempty"`
+	Description     string                `json:"description,omitempty"`
+	ChartOfAccounts string                `json:"chartOfAccounts,omitempty"`
+	Metadata        map[string]any        `json:"metadata,omitempty"`
+	IsFrom          bool                  `json:"isFrom,omitempty"`
+}
+
+// TransactionDSLAmount specifies the asset and value for a leg.
+type TransactionDSLAmount struct {
+	Asset string `json:"asset"`
+	Value any    `json:"value"`
+}
+
+// TransactionDSLShare specifies percentage-based distribution details for a leg.
+type TransactionDSLShare struct {
+	Percentage             int64 `json:"percentage,omitempty"`
+	PercentageOfPercentage int64 `json:"percentageOfPercentage,omitempty"`
+}
+
+// TransactionDSLRate represents the rate metadata associated with a leg.
+type TransactionDSLRate struct {
+	From       string `json:"from,omitempty"`
+	To         string `json:"to,omitempty"`
+	Value      any    `json:"value,omitempty"`
+	ExternalID string `json:"externalId,omitempty"`
+}

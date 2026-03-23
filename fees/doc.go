@@ -12,10 +12,10 @@
 //	client, _ := lerian.New(
 //	    lerian.WithFees(
 //	        fees.WithBaseURL("http://localhost:3005/v1"),
-//	        fees.WithAuthToken("my-token"),
 //	        fees.WithOrganizationID("org-uuid"),
 //	    ),
 //	)
+//	// Optional OAuth2 credentials can be loaded from the matching LERIAN_FEES_* env vars.
 //
 //	pkg, err := client.Fees.Packages.Create(ctx, &fees.CreatePackageInput{
 //	    Name: "Standard Billing",
@@ -24,6 +24,6 @@
 // # Available Services
 //
 //   - Packages -- fee package management (groups of fee rules)
-//   - Fees -- individual fee rule configuration
+//   - Fees -- fee calculation and transaction transformation
 //   - Estimates -- fee estimation for pending transactions
 package fees

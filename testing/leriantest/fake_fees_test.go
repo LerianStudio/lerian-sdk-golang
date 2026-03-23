@@ -201,6 +201,156 @@ func TestFakeFeesFeesErrorInjection(t *testing.T) {
 	assert.ErrorIs(t, err, injectedErr)
 }
 
+func TestFakeFeesTransformTransaction(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	client := leriantest.NewFakeClient()
+
+	input := &fees.TransformTransactionInput{
+		LedgerID: "ledger-123",
+		Transaction: fees.TransactionDSL{
+			Route:   "ted_out",
+			Pending: true,
+			Send: fees.TransactionDSLSend{
+				Asset: "BRL",
+				Value: "15000",
+				Source: fees.TransactionDSLSource{
+					From: []fees.TransactionDSLLeg{
+						{AccountAlias: "@external/BRL", Share: &fees.TransactionDSLShare{Percentage: 100}},
+					},
+				},
+				Distribute: fees.TransactionDSLDistribute{
+					To: []fees.TransactionDSLLeg{
+						{AccountAlias: "@customer", Share: &fees.TransactionDSLShare{Percentage: 100}},
+					},
+				},
+			},
+		},
+	}
+
+	output, err := client.Fees.Fees.TransformTransaction(ctx, input)
+	require.NoError(t, err)
+	require.NotNil(t, output)
+	assert.Equal(t, input.Transaction, output.Transaction)
+}
+
+func TestFakeFeesTransformTransactionErrorInjection(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	injectedErr := assert.AnError
+
+	client := leriantest.NewFakeClient(
+		leriantest.WithErrorOn("fees.Fees.TransformTransaction", injectedErr),
+	)
+
+	_, err := client.Fees.Fees.TransformTransaction(ctx, &fees.TransformTransactionInput{
+		LedgerID:    "ledger-123",
+		Transaction: fees.TransactionDSL{},
+	})
+	require.Error(t, err)
+	assert.ErrorIs(t, err, injectedErr)
+}
+
+func TestFakeFeesTransformTransactionValidation(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	client := leriantest.NewFakeClient()
+
+	output, err := client.Fees.Fees.TransformTransaction(ctx, nil)
+	require.Error(t, err)
+	assert.Nil(t, output)
+
+	output, err = client.Fees.Fees.TransformTransaction(ctx, &fees.TransformTransactionInput{})
+	require.Error(t, err)
+	assert.Nil(t, output)
+	assert.Contains(t, err.Error(), "ledger ID is required")
+}
+
+func TestFakeFeesTransformTransactionReturnsDetachedCopy(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	client := leriantest.NewFakeClient()
+
+	input := &fees.TransformTransactionInput{
+		LedgerID: "ledger-123",
+		Transaction: fees.TransactionDSL{
+			Metadata: map[string]any{"packageAppliedID": "pkg-1"},
+			Send: fees.TransactionDSLSend{
+				Asset: "BRL",
+				Value: "15000",
+				Source: fees.TransactionDSLSource{
+					From: []fees.TransactionDSLLeg{
+						{Metadata: map[string]any{"feeLabel": "fee-a"}},
+					},
+				},
+			},
+		},
+	}
+
+	output, err := client.Fees.Fees.TransformTransaction(ctx, input)
+	require.NoError(t, err)
+	require.NotNil(t, output)
+
+	output.Transaction.Metadata["packageAppliedID"] = "pkg-2"
+	output.Transaction.Send.Source.From[0].Metadata["feeLabel"] = "fee-b"
+
+	assert.Equal(t, "pkg-1", input.Transaction.Metadata["packageAppliedID"])
+	assert.Equal(t, "fee-a", input.Transaction.Send.Source.From[0].Metadata["feeLabel"])
+}
+
+func TestFakeFeesTransformTransactionReturnsDetachedCopyForDynamicFields(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	client := leriantest.NewFakeClient()
+
+	input := &fees.TransformTransactionInput{
+		LedgerID: "ledger-123",
+		Transaction: fees.TransactionDSL{
+			TransactionDate: map[string]string{"at": "2026-01-01"},
+			Send: fees.TransactionDSLSend{
+				Asset: "BRL",
+				Value: []string{"15000"},
+				Distribute: fees.TransactionDSLDistribute{
+					To: []fees.TransactionDSLLeg{
+						{
+							Amount: &fees.TransactionDSLAmount{
+								Asset: "BRL",
+								Value: []map[string]any{{"net": "14500"}},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	output, err := client.Fees.Fees.TransformTransaction(ctx, input)
+	require.NoError(t, err)
+	require.NotNil(t, output)
+
+	outputDate := output.Transaction.TransactionDate.(map[string]string)
+	outputDate["at"] = "changed"
+
+	outputValue := output.Transaction.Send.Value.([]string)
+	outputValue[0] = "changed"
+
+	outputAmount := output.Transaction.Send.Distribute.To[0].Amount.Value.([]map[string]any)
+	outputAmount[0]["net"] = "changed"
+
+	inputDate := input.Transaction.TransactionDate.(map[string]string)
+	inputValue := input.Transaction.Send.Value.([]string)
+	inputAmount := input.Transaction.Send.Distribute.To[0].Amount.Value.([]map[string]any)
+
+	assert.Equal(t, "2026-01-01", inputDate["at"])
+	assert.Equal(t, "15000", inputValue[0])
+	assert.Equal(t, "14500", inputAmount[0]["net"])
+}
+
 // ---------------------------------------------------------------------------
 // Supplemental: List with multiple packages
 // ---------------------------------------------------------------------------
