@@ -18,27 +18,42 @@ const (
 	envDebug = "LERIAN_DEBUG"
 
 	// Midaz
-	envMidazOnboardingURL  = "LERIAN_MIDAZ_ONBOARDING_URL"
-	envMidazTransactionURL = "LERIAN_MIDAZ_TRANSACTION_URL"
-	envMidazAuthToken      = "LERIAN_MIDAZ_AUTH_TOKEN"
+	envMidazOnboardingURL   = "LERIAN_MIDAZ_ONBOARDING_URL"
+	envMidazTransactionURL  = "LERIAN_MIDAZ_TRANSACTION_URL"
+	envMidazClientID        = "LERIAN_MIDAZ_CLIENT_ID"
+	envMidazClientSecret    = "LERIAN_MIDAZ_CLIENT_SECRET"
+	envMidazTokenURL        = "LERIAN_MIDAZ_TOKEN_URL"
+	envMidazLegacyAuthToken = "LERIAN_MIDAZ_AUTH_TOKEN"
 
 	// Matcher
-	envMatcherURL    = "LERIAN_MATCHER_URL"
-	envMatcherAPIKey = "LERIAN_MATCHER_API_KEY"
+	envMatcherURL          = "LERIAN_MATCHER_URL"
+	envMatcherClientID     = "LERIAN_MATCHER_CLIENT_ID"
+	envMatcherClientSecret = "LERIAN_MATCHER_CLIENT_SECRET"
+	envMatcherTokenURL     = "LERIAN_MATCHER_TOKEN_URL"
+	envMatcherLegacyAPIKey = "LERIAN_MATCHER_API_KEY"
 
 	// Tracer
-	envTracerURL    = "LERIAN_TRACER_URL"
-	envTracerAPIKey = "LERIAN_TRACER_API_KEY"
+	envTracerURL          = "LERIAN_TRACER_URL"
+	envTracerClientID     = "LERIAN_TRACER_CLIENT_ID"
+	envTracerClientSecret = "LERIAN_TRACER_CLIENT_SECRET"
+	envTracerTokenURL     = "LERIAN_TRACER_TOKEN_URL"
+	envTracerLegacyAPIKey = "LERIAN_TRACER_API_KEY"
 
 	// Reporter
-	envReporterURL       = "LERIAN_REPORTER_URL"
-	envReporterAuthToken = "LERIAN_REPORTER_AUTH_TOKEN"
-	envReporterOrgID     = "LERIAN_REPORTER_ORG_ID"
+	envReporterURL             = "LERIAN_REPORTER_URL"
+	envReporterClientID        = "LERIAN_REPORTER_CLIENT_ID"
+	envReporterClientSecret    = "LERIAN_REPORTER_CLIENT_SECRET"
+	envReporterTokenURL        = "LERIAN_REPORTER_TOKEN_URL"
+	envReporterOrgID           = "LERIAN_REPORTER_ORG_ID"
+	envReporterLegacyAuthToken = "LERIAN_REPORTER_AUTH_TOKEN"
 
 	// Fees
-	envFeesURL       = "LERIAN_FEES_URL"
-	envFeesAuthToken = "LERIAN_FEES_AUTH_TOKEN"
-	envFeesOrgID     = "LERIAN_FEES_ORG_ID"
+	envFeesURL             = "LERIAN_FEES_URL"
+	envFeesClientID        = "LERIAN_FEES_CLIENT_ID"
+	envFeesClientSecret    = "LERIAN_FEES_CLIENT_SECRET"
+	envFeesTokenURL        = "LERIAN_FEES_TOKEN_URL"
+	envFeesOrgID           = "LERIAN_FEES_ORG_ID"
+	envFeesLegacyAuthToken = "LERIAN_FEES_AUTH_TOKEN"
 )
 
 // ---------------------------------------------------------------------------

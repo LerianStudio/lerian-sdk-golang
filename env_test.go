@@ -6,6 +6,7 @@ import (
 	"github.com/LerianStudio/lerian-sdk-golang/fees"
 	"github.com/LerianStudio/lerian-sdk-golang/matcher"
 	"github.com/LerianStudio/lerian-sdk-golang/midaz"
+	"github.com/LerianStudio/lerian-sdk-golang/reporter"
 	"github.com/LerianStudio/lerian-sdk-golang/tracer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -173,7 +174,6 @@ func TestEnvVarFallbackBothURLs(t *testing.T) {
 	// beyond signaling that Midaz is wanted (empty option slice triggers init).
 	t.Setenv("LERIAN_MIDAZ_ONBOARDING_URL", "http://onboarding-from-env:3000/v1")
 	t.Setenv("LERIAN_MIDAZ_TRANSACTION_URL", "http://tx-from-env:3001/v1")
-	t.Setenv("LERIAN_MIDAZ_AUTH_TOKEN", "env-token-123")
 
 	client, err := New(
 		WithMidaz(), // signal intent; values come from env
@@ -183,18 +183,67 @@ func TestEnvVarFallbackBothURLs(t *testing.T) {
 	assert.NotNil(t, client.Midaz)
 }
 
+func TestMidazOAuth2EnvVarFallbacks(t *testing.T) {
+	t.Setenv(envMidazOnboardingURL, "http://onboarding-from-env:3000/v1")
+	t.Setenv(envMidazTransactionURL, "http://tx-from-env:3001/v1")
+	t.Setenv(envMidazClientID, "env-client-id")
+	t.Setenv(envMidazClientSecret, "env-client-secret")
+	t.Setenv(envMidazTokenURL, "http://localhost:8080/token")
+
+	client, err := New(
+		WithMidaz(),
+	)
+	require.NoError(t, err)
+	require.NotNil(t, client)
+	require.NotNil(t, client.Midaz)
+
+	assert.Equal(t, "env-client-id", midazConfigStringField(t, client, "ClientID"))
+	assert.Equal(t, "env-client-secret", midazConfigStringField(t, client, "ClientSecret"))
+	assert.Equal(t, "http://localhost:8080/token", midazConfigStringField(t, client, "TokenURL"))
+}
+
+func TestMidazExplicitOAuth2PartialConfigReturnsError(t *testing.T) {
+	t.Setenv(envMidazOnboardingURL, "http://onboarding-from-env:3000/v1")
+	t.Setenv(envMidazTransactionURL, "http://tx-from-env:3001/v1")
+	t.Setenv(envMidazClientSecret, "env-client-secret")
+	t.Setenv(envMidazTokenURL, "http://localhost:8080/token")
+
+	_, err := New(
+		WithMidaz(
+			midaz.WithClientCredentials("explicit-client-id", "", ""),
+		),
+	)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "ClientID, ClientSecret, and TokenURL must all be set for OAuth2")
+}
+
+func TestMidazPartialOAuth2EnvConfigReturnsError(t *testing.T) {
+	t.Setenv(envMidazOnboardingURL, "http://onboarding-from-env:3000/v1")
+	t.Setenv(envMidazTransactionURL, "http://tx-from-env:3001/v1")
+	t.Setenv(envMidazClientID, "env-client-id")
+	t.Setenv(envMidazTokenURL, "http://localhost:8080/token")
+
+	_, err := New(
+		WithMidaz(),
+	)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "ClientID, ClientSecret, and TokenURL must all be set for OAuth2")
+}
+
 func TestExplicitOverridesEnv(t *testing.T) {
 	// Set env var values for Midaz.
 	t.Setenv("LERIAN_MIDAZ_ONBOARDING_URL", "http://env-onboarding:3000/v1")
 	t.Setenv("LERIAN_MIDAZ_TRANSACTION_URL", "http://env-transaction:3001/v1")
-	t.Setenv("LERIAN_MIDAZ_AUTH_TOKEN", "env-token")
+	t.Setenv("LERIAN_MIDAZ_CLIENT_ID", "env-client-id")
+	t.Setenv("LERIAN_MIDAZ_CLIENT_SECRET", "env-client-secret")
+	t.Setenv("LERIAN_MIDAZ_TOKEN_URL", "http://localhost:8080/token")
 
 	// Provide explicit options — these should win over env vars.
 	client, err := New(
 		WithMidaz(
 			midaz.WithOnboardingURL("http://explicit-onboarding:3000/v1"),
 			midaz.WithTransactionURL("http://explicit-transaction:3001/v1"),
-			midaz.WithAuthToken("explicit-token"),
+			midaz.WithClientCredentials("explicit-client-id", "explicit-client-secret", "http://localhost:9090/token"),
 		),
 	)
 	require.NoError(t, err)
@@ -258,7 +307,6 @@ func TestDebugEnvVarNotSet(t *testing.T) {
 
 func TestMatcherEnvVars(t *testing.T) {
 	t.Setenv("LERIAN_MATCHER_URL", "http://matcher-from-env:3002/v1")
-	t.Setenv("LERIAN_MATCHER_API_KEY", "matcher-env-key")
 
 	client, err := New(
 		WithMatcher(), // signal intent; values come from env
@@ -272,14 +320,49 @@ func TestMatcherEnvVars(t *testing.T) {
 func TestMatcherEnvVarsMixedWithOptions(t *testing.T) {
 	t.Setenv("LERIAN_MATCHER_URL", "http://matcher-from-env:3002/v1")
 
-	// API key from explicit option, URL from env.
+	// Client credentials from explicit option, URL from env.
 	client, err := New(
 		WithMatcher(
-			matcher.WithAPIKey("explicit-matcher-key"),
+			matcher.WithClientCredentials("explicit-client-id", "explicit-client-secret", "http://localhost:8080/token"),
 		),
 	)
 	require.NoError(t, err)
 	assert.NotNil(t, client.Matcher)
+}
+
+func TestMatcherOAuth2EnvVars(t *testing.T) {
+	t.Setenv(envMatcherURL, "http://matcher-from-env:3002/v1")
+	t.Setenv(envMatcherClientID, "matcher-client-id")
+	t.Setenv(envMatcherClientSecret, "matcher-client-secret")
+	t.Setenv(envMatcherTokenURL, "http://localhost:8080/token")
+
+	client, err := New(WithMatcher())
+	require.NoError(t, err)
+	require.NotNil(t, client.Matcher)
+}
+
+func TestMatcherPartialOAuth2EnvConfigReturnsError(t *testing.T) {
+	t.Setenv(envMatcherURL, "http://matcher-from-env:3002/v1")
+	t.Setenv(envMatcherClientID, "matcher-client-id")
+	t.Setenv(envMatcherTokenURL, "http://localhost:8080/token")
+
+	_, err := New(WithMatcher())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "matcher: ClientID, ClientSecret, and TokenURL must all be set for OAuth2")
+}
+
+func TestMatcherExplicitOAuth2PartialConfigReturnsError(t *testing.T) {
+	t.Setenv(envMatcherURL, "http://matcher-from-env:3002/v1")
+	t.Setenv(envMatcherClientSecret, "matcher-client-secret")
+	t.Setenv(envMatcherTokenURL, "http://localhost:8080/token")
+
+	_, err := New(
+		WithMatcher(
+			matcher.WithClientCredentials("explicit-client-id", "", ""),
+		),
+	)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "matcher: ClientID, ClientSecret, and TokenURL must all be set for OAuth2")
 }
 
 // ---------------------------------------------------------------------------
@@ -288,7 +371,6 @@ func TestMatcherEnvVarsMixedWithOptions(t *testing.T) {
 
 func TestTracerEnvVars(t *testing.T) {
 	t.Setenv("LERIAN_TRACER_URL", "http://tracer-from-env:3003/v1")
-	t.Setenv("LERIAN_TRACER_API_KEY", "tracer-env-key")
 
 	client, err := New(
 		WithTracer(), // signal intent; values come from env
@@ -300,16 +382,50 @@ func TestTracerEnvVars(t *testing.T) {
 }
 
 func TestTracerEnvVarsMixedWithOptions(t *testing.T) {
-	t.Setenv("LERIAN_TRACER_API_KEY", "tracer-env-key")
-
-	// URL from explicit option, API key from env.
+	// URL from explicit option, client credentials from option.
 	client, err := New(
 		WithTracer(
 			tracer.WithBaseURL("http://explicit-tracer:3003/v1"),
+			tracer.WithClientCredentials("explicit-client-id", "explicit-client-secret", "http://localhost:8080/token"),
 		),
 	)
 	require.NoError(t, err)
 	assert.NotNil(t, client.Tracer)
+}
+
+func TestTracerOAuth2EnvVars(t *testing.T) {
+	t.Setenv(envTracerURL, "http://tracer-from-env:3003/v1")
+	t.Setenv(envTracerClientID, "tracer-client-id")
+	t.Setenv(envTracerClientSecret, "tracer-client-secret")
+	t.Setenv(envTracerTokenURL, "http://localhost:8080/token")
+
+	client, err := New(WithTracer())
+	require.NoError(t, err)
+	require.NotNil(t, client.Tracer)
+}
+
+func TestTracerPartialOAuth2EnvConfigReturnsError(t *testing.T) {
+	t.Setenv(envTracerURL, "http://tracer-from-env:3003/v1")
+	t.Setenv(envTracerClientID, "tracer-client-id")
+	t.Setenv(envTracerTokenURL, "http://localhost:8080/token")
+
+	_, err := New(WithTracer())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "tracer: ClientID, ClientSecret, and TokenURL must all be set for OAuth2")
+}
+
+func TestTracerExplicitOAuth2PartialConfigReturnsError(t *testing.T) {
+	t.Setenv(envTracerURL, "http://tracer-from-env:3003/v1")
+	t.Setenv(envTracerClientSecret, "tracer-client-secret")
+	t.Setenv(envTracerTokenURL, "http://localhost:8080/token")
+
+	_, err := New(
+		WithTracer(
+			tracer.WithClientCredentials("explicit-client-id", "", ""),
+		),
+	)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "tracer: ClientID, ClientSecret, and TokenURL must all be set for OAuth2")
 }
 
 // ---------------------------------------------------------------------------
@@ -318,7 +434,6 @@ func TestTracerEnvVarsMixedWithOptions(t *testing.T) {
 
 func TestReporterEnvVars(t *testing.T) {
 	t.Setenv("LERIAN_REPORTER_URL", "http://reporter-from-env:3004/v1")
-	t.Setenv("LERIAN_REPORTER_AUTH_TOKEN", "reporter-env-token")
 	t.Setenv("LERIAN_REPORTER_ORG_ID", "org-from-env")
 
 	client, err := New(
@@ -328,6 +443,44 @@ func TestReporterEnvVars(t *testing.T) {
 	require.NotNil(t, client)
 	assert.NotNil(t, client.Reporter,
 		"Reporter should be initialized from env vars")
+}
+
+func TestReporterOAuth2EnvVars(t *testing.T) {
+	t.Setenv(envReporterURL, "http://reporter-from-env:3004/v1")
+	t.Setenv(envReporterOrgID, "org-from-env")
+	t.Setenv(envReporterClientID, "reporter-client-id")
+	t.Setenv(envReporterClientSecret, "reporter-client-secret")
+	t.Setenv(envReporterTokenURL, "http://localhost:8080/token")
+
+	client, err := New(WithReporter())
+	require.NoError(t, err)
+	require.NotNil(t, client.Reporter)
+}
+
+func TestReporterPartialOAuth2EnvConfigReturnsError(t *testing.T) {
+	t.Setenv(envReporterURL, "http://reporter-from-env:3004/v1")
+	t.Setenv(envReporterOrgID, "org-from-env")
+	t.Setenv(envReporterClientID, "reporter-client-id")
+	t.Setenv(envReporterTokenURL, "http://localhost:8080/token")
+
+	_, err := New(WithReporter())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "reporter: ClientID, ClientSecret, and TokenURL must all be set for OAuth2")
+}
+
+func TestReporterExplicitOAuth2PartialConfigReturnsError(t *testing.T) {
+	t.Setenv(envReporterURL, "http://reporter-from-env:3004/v1")
+	t.Setenv(envReporterOrgID, "org-from-env")
+	t.Setenv(envReporterClientSecret, "reporter-client-secret")
+	t.Setenv(envReporterTokenURL, "http://localhost:8080/token")
+
+	_, err := New(
+		WithReporter(
+			reporter.WithClientCredentials("explicit-client-id", "", ""),
+		),
+	)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "reporter: ClientID, ClientSecret, and TokenURL must all be set for OAuth2")
 }
 
 func TestReporterEnvVarsMissingRequired(t *testing.T) {
@@ -347,7 +500,6 @@ func TestReporterEnvVarsMissingRequired(t *testing.T) {
 
 func TestFeesEnvVars(t *testing.T) {
 	t.Setenv("LERIAN_FEES_URL", "http://fees-from-env:3005/v1")
-	t.Setenv("LERIAN_FEES_AUTH_TOKEN", "fees-env-token")
 	t.Setenv("LERIAN_FEES_ORG_ID", "org-fees-from-env")
 
 	client, err := New(
@@ -357,6 +509,44 @@ func TestFeesEnvVars(t *testing.T) {
 	require.NotNil(t, client)
 	assert.NotNil(t, client.Fees,
 		"Fees should be initialized from env vars")
+}
+
+func TestFeesOAuth2EnvVars(t *testing.T) {
+	t.Setenv(envFeesURL, "http://fees-from-env:3005/v1")
+	t.Setenv(envFeesOrgID, "org-fees-from-env")
+	t.Setenv(envFeesClientID, "fees-client-id")
+	t.Setenv(envFeesClientSecret, "fees-client-secret")
+	t.Setenv(envFeesTokenURL, "http://localhost:8080/token")
+
+	client, err := New(WithFees())
+	require.NoError(t, err)
+	require.NotNil(t, client.Fees)
+}
+
+func TestFeesPartialOAuth2EnvConfigReturnsError(t *testing.T) {
+	t.Setenv(envFeesURL, "http://fees-from-env:3005/v1")
+	t.Setenv(envFeesOrgID, "org-fees-from-env")
+	t.Setenv(envFeesClientID, "fees-client-id")
+	t.Setenv(envFeesTokenURL, "http://localhost:8080/token")
+
+	_, err := New(WithFees())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "fees: ClientID, ClientSecret, and TokenURL must all be set for OAuth2")
+}
+
+func TestFeesExplicitOAuth2PartialConfigReturnsError(t *testing.T) {
+	t.Setenv(envFeesURL, "http://fees-from-env:3005/v1")
+	t.Setenv(envFeesOrgID, "org-fees-from-env")
+	t.Setenv(envFeesClientSecret, "fees-client-secret")
+	t.Setenv(envFeesTokenURL, "http://localhost:8080/token")
+
+	_, err := New(
+		WithFees(
+			fees.WithClientCredentials("explicit-client-id", "", ""),
+		),
+	)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "fees: ClientID, ClientSecret, and TokenURL must all be set for OAuth2")
 }
 
 func TestFeesEnvVarsMissingRequired(t *testing.T) {
@@ -372,19 +562,236 @@ func TestFeesEnvVarsMissingRequired(t *testing.T) {
 
 func TestFeesEnvVarsExplicitOverrides(t *testing.T) {
 	t.Setenv("LERIAN_FEES_URL", "http://fees-env:3005/v1")
-	t.Setenv("LERIAN_FEES_AUTH_TOKEN", "env-token")
+	t.Setenv("LERIAN_FEES_CLIENT_ID", "env-client-id")
+	t.Setenv("LERIAN_FEES_CLIENT_SECRET", "env-client-secret")
+	t.Setenv("LERIAN_FEES_TOKEN_URL", "http://localhost:8081/token")
 	t.Setenv("LERIAN_FEES_ORG_ID", "env-org")
 
 	// Explicit options should win over env.
 	client, err := New(
 		WithFees(
 			fees.WithBaseURL("http://explicit-fees:3005/v1"),
-			fees.WithAuthToken("explicit-token"),
+			fees.WithClientCredentials("explicit-client-id", "explicit-client-secret", "http://localhost:8080/token"),
 			fees.WithOrganizationID("explicit-org"),
 		),
 	)
 	require.NoError(t, err)
 	assert.NotNil(t, client.Fees)
+}
+
+func TestExplicitProductConfigWithEnvOAuth2(t *testing.T) {
+	t.Run("midaz", func(t *testing.T) {
+		t.Setenv(envMidazClientID, "midaz-client-id")
+		t.Setenv(envMidazClientSecret, "midaz-client-secret")
+		t.Setenv(envMidazTokenURL, "http://localhost:8080/token")
+
+		client, err := New(
+			WithMidaz(
+				midaz.WithOnboardingURL("http://explicit-onboarding:3000/v1"),
+				midaz.WithTransactionURL("http://explicit-transaction:3001/v1"),
+			),
+		)
+		require.NoError(t, err)
+		require.NotNil(t, client.Midaz)
+		assert.Equal(t, "midaz-client-id", midazConfigStringField(t, client, "ClientID"))
+	})
+
+	t.Run("matcher", func(t *testing.T) {
+		t.Setenv(envMatcherClientID, "matcher-client-id")
+		t.Setenv(envMatcherClientSecret, "matcher-client-secret")
+		t.Setenv(envMatcherTokenURL, "http://localhost:8080/token")
+
+		client, err := New(
+			WithMatcher(
+				matcher.WithBaseURL("http://explicit-matcher:3002/v1"),
+			),
+		)
+		require.NoError(t, err)
+		require.NotNil(t, client.Matcher)
+		assert.Equal(t, "matcher-client-id", clientProductConfigStringField(t, client, "Matcher", "ClientID"))
+	})
+
+	t.Run("tracer", func(t *testing.T) {
+		t.Setenv(envTracerClientID, "tracer-client-id")
+		t.Setenv(envTracerClientSecret, "tracer-client-secret")
+		t.Setenv(envTracerTokenURL, "http://localhost:8080/token")
+
+		client, err := New(
+			WithTracer(
+				tracer.WithBaseURL("http://explicit-tracer:3003/v1"),
+			),
+		)
+		require.NoError(t, err)
+		require.NotNil(t, client.Tracer)
+		assert.Equal(t, "tracer-client-id", clientProductConfigStringField(t, client, "Tracer", "ClientID"))
+	})
+
+	t.Run("reporter", func(t *testing.T) {
+		t.Setenv(envReporterClientID, "reporter-client-id")
+		t.Setenv(envReporterClientSecret, "reporter-client-secret")
+		t.Setenv(envReporterTokenURL, "http://localhost:8080/token")
+
+		client, err := New(
+			WithReporter(
+				reporter.WithBaseURL("http://explicit-reporter:3004/v1"),
+				reporter.WithOrganizationID("org-explicit"),
+			),
+		)
+		require.NoError(t, err)
+		require.NotNil(t, client.Reporter)
+		assert.Equal(t, "reporter-client-id", clientProductConfigStringField(t, client, "Reporter", "ClientID"))
+	})
+
+	t.Run("fees", func(t *testing.T) {
+		t.Setenv(envFeesClientID, "fees-client-id")
+		t.Setenv(envFeesClientSecret, "fees-client-secret")
+		t.Setenv(envFeesTokenURL, "http://localhost:8080/token")
+
+		client, err := New(
+			WithFees(
+				fees.WithBaseURL("http://explicit-fees:3005/v1"),
+				fees.WithOrganizationID("org-explicit"),
+			),
+		)
+		require.NoError(t, err)
+		require.NotNil(t, client.Fees)
+		assert.Equal(t, "fees-client-id", clientProductConfigStringField(t, client, "Fees", "ClientID"))
+	})
+}
+
+func TestExplicitProductConfigWithPartialEnvOAuth2ReturnsError(t *testing.T) {
+	t.Run("midaz", func(t *testing.T) {
+		t.Setenv(envMidazClientID, "midaz-client-id")
+		t.Setenv(envMidazTokenURL, "http://localhost:8080/token")
+
+		_, err := New(
+			WithMidaz(
+				midaz.WithOnboardingURL("http://explicit-onboarding:3000/v1"),
+				midaz.WithTransactionURL("http://explicit-transaction:3001/v1"),
+			),
+		)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "ClientID, ClientSecret, and TokenURL must all be set for OAuth2")
+	})
+
+	t.Run("matcher", func(t *testing.T) {
+		t.Setenv(envMatcherClientID, "matcher-client-id")
+		t.Setenv(envMatcherTokenURL, "http://localhost:8080/token")
+
+		_, err := New(
+			WithMatcher(
+				matcher.WithBaseURL("http://explicit-matcher:3002/v1"),
+			),
+		)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "matcher: ClientID, ClientSecret, and TokenURL must all be set for OAuth2")
+	})
+
+	t.Run("tracer", func(t *testing.T) {
+		t.Setenv(envTracerClientID, "tracer-client-id")
+		t.Setenv(envTracerTokenURL, "http://localhost:8080/token")
+
+		_, err := New(
+			WithTracer(
+				tracer.WithBaseURL("http://explicit-tracer:3003/v1"),
+			),
+		)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "tracer: ClientID, ClientSecret, and TokenURL must all be set for OAuth2")
+	})
+
+	t.Run("reporter", func(t *testing.T) {
+		t.Setenv(envReporterClientID, "reporter-client-id")
+		t.Setenv(envReporterTokenURL, "http://localhost:8080/token")
+
+		_, err := New(
+			WithReporter(
+				reporter.WithBaseURL("http://explicit-reporter:3004/v1"),
+				reporter.WithOrganizationID("org-explicit"),
+			),
+		)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "reporter: ClientID, ClientSecret, and TokenURL must all be set for OAuth2")
+	})
+
+	t.Run("fees", func(t *testing.T) {
+		t.Setenv(envFeesClientID, "fees-client-id")
+		t.Setenv(envFeesTokenURL, "http://localhost:8080/token")
+
+		_, err := New(
+			WithFees(
+				fees.WithBaseURL("http://explicit-fees:3005/v1"),
+				fees.WithOrganizationID("org-explicit"),
+			),
+		)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "fees: ClientID, ClientSecret, and TokenURL must all be set for OAuth2")
+	})
+}
+
+func TestLegacyLerianAuthEnvVarsReturnMigrationError(t *testing.T) {
+	t.Run("midaz", func(t *testing.T) {
+		t.Setenv(envMidazLegacyAuthToken, "legacy-token")
+
+		_, err := New(
+			WithMidaz(
+				midaz.WithOnboardingURL("http://explicit-onboarding:3000/v1"),
+				midaz.WithTransactionURL("http://explicit-transaction:3001/v1"),
+			),
+		)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), envMidazLegacyAuthToken)
+	})
+
+	t.Run("matcher", func(t *testing.T) {
+		t.Setenv(envMatcherLegacyAPIKey, "legacy-key")
+
+		_, err := New(
+			WithMatcher(
+				matcher.WithBaseURL("http://explicit-matcher:3002/v1"),
+			),
+		)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), envMatcherLegacyAPIKey)
+	})
+
+	t.Run("tracer", func(t *testing.T) {
+		t.Setenv(envTracerLegacyAPIKey, "legacy-key")
+
+		_, err := New(
+			WithTracer(
+				tracer.WithBaseURL("http://explicit-tracer:3003/v1"),
+			),
+		)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), envTracerLegacyAPIKey)
+	})
+
+	t.Run("reporter", func(t *testing.T) {
+		t.Setenv(envReporterLegacyAuthToken, "legacy-token")
+
+		_, err := New(
+			WithReporter(
+				reporter.WithBaseURL("http://explicit-reporter:3004/v1"),
+				reporter.WithOrganizationID("org-explicit"),
+			),
+		)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), envReporterLegacyAuthToken)
+	})
+
+	t.Run("fees", func(t *testing.T) {
+		t.Setenv(envFeesLegacyAuthToken, "legacy-token")
+
+		_, err := New(
+			WithFees(
+				fees.WithBaseURL("http://explicit-fees:3005/v1"),
+				fees.WithOrganizationID("org-explicit"),
+			),
+		)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), envFeesLegacyAuthToken)
+	})
 }
 
 // ---------------------------------------------------------------------------
@@ -427,21 +834,31 @@ func TestAllProductsFromEnvVars(t *testing.T) {
 
 	t.Setenv("LERIAN_MIDAZ_ONBOARDING_URL", "http://midaz-onboarding:3000/v1")
 	t.Setenv("LERIAN_MIDAZ_TRANSACTION_URL", "http://midaz-transaction:3001/v1")
-	t.Setenv("LERIAN_MIDAZ_AUTH_TOKEN", "midaz-token")
+	t.Setenv("LERIAN_MIDAZ_CLIENT_ID", "midaz-client-id")
+	t.Setenv("LERIAN_MIDAZ_CLIENT_SECRET", "midaz-client-secret")
+	t.Setenv("LERIAN_MIDAZ_TOKEN_URL", "http://localhost:8080/token")
 
 	t.Setenv("LERIAN_MATCHER_URL", "http://matcher:3002/v1")
-	t.Setenv("LERIAN_MATCHER_API_KEY", "matcher-key")
+	t.Setenv("LERIAN_MATCHER_CLIENT_ID", "matcher-client-id")
+	t.Setenv("LERIAN_MATCHER_CLIENT_SECRET", "matcher-client-secret")
+	t.Setenv("LERIAN_MATCHER_TOKEN_URL", "http://localhost:8080/token")
 
 	t.Setenv("LERIAN_TRACER_URL", "http://tracer:3003/v1")
-	t.Setenv("LERIAN_TRACER_API_KEY", "tracer-key")
+	t.Setenv("LERIAN_TRACER_CLIENT_ID", "tracer-client-id")
+	t.Setenv("LERIAN_TRACER_CLIENT_SECRET", "tracer-client-secret")
+	t.Setenv("LERIAN_TRACER_TOKEN_URL", "http://localhost:8080/token")
 
 	t.Setenv("LERIAN_REPORTER_URL", "http://reporter:3004/v1")
-	t.Setenv("LERIAN_REPORTER_AUTH_TOKEN", "reporter-token")
 	t.Setenv("LERIAN_REPORTER_ORG_ID", "org-reporter")
+	t.Setenv("LERIAN_REPORTER_CLIENT_ID", "reporter-client-id")
+	t.Setenv("LERIAN_REPORTER_CLIENT_SECRET", "reporter-client-secret")
+	t.Setenv("LERIAN_REPORTER_TOKEN_URL", "http://localhost:8080/token")
 
 	t.Setenv("LERIAN_FEES_URL", "http://fees:3005/v1")
-	t.Setenv("LERIAN_FEES_AUTH_TOKEN", "fees-token")
 	t.Setenv("LERIAN_FEES_ORG_ID", "org-fees")
+	t.Setenv("LERIAN_FEES_CLIENT_ID", "fees-client-id")
+	t.Setenv("LERIAN_FEES_CLIENT_SECRET", "fees-client-secret")
+	t.Setenv("LERIAN_FEES_TOKEN_URL", "http://localhost:8080/token")
 
 	client, err := New(
 		WithMidaz(),
@@ -474,19 +891,29 @@ func TestEnvVarConstantValues(t *testing.T) {
 
 	assert.Equal(t, "LERIAN_MIDAZ_ONBOARDING_URL", envMidazOnboardingURL)
 	assert.Equal(t, "LERIAN_MIDAZ_TRANSACTION_URL", envMidazTransactionURL)
-	assert.Equal(t, "LERIAN_MIDAZ_AUTH_TOKEN", envMidazAuthToken)
+	assert.Equal(t, "LERIAN_MIDAZ_CLIENT_ID", envMidazClientID)
+	assert.Equal(t, "LERIAN_MIDAZ_CLIENT_SECRET", envMidazClientSecret)
+	assert.Equal(t, "LERIAN_MIDAZ_TOKEN_URL", envMidazTokenURL)
 
 	assert.Equal(t, "LERIAN_MATCHER_URL", envMatcherURL)
-	assert.Equal(t, "LERIAN_MATCHER_API_KEY", envMatcherAPIKey)
+	assert.Equal(t, "LERIAN_MATCHER_CLIENT_ID", envMatcherClientID)
+	assert.Equal(t, "LERIAN_MATCHER_CLIENT_SECRET", envMatcherClientSecret)
+	assert.Equal(t, "LERIAN_MATCHER_TOKEN_URL", envMatcherTokenURL)
 
 	assert.Equal(t, "LERIAN_TRACER_URL", envTracerURL)
-	assert.Equal(t, "LERIAN_TRACER_API_KEY", envTracerAPIKey)
+	assert.Equal(t, "LERIAN_TRACER_CLIENT_ID", envTracerClientID)
+	assert.Equal(t, "LERIAN_TRACER_CLIENT_SECRET", envTracerClientSecret)
+	assert.Equal(t, "LERIAN_TRACER_TOKEN_URL", envTracerTokenURL)
 
 	assert.Equal(t, "LERIAN_REPORTER_URL", envReporterURL)
-	assert.Equal(t, "LERIAN_REPORTER_AUTH_TOKEN", envReporterAuthToken)
+	assert.Equal(t, "LERIAN_REPORTER_CLIENT_ID", envReporterClientID)
+	assert.Equal(t, "LERIAN_REPORTER_CLIENT_SECRET", envReporterClientSecret)
+	assert.Equal(t, "LERIAN_REPORTER_TOKEN_URL", envReporterTokenURL)
 	assert.Equal(t, "LERIAN_REPORTER_ORG_ID", envReporterOrgID)
 
 	assert.Equal(t, "LERIAN_FEES_URL", envFeesURL)
-	assert.Equal(t, "LERIAN_FEES_AUTH_TOKEN", envFeesAuthToken)
+	assert.Equal(t, "LERIAN_FEES_CLIENT_ID", envFeesClientID)
+	assert.Equal(t, "LERIAN_FEES_CLIENT_SECRET", envFeesClientSecret)
+	assert.Equal(t, "LERIAN_FEES_TOKEN_URL", envFeesTokenURL)
 	assert.Equal(t, "LERIAN_FEES_ORG_ID", envFeesOrgID)
 }
