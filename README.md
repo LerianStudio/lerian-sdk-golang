@@ -242,8 +242,7 @@ The SDK ships with a `leriantest` package that provides a complete fake client f
 import (
     "testing"
 
-    lerian "github.com/LerianStudio/lerian-sdk-golang"
-    "github.com/LerianStudio/lerian-sdk-golang/models"
+    "github.com/LerianStudio/lerian-sdk-golang/midaz"
     "github.com/LerianStudio/lerian-sdk-golang/testing/leriantest"
     "github.com/stretchr/testify/assert"
 )
@@ -251,7 +250,7 @@ import (
 func TestMyService(t *testing.T) {
     // Create a fake client pre-loaded with test data (no network, no mocks)
     fake := leriantest.NewFakeClient(
-        leriantest.WithSeedOrganizations(models.Organization{
+        leriantest.WithSeedOrganizations(midaz.Organization{
             ID:        "org-uuid",
             LegalName: "Test Corp",
         }),

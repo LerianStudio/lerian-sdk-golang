@@ -381,7 +381,7 @@ Certain linters are relaxed in specific paths to accommodate their unique requir
 - **Go:** 1.24.0
 - **testify:** v1.11.1
 - **OpenTelemetry:** v1.40.0 (otel, trace, metric, SDK, exporters)
-- **google.golang.org/grpc:** v1.78.0 (indirect, via OTel exporters)
+- **google.golang.org/grpc:** v1.79.3 (indirect, via OTel exporters)
 - **google.golang.org/protobuf:** v1.36.11 (indirect, via OTel exporters)
 
 ---
