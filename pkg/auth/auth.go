@@ -1,13 +1,12 @@
 package auth
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
-	"strings"
 	"sync"
 	"time"
 )
@@ -45,12 +44,28 @@ func (n *NoAuth) Enrich(_ context.Context, _ *http.Request) error {
 // OAuth2 (client-credentials flow)
 // ---------------------------------------------------------------------------
 
-// tokenResponse represents the JSON payload returned by an OAuth2 token
-// endpoint for the client_credentials grant type.
+// tokenResponse represents the JSON payload returned by Lerian's
+// identity service for the client_credentials grant.
 type tokenResponse struct {
-	AccessToken string `json:"access_token"`
-	TokenType   string `json:"token_type"`
-	ExpiresIn   int64  `json:"expires_in"`
+	AccessToken  string  `json:"accessToken"`
+	IDToken      *string `json:"idToken,omitempty"`
+	TokenType    string  `json:"tokenType"`
+	ExpiresIn    int64   `json:"expiresIn"`
+	RefreshToken string  `json:"refreshToken"`
+	Scope        *string `json:"scope,omitempty"`
+}
+
+type tokenRequest struct {
+	GrantType    string `json:"grantType"`
+	ClientID     string `json:"clientId"`
+	ClientSecret string `json:"clientSecret"`
+}
+
+type oauth2JSONView struct {
+	Type         string `json:"type"`
+	ClientID     string `json:"clientId"`
+	TokenURL     string `json:"tokenUrl"`
+	ClientSecret string `json:"clientSecret"`
 }
 
 // expiryBuffer is subtracted from the reported token lifetime so that the
@@ -69,8 +84,6 @@ type OAuth2 struct {
 	ClientSecret string
 	// TokenURL is the full URL of the token endpoint.
 	TokenURL string
-	// Scopes is the set of OAuth2 scopes to request.
-	Scopes []string
 
 	mu     sync.Mutex
 	token  string
@@ -88,21 +101,20 @@ type OAuth2 struct {
 
 // NewOAuth2 creates an OAuth2 authenticator for the client-credentials flow.
 // It uses a default HTTP client with a 10-second timeout.
-func NewOAuth2(clientID, clientSecret, tokenURL string, scopes []string) *OAuth2 {
-	return NewOAuth2WithHTTPClient(clientID, clientSecret, tokenURL, scopes, nil)
+func NewOAuth2(clientID, clientSecret, tokenURL string) *OAuth2 {
+	return NewOAuth2WithHTTPClient(clientID, clientSecret, tokenURL, nil)
 }
 
 // NewOAuth2WithHTTPClient creates an OAuth2 authenticator for the
 // client-credentials flow using the provided HTTP client for token requests.
 //
 // If httpClient is nil, a default client with a 10-second timeout is used.
-func NewOAuth2WithHTTPClient(clientID, clientSecret, tokenURL string, scopes []string, httpClient *http.Client) *OAuth2 {
+func NewOAuth2WithHTTPClient(clientID, clientSecret, tokenURL string, httpClient *http.Client) *OAuth2 {
 	oauth := &OAuth2{
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
 		TokenURL:     tokenURL,
-		Scopes:       append([]string(nil), scopes...),
-		httpClient:   httpClient,
+		httpClient:   secureOAuthHTTPClient(httpClient),
 		nowFunc:      time.Now,
 	}
 	oauth.ensureDefaultsLocked()
@@ -112,26 +124,41 @@ func NewOAuth2WithHTTPClient(clientID, clientSecret, tokenURL string, scopes []s
 
 func defaultOAuthHTTPClient() *http.Client {
 	return &http.Client{
-		Timeout: defaultOAuthTimeout,
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			if len(via) >= 10 {
-				return fmt.Errorf("auth/oauth2: stopped after 10 redirects")
-			}
+		Timeout:       defaultOAuthTimeout,
+		CheckRedirect: oauthRedirectPolicy(nil),
+	}
+}
 
-			if len(via) == 0 {
-				return nil
-			}
+func secureOAuthHTTPClient(base *http.Client) *http.Client {
+	if base == nil {
+		return defaultOAuthHTTPClient()
+	}
 
-			if req.URL.Host != via[0].URL.Host {
-				return fmt.Errorf(
-					"auth/oauth2: refusing cross-host redirect from %q to %q",
-					via[0].URL.Host,
-					req.URL.Host,
-				)
-			}
+	cloned := *base
+	cloned.CheckRedirect = oauthRedirectPolicy(base.CheckRedirect)
 
-			return nil
-		},
+	return &cloned
+}
+
+func oauthRedirectPolicy(next func(*http.Request, []*http.Request) error) func(*http.Request, []*http.Request) error {
+	return func(req *http.Request, via []*http.Request) error {
+		if len(via) >= 10 {
+			return fmt.Errorf("auth/oauth2: stopped after 10 redirects")
+		}
+
+		if len(via) > 0 && req.URL.Host != via[0].URL.Host {
+			return fmt.Errorf(
+				"auth/oauth2: refusing cross-host redirect from %q to %q",
+				via[0].URL.Host,
+				req.URL.Host,
+			)
+		}
+
+		if next != nil {
+			return next(req, via)
+		}
+
+		return nil
 	}
 }
 
@@ -178,27 +205,29 @@ func (o *OAuth2) validToken(ctx context.Context) (string, error) {
 func (o *OAuth2) refreshToken(ctx context.Context) (string, error) {
 	o.ensureDefaultsLocked()
 
-	data := url.Values{
-		"grant_type":    {"client_credentials"},
-		"client_id":     {o.ClientID},
-		"client_secret": {o.ClientSecret},
+	payload := tokenRequest{
+		GrantType:    "client_credentials",
+		ClientID:     o.ClientID,
+		ClientSecret: o.ClientSecret,
 	}
 
-	if len(o.Scopes) > 0 {
-		data.Set("scope", strings.Join(o.Scopes, " "))
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		return "", fmt.Errorf("auth/oauth2: encoding token request: %w", err)
 	}
 
 	tokenReq, err := http.NewRequestWithContext(
 		ctx,
 		http.MethodPost,
 		o.TokenURL,
-		strings.NewReader(data.Encode()),
+		bytes.NewReader(payloadBytes),
 	)
 	if err != nil {
 		return "", fmt.Errorf("auth/oauth2: building token request: %w", err)
 	}
 
-	tokenReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	tokenReq.Header.Set("Content-Type", "application/json")
+	tokenReq.Header.Set("Accept", "application/json")
 
 	resp, err := o.httpClient.Do(tokenReq)
 	if err != nil {
@@ -224,7 +253,7 @@ func (o *OAuth2) refreshToken(ctx context.Context) (string, error) {
 	}
 
 	if tok.AccessToken == "" {
-		return "", fmt.Errorf("auth/oauth2: token response missing access_token")
+		return "", fmt.Errorf("auth/oauth2: token response missing accessToken")
 	}
 
 	o.token = tok.AccessToken
@@ -253,8 +282,10 @@ func (o *OAuth2) String() string {
 
 // MarshalJSON prevents credential leakage during JSON serialization.
 func (o *OAuth2) MarshalJSON() ([]byte, error) {
-	return []byte(fmt.Sprintf(
-		`{"type":"oauth2","client_id":%q,"token_url":%q,"client_secret":"[REDACTED]"}`,
-		o.ClientID, o.TokenURL,
-	)), nil
+	return json.Marshal(oauth2JSONView{
+		Type:         "oauth2",
+		ClientID:     o.ClientID,
+		TokenURL:     o.TokenURL,
+		ClientSecret: "[REDACTED]",
+	})
 }

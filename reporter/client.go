@@ -29,9 +29,6 @@ type Config struct {
 	// TokenURL is the OAuth2 token endpoint URL used to acquire access tokens.
 	TokenURL string
 
-	// Scopes is the optional set of OAuth2 scopes requested during token acquisition.
-	Scopes []string
-
 	// OrganizationID is the organization scope for all Reporter operations.
 	// It is sent as the X-Organization-Id header on every request. Required.
 	OrganizationID string
@@ -45,8 +42,8 @@ type Config struct {
 // The ClientSecret field is replaced with "[REDACTED]".
 func (c Config) String() string {
 	return fmt.Sprintf(
-		"ReporterConfig{BaseURL: %q, ClientID: %q, ClientSecret: [REDACTED], TokenURL: %q, Scopes: %v, OrganizationID: %q, Timeout: %s}",
-		c.BaseURL, c.ClientID, c.TokenURL, c.Scopes, c.OrganizationID, c.Timeout,
+		"ReporterConfig{BaseURL: %q, ClientID: %q, ClientSecret: [REDACTED], TokenURL: %q, OrganizationID: %q, Timeout: %s}",
+		c.BaseURL, c.ClientID, c.TokenURL, c.OrganizationID, c.Timeout,
 	)
 }
 
@@ -77,20 +74,14 @@ func WithBaseURL(url string) Option {
 }
 
 // WithClientCredentials configures OAuth2 client-credentials authentication.
+// Permissions are derived from the client configuration on the identity
+// service; this SDK does not send OAuth2 scopes.
 func WithClientCredentials(clientID, clientSecret, tokenURL string) Option {
 	return func(c *Config) error {
 		c.ClientID = clientID
 		c.ClientSecret = clientSecret
 		c.TokenURL = tokenURL
 
-		return nil
-	}
-}
-
-// WithScopes sets the OAuth2 scopes requested during token acquisition.
-func WithScopes(scopes ...string) Option {
-	return func(c *Config) error {
-		c.Scopes = append([]string(nil), scopes...)
 		return nil
 	}
 }

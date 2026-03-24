@@ -29,9 +29,6 @@ type Config struct {
 	// TokenURL is the OAuth2 token endpoint URL used to acquire access tokens.
 	TokenURL string
 
-	// Scopes is the optional set of OAuth2 scopes requested during token acquisition.
-	Scopes []string
-
 	// Timeout overrides the default HTTP client timeout for Tracer requests.
 	// Defaults to 10s if zero.
 	Timeout time.Duration
@@ -41,8 +38,8 @@ type Config struct {
 // The ClientSecret field is replaced with "[REDACTED]".
 func (c Config) String() string {
 	return fmt.Sprintf(
-		"TracerConfig{BaseURL: %q, ClientID: %q, ClientSecret: [REDACTED], TokenURL: %q, Scopes: %v, Timeout: %s}",
-		c.BaseURL, c.ClientID, c.TokenURL, c.Scopes, c.Timeout,
+		"TracerConfig{BaseURL: %q, ClientID: %q, ClientSecret: [REDACTED], TokenURL: %q, Timeout: %s}",
+		c.BaseURL, c.ClientID, c.TokenURL, c.Timeout,
 	)
 }
 
@@ -73,20 +70,14 @@ func WithBaseURL(url string) Option {
 }
 
 // WithClientCredentials configures OAuth2 client-credentials authentication.
+// Permissions are derived from the client configuration on the identity
+// service; this SDK does not send OAuth2 scopes.
 func WithClientCredentials(clientID, clientSecret, tokenURL string) Option {
 	return func(c *Config) error {
 		c.ClientID = clientID
 		c.ClientSecret = clientSecret
 		c.TokenURL = tokenURL
 
-		return nil
-	}
-}
-
-// WithScopes sets the OAuth2 scopes requested during token acquisition.
-func WithScopes(scopes ...string) Option {
-	return func(c *Config) error {
-		c.Scopes = append([]string(nil), scopes...)
 		return nil
 	}
 }

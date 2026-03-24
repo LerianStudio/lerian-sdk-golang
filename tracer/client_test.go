@@ -54,7 +54,6 @@ func TestNewClientReturnsNonNil(t *testing.T) {
 		ClientID:     "client-id",
 		ClientSecret: "client-secret",
 		TokenURL:     "https://auth.example.com/token",
-		Scopes:       []string{"tracer:read"},
 		Timeout:      5 * time.Second,
 	}
 
@@ -71,7 +70,6 @@ func TestNewClientStoresConfig(t *testing.T) {
 		ClientID:     "client-id",
 		ClientSecret: "client-secret",
 		TokenURL:     "https://auth.example.com/token",
-		Scopes:       []string{"tracer:read"},
 		Timeout:      15 * time.Second,
 	}
 
@@ -81,7 +79,6 @@ func TestNewClientStoresConfig(t *testing.T) {
 	assert.Equal(t, "client-id", client.config.ClientID)
 	assert.Equal(t, "client-secret", client.config.ClientSecret)
 	assert.Equal(t, "https://auth.example.com/token", client.config.TokenURL)
-	assert.Equal(t, []string{"tracer:read"}, client.config.Scopes)
 	assert.Equal(t, 15*time.Second, client.config.Timeout)
 }
 
@@ -141,16 +138,6 @@ func TestWithClientCredentials(t *testing.T) {
 	assert.Equal(t, "https://auth.example.com/token", cfg.TokenURL)
 }
 
-func TestWithScopes(t *testing.T) {
-	t.Parallel()
-
-	var cfg Config
-
-	err := WithScopes("tracer:read", "tracer:write")(&cfg)
-	require.NoError(t, err)
-	assert.Equal(t, []string{"tracer:read", "tracer:write"}, cfg.Scopes)
-}
-
 func TestWithTimeout(t *testing.T) {
 	t.Parallel()
 
@@ -169,7 +156,6 @@ func TestOptionsComposeCorrectly(t *testing.T) {
 	opts := []Option{
 		WithBaseURL("http://tracer.local/v1"),
 		WithClientCredentials("client-id", "client-secret", "https://auth.example.com/token"),
-		WithScopes("tracer:read"),
 		WithTimeout(20 * time.Second),
 	}
 
@@ -182,7 +168,6 @@ func TestOptionsComposeCorrectly(t *testing.T) {
 	assert.Equal(t, "client-id", cfg.ClientID)
 	assert.Equal(t, "client-secret", cfg.ClientSecret)
 	assert.Equal(t, "https://auth.example.com/token", cfg.TokenURL)
-	assert.Equal(t, []string{"tracer:read"}, cfg.Scopes)
 	assert.Equal(t, 20*time.Second, cfg.Timeout)
 }
 
@@ -216,7 +201,6 @@ func TestConfigStringRedaction(t *testing.T) {
 		ClientID:     "client-id",
 		ClientSecret: "super-secret-client-secret",
 		TokenURL:     "https://auth.example.com/token",
-		Scopes:       []string{"tracer:read"},
 		Timeout:      10 * time.Second,
 	}
 
@@ -244,7 +228,6 @@ func TestConfigMarshalJSONRedaction(t *testing.T) {
 		ClientID:     "client-id",
 		ClientSecret: "super-secret-client-secret",
 		TokenURL:     "https://auth.example.com/token",
-		Scopes:       []string{"tracer:read"},
 		Timeout:      10 * time.Second,
 	}
 

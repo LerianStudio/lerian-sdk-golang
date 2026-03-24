@@ -3,11 +3,11 @@ package lerian
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"io"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"reflect"
 	"strings"
 	"testing"
@@ -72,6 +72,20 @@ func (fn roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
 	return fn(req)
 }
 
+func assertLerianOAuthPayload(t *testing.T, payload map[string]string, clientID, clientSecret string) {
+	t.Helper()
+
+	assert.Equal(t, map[string]string{
+		"grantType":    "client_credentials",
+		"clientId":     clientID,
+		"clientSecret": clientSecret,
+	}, payload)
+	assert.NotContains(t, payload, "scope")
+	assert.NotContains(t, payload, "grant_type")
+	assert.NotContains(t, payload, "client_id")
+	assert.NotContains(t, payload, "client_secret")
+}
+
 func tokenResponseHTTPResponse(body string) *http.Response {
 	return &http.Response{
 		StatusCode: http.StatusOK,
@@ -80,7 +94,7 @@ func tokenResponseHTTPResponse(body string) *http.Response {
 	}
 }
 
-func TestBuildOAuthAuthenticatorUsesProvidedHTTPClientAndScopes(t *testing.T) {
+func TestBuildOAuthAuthenticatorUsesProvidedHTTPClient(t *testing.T) {
 	t.Parallel()
 
 	requestCount := 0
@@ -93,14 +107,14 @@ func TestBuildOAuthAuthenticatorUsesProvidedHTTPClientAndScopes(t *testing.T) {
 			body, err := io.ReadAll(req.Body)
 			require.NoError(t, err)
 
-			values, err := url.ParseQuery(string(body))
-			require.NoError(t, err)
-			assert.Equal(t, "client_credentials", values.Get("grant_type"))
-			assert.Equal(t, "cid", values.Get("client_id"))
-			assert.Equal(t, "csecret", values.Get("client_secret"))
-			assert.Equal(t, "scope-a scope-b", values.Get("scope"))
+			assert.Equal(t, "application/json", req.Header.Get("Content-Type"))
+			assert.Equal(t, "application/json", req.Header.Get("Accept"))
 
-			return tokenResponseHTTPResponse(`{"access_token":"tok-built","token_type":"Bearer","expires_in":3600}`), nil
+			var payload map[string]string
+			require.NoError(t, json.Unmarshal(body, &payload))
+			assertLerianOAuthPayload(t, payload, "cid", "csecret")
+
+			return tokenResponseHTTPResponse(`{"accessToken":"tok-built","tokenType":"Bearer","expiresIn":3600,"refreshToken":"refresh-built"}`), nil
 		}),
 	}
 
@@ -108,7 +122,6 @@ func TestBuildOAuthAuthenticatorUsesProvidedHTTPClientAndScopes(t *testing.T) {
 		"cid",
 		"csecret",
 		"https://auth.example.com/token",
-		[]string{"scope-a", "scope-b"},
 		customClient,
 	)
 	req := httptest.NewRequest(http.MethodGet, "http://example.com", nil)
@@ -121,7 +134,7 @@ func TestBuildOAuthAuthenticatorUsesProvidedHTTPClientAndScopes(t *testing.T) {
 func TestBuildOAuthAuthenticatorReturnsNoAuthWithoutCredentials(t *testing.T) {
 	t.Parallel()
 
-	authenticator := buildOAuthAuthenticator("", "", "", nil, nil)
+	authenticator := buildOAuthAuthenticator("", "", "", nil)
 	req := httptest.NewRequest(http.MethodGet, "http://example.com", nil)
 
 	require.NoError(t, authenticator.Enrich(context.Background(), req))
@@ -132,7 +145,7 @@ func TestHTTPClientForTimeoutClonesConfiguredClient(t *testing.T) {
 	t.Parallel()
 
 	transport := roundTripFunc(func(req *http.Request) (*http.Response, error) {
-		return tokenResponseHTTPResponse(`{"access_token":"tok","token_type":"Bearer","expires_in":3600}`), nil
+		return tokenResponseHTTPResponse(`{"accessToken":"tok","tokenType":"Bearer","expiresIn":3600,"refreshToken":"refresh"}`), nil
 	})
 	base := &http.Client{
 		Timeout:   defaultHTTPTimeout,
@@ -228,7 +241,6 @@ func TestNewWithMidazOAuth2ClientCredentials(t *testing.T) {
 			midaz.WithOnboardingURL("http://localhost:3000/v1"),
 			midaz.WithTransactionURL("http://localhost:3001/v1"),
 			midaz.WithClientCredentials("client-id", "client-secret", "http://localhost:8080/token"),
-			midaz.WithScopes("midaz:read", "midaz:write"),
 		),
 	)
 	require.NoError(t, err)
@@ -256,18 +268,20 @@ func TestMidazRejectsPartialOAuth2Config(t *testing.T) {
 func TestMidazOAuth2AppliesToBothBackends(t *testing.T) {
 	t.Parallel()
 
-	var receivedScope string
-
 	var onboardingAuth string
 
 	var transactionAuth string
 
 	tokenServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		require.NoError(t, r.ParseForm())
-		receivedScope = r.FormValue("scope")
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+
+		var payload map[string]string
+		require.NoError(t, json.Unmarshal(body, &payload))
+		assertLerianOAuthPayload(t, payload, "client-id", "client-secret")
 
 		w.Header().Set("Content-Type", "application/json")
-		_, err := w.Write([]byte(`{"access_token":"midaz-token","token_type":"Bearer","expires_in":3600}`))
+		_, err = w.Write([]byte(`{"accessToken":"midaz-token","tokenType":"Bearer","expiresIn":3600,"refreshToken":"midaz-refresh"}`))
 		require.NoError(t, err)
 	}))
 	defer tokenServer.Close()
@@ -293,7 +307,6 @@ func TestMidazOAuth2AppliesToBothBackends(t *testing.T) {
 			midaz.WithOnboardingURL(onboardingServer.URL),
 			midaz.WithTransactionURL(transactionServer.URL),
 			midaz.WithClientCredentials("client-id", "client-secret", tokenServer.URL),
-			midaz.WithScopes("midaz:read", "midaz:write"),
 		),
 	)
 	require.NoError(t, err)
@@ -304,7 +317,6 @@ func TestMidazOAuth2AppliesToBothBackends(t *testing.T) {
 	_, err = client.Midaz.Transactions.Get(context.Background(), "org-1", "ledger-1", "tx-1")
 	require.NoError(t, err)
 
-	assert.Equal(t, "midaz:read midaz:write", receivedScope)
 	assert.Equal(t, "Bearer midaz-token", onboardingAuth)
 	assert.Equal(t, "Bearer midaz-token", transactionAuth)
 }
@@ -375,7 +387,6 @@ func TestNewWithMatcherOAuth2ClientCredentials(t *testing.T) {
 		WithMatcher(
 			matcher.WithBaseURL("http://localhost:3002/v1"),
 			matcher.WithClientCredentials("client-id", "client-secret", "http://localhost:8080/token"),
-			matcher.WithScopes("matcher:read", "matcher:write"),
 		),
 	)
 	require.NoError(t, err)
@@ -422,7 +433,6 @@ func TestNewWithTracerOAuth2ClientCredentials(t *testing.T) {
 		WithTracer(
 			tracer.WithBaseURL("http://localhost:3003/v1"),
 			tracer.WithClientCredentials("client-id", "client-secret", "http://localhost:8080/token"),
-			tracer.WithScopes("tracer:read"),
 		),
 	)
 	require.NoError(t, err)
@@ -471,7 +481,6 @@ func TestNewWithReporterOAuth2ClientCredentials(t *testing.T) {
 			reporter.WithBaseURL("http://localhost:3004/v1"),
 			reporter.WithOrganizationID("org-12345"),
 			reporter.WithClientCredentials("client-id", "client-secret", "http://localhost:8080/token"),
-			reporter.WithScopes("reporter:read"),
 		),
 	)
 	require.NoError(t, err)
@@ -521,7 +530,6 @@ func TestNewWithFeesOAuth2ClientCredentials(t *testing.T) {
 			fees.WithBaseURL("http://localhost:3005/v1"),
 			fees.WithOrganizationID("org-67890"),
 			fees.WithClientCredentials("client-id", "client-secret", "http://localhost:8080/token"),
-			fees.WithScopes("fees:read"),
 		),
 	)
 	require.NoError(t, err)

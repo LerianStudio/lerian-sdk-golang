@@ -103,14 +103,6 @@ func TestOptions(t *testing.T) {
 			},
 		},
 		{
-			name: "WithScopes",
-			opt:  WithScopes("fees:read", "fees:write"),
-			assertCfg: func(t *testing.T, c Config) {
-				t.Helper()
-				assert.Equal(t, []string{"fees:read", "fees:write"}, c.Scopes)
-			},
-		},
-		{
 			name: "WithTimeout",
 			opt:  WithTimeout(45 * time.Second),
 			assertCfg: func(t *testing.T, c Config) {
@@ -167,7 +159,6 @@ func TestConfigStringRedaction(t *testing.T) {
 		ClientID:       "client-id",
 		ClientSecret:   "super-secret-client-secret",
 		TokenURL:       "https://auth.example.com/token",
-		Scopes:         []string{"midaz:transactions"},
 		Timeout:        30 * time.Second,
 	}
 
@@ -197,7 +188,6 @@ func TestConfigMarshalJSONRedaction(t *testing.T) {
 		ClientID:       "client-id",
 		ClientSecret:   "super-secret-client-secret",
 		TokenURL:       "https://auth.example.com/token",
-		Scopes:         []string{"midaz:transactions"},
 		Timeout:        30 * time.Second,
 	}
 

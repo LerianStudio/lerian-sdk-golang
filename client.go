@@ -280,9 +280,9 @@ func applyOAuthEnvFallbacks(clientID, clientSecret, tokenURL *string,
 	*tokenURL = envResolvedTokenURL
 }
 
-func buildOAuthAuthenticator(clientID, clientSecret, tokenURL string, scopes []string, httpClient *http.Client) auth.Authenticator {
+func buildOAuthAuthenticator(clientID, clientSecret, tokenURL string, httpClient *http.Client) auth.Authenticator {
 	if clientID != "" && clientSecret != "" && tokenURL != "" {
-		return auth.NewOAuth2WithHTTPClient(clientID, clientSecret, tokenURL, scopes, httpClient)
+		return auth.NewOAuth2WithHTTPClient(clientID, clientSecret, tokenURL, httpClient)
 	}
 
 	return auth.NewNoAuth()
@@ -343,7 +343,7 @@ func applyMidazEnvFallbacks(cfg *midaz.Config) {
 }
 
 func buildMidazAuthenticator(cfg midaz.Config, httpClient *http.Client) auth.Authenticator {
-	return buildOAuthAuthenticator(cfg.ClientID, cfg.ClientSecret, cfg.TokenURL, cfg.Scopes, httpClient)
+	return buildOAuthAuthenticator(cfg.ClientID, cfg.ClientSecret, cfg.TokenURL, httpClient)
 }
 
 func validateMidazAuthConfig(cfg midaz.Config) error {
@@ -519,7 +519,7 @@ func (c *Client) initMatcher() error {
 	// Warn about insecure (non-localhost HTTP) URLs.
 	warnInsecureURL("matcher", cfg.BaseURL)
 
-	authenticator := buildOAuthAuthenticator(cfg.ClientID, cfg.ClientSecret, cfg.TokenURL, cfg.Scopes, c.httpClientForTimeout(cfg.Timeout))
+	authenticator := buildOAuthAuthenticator(cfg.ClientID, cfg.ClientSecret, cfg.TokenURL, c.httpClientForTimeout(cfg.Timeout))
 
 	backend := c.createBackend(cfg.BaseURL, authenticator, matcher.ParseError, nil, cfg.Timeout)
 	c.Matcher = matcher.NewClient(backend, cfg)
@@ -566,7 +566,7 @@ func (c *Client) initTracer() error {
 	// Warn about insecure (non-localhost HTTP) URLs.
 	warnInsecureURL("tracer", cfg.BaseURL)
 
-	authenticator := buildOAuthAuthenticator(cfg.ClientID, cfg.ClientSecret, cfg.TokenURL, cfg.Scopes, c.httpClientForTimeout(cfg.Timeout))
+	authenticator := buildOAuthAuthenticator(cfg.ClientID, cfg.ClientSecret, cfg.TokenURL, c.httpClientForTimeout(cfg.Timeout))
 
 	backend := c.createBackend(cfg.BaseURL, authenticator, tracer.ParseError, nil, cfg.Timeout)
 	c.Tracer = tracer.NewClient(backend, cfg)
@@ -619,7 +619,7 @@ func (c *Client) initReporter() error {
 	// Warn about insecure (non-localhost HTTP) URLs.
 	warnInsecureURL("reporter", cfg.BaseURL)
 
-	authenticator := buildOAuthAuthenticator(cfg.ClientID, cfg.ClientSecret, cfg.TokenURL, cfg.Scopes, c.httpClientForTimeout(cfg.Timeout))
+	authenticator := buildOAuthAuthenticator(cfg.ClientID, cfg.ClientSecret, cfg.TokenURL, c.httpClientForTimeout(cfg.Timeout))
 
 	// Default headers include the organization scope.
 	defaultHeaders := map[string]string{
@@ -677,7 +677,7 @@ func (c *Client) initFees() error {
 	// Warn about insecure (non-localhost HTTP) URLs.
 	warnInsecureURL("fees", cfg.BaseURL)
 
-	authenticator := buildOAuthAuthenticator(cfg.ClientID, cfg.ClientSecret, cfg.TokenURL, cfg.Scopes, c.httpClientForTimeout(cfg.Timeout))
+	authenticator := buildOAuthAuthenticator(cfg.ClientID, cfg.ClientSecret, cfg.TokenURL, c.httpClientForTimeout(cfg.Timeout))
 
 	// Default headers include the organization scope.
 	defaultHeaders := map[string]string{

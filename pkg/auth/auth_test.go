@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"sync"
@@ -22,6 +23,24 @@ var (
 	_ Authenticator = (*NoAuth)(nil)
 	_ Authenticator = (*OAuth2)(nil)
 )
+
+func assertLerianTokenPayload(t *testing.T, payload map[string]string, clientID, clientSecret string) {
+	t.Helper()
+
+	assert.Equal(t, map[string]string{
+		"grantType":    "client_credentials",
+		"clientId":     clientID,
+		"clientSecret": clientSecret,
+	}, payload)
+	assert.NotContains(t, payload, "scope")
+	assert.NotContains(t, payload, "grant_type")
+	assert.NotContains(t, payload, "client_id")
+	assert.NotContains(t, payload, "client_secret")
+}
+
+func stringPtr(v string) *string {
+	return &v
+}
 
 // ---------------------------------------------------------------------------
 // NoAuth
@@ -56,7 +75,7 @@ func TestNoAuthEnrich(t *testing.T) {
 
 // newOAuth2TestServer returns an httptest.Server that acts as a token endpoint.
 // Each call increments the atomic counter. The server responds with a valid
-// token whose expires_in is configurable.
+// token whose expiresIn is configurable.
 func newOAuth2TestServer(t *testing.T, counter *atomic.Int64, expiresIn int64) *httptest.Server {
 	t.Helper()
 
@@ -65,17 +84,21 @@ func newOAuth2TestServer(t *testing.T, counter *atomic.Int64, expiresIn int64) *
 
 		// Validate the request basics.
 		assert.Equal(t, http.MethodPost, r.Method)
-		assert.Equal(t, "application/x-www-form-urlencoded", r.Header.Get("Content-Type"))
+		assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
+		assert.Equal(t, "application/json", r.Header.Get("Accept"))
 
-		require.NoError(t, r.ParseForm())
-		assert.Equal(t, "client_credentials", r.FormValue("grant_type"))
-		assert.NotEmpty(t, r.FormValue("client_id"))
-		assert.NotEmpty(t, r.FormValue("client_secret"))
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+
+		var payload map[string]string
+		require.NoError(t, json.Unmarshal(body, &payload))
+		assertLerianTokenPayload(t, payload, "cid", "csecret")
 
 		resp := tokenResponse{
-			AccessToken: "tok-123",
-			TokenType:   "Bearer",
-			ExpiresIn:   expiresIn,
+			AccessToken:  "tok-123",
+			TokenType:    "Bearer",
+			ExpiresIn:    expiresIn,
+			RefreshToken: "refresh-123",
 		}
 
 		w.Header().Set("Content-Type", "application/json")
@@ -97,7 +120,7 @@ func TestOAuth2Enrich(t *testing.T) {
 	srv := newOAuth2TestServer(t, &counter, 3600)
 	defer srv.Close()
 
-	oauth := NewOAuth2("cid", "csecret", srv.URL, []string{"read", "write"})
+	oauth := NewOAuth2("cid", "csecret", srv.URL)
 	req := httptest.NewRequest(http.MethodGet, "http://example.com/api", nil)
 
 	err := oauth.Enrich(context.Background(), req)
@@ -115,7 +138,7 @@ func TestOAuth2TokenCaching(t *testing.T) {
 	srv := newOAuth2TestServer(t, &counter, 3600)
 	defer srv.Close()
 
-	oauth := NewOAuth2("cid", "csecret", srv.URL, []string{"read"})
+	oauth := NewOAuth2("cid", "csecret", srv.URL)
 
 	// First call — fetches token from server.
 	req1 := httptest.NewRequest(http.MethodGet, "http://example.com/1", nil)
@@ -139,7 +162,7 @@ func TestOAuth2TokenRefresh(t *testing.T) {
 	srv := newOAuth2TestServer(t, &counter, 3600)
 	defer srv.Close()
 
-	oauth := NewOAuth2("cid", "csecret", srv.URL, nil)
+	oauth := NewOAuth2("cid", "csecret", srv.URL)
 
 	// Simulate time progression using nowFunc.
 	now := time.Now()
@@ -207,7 +230,7 @@ func TestOAuth2ShortLivedTokenCaching(t *testing.T) {
 			defer srv.Close()
 
 			now := time.Now()
-			oauth := NewOAuth2("cid", "csecret", srv.URL, nil)
+			oauth := NewOAuth2("cid", "csecret", srv.URL)
 			oauth.nowFunc = func() time.Time { return now }
 
 			// First call — fetches token from server.
@@ -244,7 +267,7 @@ func TestOAuth2ConcurrentSafety(t *testing.T) {
 	srv := newOAuth2TestServer(t, &counter, 3600)
 	defer srv.Close()
 
-	oauth := NewOAuth2("cid", "csecret", srv.URL, []string{"scope1"})
+	oauth := NewOAuth2("cid", "csecret", srv.URL)
 
 	const goroutines = 10
 
@@ -304,7 +327,7 @@ func TestOAuth2TokenEndpointError(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	oauth := NewOAuth2("bad-id", "bad-secret", srv.URL, nil)
+	oauth := NewOAuth2("bad-id", "bad-secret", srv.URL)
 	req := httptest.NewRequest(http.MethodGet, "http://example.com", nil)
 
 	err := oauth.Enrich(context.Background(), req)
@@ -324,7 +347,7 @@ func TestOAuth2MalformedJSON(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	oauth := NewOAuth2("cid", "csecret", srv.URL, nil)
+	oauth := NewOAuth2("cid", "csecret", srv.URL)
 	req := httptest.NewRequest(http.MethodGet, "http://example.com", nil)
 
 	err := oauth.Enrich(context.Background(), req)
@@ -333,96 +356,60 @@ func TestOAuth2MalformedJSON(t *testing.T) {
 	assert.Contains(t, err.Error(), "decoding token response")
 }
 
+func TestOAuth2OptionalResponseFields(t *testing.T) {
+	t.Parallel()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		require.NoError(t, json.NewEncoder(w).Encode(tokenResponse{
+			AccessToken:  "tok-optional",
+			IDToken:      stringPtr("id-token"),
+			TokenType:    "Bearer",
+			ExpiresIn:    3600,
+			RefreshToken: "refresh-optional",
+			Scope:        stringPtr("ignored-scope"),
+		}))
+	}))
+	defer srv.Close()
+
+	oauth := NewOAuth2("cid", "csecret", srv.URL)
+	req := httptest.NewRequest(http.MethodGet, "http://example.com", nil)
+
+	require.NoError(t, oauth.Enrich(context.Background(), req))
+	assert.Equal(t, "Bearer tok-optional", req.Header.Get("Authorization"))
+}
+
 func TestOAuth2EmptyAccessToken(t *testing.T) {
 	t.Parallel()
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		require.NoError(t, json.NewEncoder(w).Encode(tokenResponse{TokenType: "Bearer", ExpiresIn: 3600}))
+		require.NoError(t, json.NewEncoder(w).Encode(tokenResponse{TokenType: "Bearer", ExpiresIn: 3600, RefreshToken: "refresh-123"}))
 	}))
 	defer srv.Close()
 
-	oauth := NewOAuth2("cid", "csecret", srv.URL, nil)
+	oauth := NewOAuth2("cid", "csecret", srv.URL)
 	req := httptest.NewRequest(http.MethodGet, "http://example.com", nil)
 
 	err := oauth.Enrich(context.Background(), req)
 
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "missing access_token")
+	assert.Contains(t, err.Error(), "missing accessToken")
 }
 
 func TestOAuth2UnreachableServer(t *testing.T) {
 	t.Parallel()
 
 	// Point to a server that doesn't exist.
-	oauth := NewOAuth2("cid", "csecret", "http://127.0.0.1:1", nil)
+	oauth := NewOAuth2("cid", "csecret", "http://127.0.0.1:1")
 	req := httptest.NewRequest(http.MethodGet, "http://example.com", nil)
 
 	err := oauth.Enrich(context.Background(), req)
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "executing token request")
-}
-
-func TestOAuth2ScopeJoining(t *testing.T) {
-	t.Parallel()
-
-	var receivedScope string
-
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		require.NoError(t, r.ParseForm())
-		receivedScope = r.FormValue("scope")
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-
-		resp := tokenResponse{
-			AccessToken: "tok-scoped",
-			TokenType:   "Bearer",
-			ExpiresIn:   3600,
-		}
-
-		require.NoError(t, json.NewEncoder(w).Encode(resp))
-	}))
-	defer srv.Close()
-
-	oauth := NewOAuth2("cid", "csecret", srv.URL, []string{"read", "write", "admin"})
-	req := httptest.NewRequest(http.MethodGet, "http://example.com", nil)
-
-	require.NoError(t, oauth.Enrich(context.Background(), req))
-	assert.Equal(t, "read write admin", receivedScope,
-		"scopes must be space-joined in the token request")
-}
-
-func TestOAuth2NoScopes(t *testing.T) {
-	t.Parallel()
-
-	var scopePresent bool
-
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		require.NoError(t, r.ParseForm())
-		_, scopePresent = r.Form["scope"]
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-
-		resp := tokenResponse{
-			AccessToken: "tok-noscope",
-			TokenType:   "Bearer",
-			ExpiresIn:   3600,
-		}
-
-		require.NoError(t, json.NewEncoder(w).Encode(resp))
-	}))
-	defer srv.Close()
-
-	oauth := NewOAuth2("cid", "csecret", srv.URL, nil)
-	req := httptest.NewRequest(http.MethodGet, "http://example.com", nil)
-
-	require.NoError(t, oauth.Enrich(context.Background(), req))
-	assert.False(t, scopePresent,
-		"when no scopes are configured, the scope field must be omitted from the request")
 }
 
 // ---------------------------------------------------------------------------
@@ -432,7 +419,7 @@ func TestOAuth2NoScopes(t *testing.T) {
 func TestOAuth2StringRedaction(t *testing.T) {
 	t.Parallel()
 
-	oauth := NewOAuth2("my-client-id", "my-client-secret", "https://auth.example.com/token", nil)
+	oauth := NewOAuth2("my-client-id", "my-client-secret", "https://auth.example.com/token")
 	s := oauth.String()
 
 	assert.Contains(t, s, "[REDACTED]")
@@ -445,13 +432,17 @@ func TestOAuth2StringRedaction(t *testing.T) {
 func TestOAuth2MarshalJSONRedaction(t *testing.T) {
 	t.Parallel()
 
-	oauth := NewOAuth2("my-client-id", "my-client-secret", "https://auth.example.com/token", nil)
+	oauth := NewOAuth2("my-client-id", "my-client-secret", "https://auth.example.com/token")
 	data, err := json.Marshal(oauth)
 
 	require.NoError(t, err)
 	assert.Contains(t, string(data), "[REDACTED]")
+	assert.Contains(t, string(data), "clientId")
+	assert.Contains(t, string(data), "tokenUrl")
 	assert.Contains(t, string(data), "my-client-id", "ClientID should be visible")
 	assert.Contains(t, string(data), "https://auth.example.com/token", "TokenURL should be visible")
+	assert.NotContains(t, string(data), "client_id")
+	assert.NotContains(t, string(data), "token_url")
 	assert.NotContains(t, string(data), "my-client-secret",
 		"MarshalJSON must not contain the client secret")
 }
@@ -470,9 +461,10 @@ func TestOAuth2RedirectRejectsCrossHost(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		require.NoError(t, json.NewEncoder(w).Encode(tokenResponse{
-			AccessToken: "tok-redirect",
-			TokenType:   "Bearer",
-			ExpiresIn:   3600,
+			AccessToken:  "tok-redirect",
+			TokenType:    "Bearer",
+			ExpiresIn:    3600,
+			RefreshToken: "refresh-redirect",
 		}))
 	}))
 	defer foreign.Close()
@@ -482,7 +474,7 @@ func TestOAuth2RedirectRejectsCrossHost(t *testing.T) {
 	}))
 	defer origin.Close()
 
-	oauth := NewOAuth2("cid", "csecret", origin.URL, nil)
+	oauth := NewOAuth2("cid", "csecret", origin.URL)
 	req := httptest.NewRequest(http.MethodGet, "http://example.com", nil)
 
 	err := oauth.Enrich(context.Background(), req)
@@ -508,19 +500,46 @@ func TestOAuth2RedirectAllowsSameHost(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		require.NoError(t, json.NewEncoder(w).Encode(tokenResponse{
-			AccessToken: "tok-same-host",
-			TokenType:   "Bearer",
-			ExpiresIn:   3600,
+			AccessToken:  "tok-same-host",
+			TokenType:    "Bearer",
+			ExpiresIn:    3600,
+			RefreshToken: "refresh-same-host",
 		}))
 	}))
 	defer ts.Close()
 
-	oauth := NewOAuth2("cid", "csecret", ts.URL+"/start", nil)
+	oauth := NewOAuth2("cid", "csecret", ts.URL+"/start")
 	req := httptest.NewRequest(http.MethodGet, "http://example.com", nil)
 
 	require.NoError(t, oauth.Enrich(context.Background(), req))
 	assert.Equal(t, "Bearer tok-same-host", req.Header.Get("Authorization"))
 	assert.Equal(t, int64(2), requestCount.Load())
+}
+
+func TestOAuth2ProvidedHTTPClientRejectsCrossHostRedirect(t *testing.T) {
+	t.Parallel()
+
+	var foreignHits atomic.Int64
+
+	foreign := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		foreignHits.Add(1)
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer foreign.Close()
+
+	origin := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, foreign.URL+"/token", http.StatusTemporaryRedirect)
+	}))
+	defer origin.Close()
+
+	oauth := NewOAuth2WithHTTPClient("cid", "csecret", origin.URL, &http.Client{Timeout: time.Second})
+	req := httptest.NewRequest(http.MethodGet, "http://example.com", nil)
+
+	err := oauth.Enrich(context.Background(), req)
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "refusing cross-host redirect")
+	assert.Equal(t, int64(0), foreignHits.Load())
 }
 
 func TestOAuth2ZeroValueUsesDefaults(t *testing.T) {
