@@ -27,11 +27,17 @@ plugins:
       - breaking: true
         release: major
 
+  - path: "@semantic-release/release-notes-generator"
+    preset: conventionalcommits
+
+  - path: "@semantic-release/changelog"
+    changelogFile: CHANGELOG.md
+
   # Plugin to version the CHANGELOG.md
   - path: "@semantic-release/git"
     assets:
       - CHANGELOG.md
-    message: "chore(release): ${nextRelease.version}\n\nChangelog atualizado."
+    message: "chore(release): ${nextRelease.version}\n\nChangelog updated."
 
   # Plugin to publish the CHANGELOG.md as an asset in the GitHub release
   - path: "@semantic-release/github"

@@ -18,16 +18,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install GitHub CLI
-        run: sudo apt-get install -y gh
-
       - name: Fetch Latest Release
         id: latest_release
-        env:
-          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
-        run: |
-          RAW_RELEASE=$(gh release list --repo $GITHUB_REPOSITORY --limit 1 --json tagName --jq '.[0].tagName')
-          echo "tag=$RAW_RELEASE" >> $GITHUB_OUTPUT
+        run: echo "tag=${{ github.event.release.tag_name }}" >> $GITHUB_OUTPUT
 
       - name: Releases to Discord
         uses: SethCohen/github-releases-to-discord@v1.16.2
@@ -40,7 +33,7 @@ jobs:
           footer_timestamp: true
 
       - name: Notify Slack of New Release
-        uses: rtCamp/action-slack-notify@v2
+        uses: rtCamp/action-slack-notify@e31e87e03dd19038e411e38ae27cbad084a90661 # v2.3.3
         env:
           SLACK_CHANNEL: "lerian-product-release"
           SLACK_COLOR: "#36a64f"
