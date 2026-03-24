@@ -17,6 +17,6 @@
 // Authenticators are typically created by product option functions (e.g.
 // [midaz.WithClientCredentials]), but can also be constructed directly:
 //
-//	authn := auth.NewOAuth2("client-id", "client-secret", "https://auth.example.com/token", nil)
-//	authn.Enrich(ctx, req) // sets Authorization: Bearer <access_token>
+//	authn := auth.NewOAuth2("client-id", "client-secret", "https://auth.example.com/token")
+//	authn.Enrich(ctx, req) // sets Authorization: Bearer <token>
 package auth

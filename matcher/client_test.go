@@ -40,7 +40,6 @@ func TestNewClient(t *testing.T) {
 		ClientID:     "client-id",
 		ClientSecret: "client-secret",
 		TokenURL:     "https://auth.example.com/token",
-		Scopes:       []string{"matcher:read"},
 		Timeout:      30 * time.Second,
 	}
 
@@ -51,7 +50,6 @@ func TestNewClient(t *testing.T) {
 	assert.Equal(t, "client-id", client.config.ClientID)
 	assert.Equal(t, "client-secret", client.config.ClientSecret)
 	assert.Equal(t, "https://auth.example.com/token", client.config.TokenURL)
-	assert.Equal(t, []string{"matcher:read"}, client.config.Scopes)
 	assert.Equal(t, 30*time.Second, client.config.Timeout)
 
 	// Config service accessors are wired by NewClient.
@@ -103,16 +101,6 @@ func TestOptions(t *testing.T) {
 		assert.Equal(t, "https://auth.example.com/token", cfg.TokenURL)
 	})
 
-	t.Run("WithScopes", func(t *testing.T) {
-		t.Parallel()
-
-		var cfg Config
-
-		err := WithScopes("matcher:read", "matcher:write")(&cfg)
-		require.NoError(t, err)
-		assert.Equal(t, []string{"matcher:read", "matcher:write"}, cfg.Scopes)
-	})
-
 	t.Run("WithTimeout", func(t *testing.T) {
 		t.Parallel()
 
@@ -136,7 +124,6 @@ func TestConfigStringRedaction(t *testing.T) {
 		ClientID:     "client-id",
 		ClientSecret: "super-secret-client-secret",
 		TokenURL:     "https://auth.example.com/token",
-		Scopes:       []string{"matcher:read"},
 		Timeout:      30 * time.Second,
 	}
 
@@ -164,7 +151,6 @@ func TestConfigMarshalJSONRedaction(t *testing.T) {
 		ClientID:     "client-id",
 		ClientSecret: "super-secret-client-secret",
 		TokenURL:     "https://auth.example.com/token",
-		Scopes:       []string{"matcher:read"},
 		Timeout:      30 * time.Second,
 	}
 
