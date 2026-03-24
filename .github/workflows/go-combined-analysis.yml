@@ -26,19 +26,40 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v5
 
-      # Using GolangCI-Lint Module
-      - name: Run GoLangCI Lint
-        uses: LerianStudio/github-actions-golangci-lint@main
+      - name: Set up Go
+        uses: actions/setup-go@v5
         with:
-          lerian_studio_midaz_push_bot_app_id: ${{ secrets.LERIAN_STUDIO_MIDAZ_PUSH_BOT_APP_ID }}
-          lerian_studio_midaz_push_bot_private_key: ${{ secrets.LERIAN_STUDIO_MIDAZ_PUSH_BOT_PRIVATE_KEY }}
-          lerian_ci_cd_user_gpg_key: ${{ secrets.LERIAN_CI_CD_USER_GPG_KEY }}
-          lerian_ci_cd_user_gpg_key_password: ${{ secrets.LERIAN_CI_CD_USER_GPG_KEY_PASSWORD }}
-          lerian_ci_cd_user_name: ${{ secrets.LERIAN_CI_CD_USER_NAME }}
-          lerian_ci_cd_user_email: ${{ secrets.LERIAN_CI_CD_USER_EMAIL }}
-          go_version: "1.24"
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          golangci_lint_version: "v2.11.4"
+          go-version: "1.24"
+          cache: true
+
+      - name: Create GitHub App Token
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.LERIAN_STUDIO_MIDAZ_PUSH_BOT_APP_ID }}
+          private-key: ${{ secrets.LERIAN_STUDIO_MIDAZ_PUSH_BOT_PRIVATE_KEY }}
+          owner: LerianStudio
+
+      - name: Import GPG key
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
+          gpg_private_key: ${{ secrets.LERIAN_CI_CD_USER_GPG_KEY }}
+          passphrase: ${{ secrets.LERIAN_CI_CD_USER_GPG_KEY_PASSWORD }}
+          git_user_signingkey: true
+          git_commit_gpgsign: true
+
+      - name: Configure GOPRIVATE
+        run: |
+          git config --global url."https://x-access-token:${{ steps.app-token.outputs.token }}@github.com/LerianStudio/".insteadOf "https://github.com/LerianStudio/"
+          go env -w GOPRIVATE=github.com/LerianStudio/*
+
+      - name: Download Go modules
+        run: go mod download
+
+      - name: Run GolangCI-Lint
+        uses: golangci/golangci-lint-action@v7
+        with:
+          version: v2.11.4
 
   GoSec:
     name: Run GoSec Security Scanner
