@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -451,7 +452,7 @@ func TestOAuth2MarshalJSONRedaction(t *testing.T) {
 // OAuth2 redirect and zero-value safety tests
 // ---------------------------------------------------------------------------
 
-func TestOAuth2RedirectRejectsCrossHost(t *testing.T) {
+func TestOAuth2RedirectRejectsCrossOrigin(t *testing.T) {
 	t.Parallel()
 
 	var foreignHits atomic.Int64
@@ -480,9 +481,9 @@ func TestOAuth2RedirectRejectsCrossHost(t *testing.T) {
 	err := oauth.Enrich(context.Background(), req)
 
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "refusing cross-host redirect")
+	assert.Contains(t, err.Error(), "refusing cross-port redirect")
 	assert.Equal(t, int64(0), foreignHits.Load(),
-		"token requests must not follow cross-host redirects")
+		"token requests must not follow cross-origin redirects")
 }
 
 func TestOAuth2RedirectAllowsSameHost(t *testing.T) {
@@ -516,7 +517,7 @@ func TestOAuth2RedirectAllowsSameHost(t *testing.T) {
 	assert.Equal(t, int64(2), requestCount.Load())
 }
 
-func TestOAuth2ProvidedHTTPClientRejectsCrossHostRedirect(t *testing.T) {
+func TestOAuth2ProvidedHTTPClientRejectsCrossOriginRedirect(t *testing.T) {
 	t.Parallel()
 
 	var foreignHits atomic.Int64
@@ -538,8 +539,35 @@ func TestOAuth2ProvidedHTTPClientRejectsCrossHostRedirect(t *testing.T) {
 	err := oauth.Enrich(context.Background(), req)
 
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "refusing cross-host redirect")
+	assert.Contains(t, err.Error(), "refusing cross-port redirect")
 	assert.Equal(t, int64(0), foreignHits.Load())
+}
+
+func TestOAuthRedirectPolicyAllowsDefaultHTTPSPortNormalization(t *testing.T) {
+	t.Parallel()
+
+	target, err := url.Parse("https://auth.example.com:443/token")
+	require.NoError(t, err)
+	origin, err := url.Parse("https://auth.example.com/start")
+	require.NoError(t, err)
+
+	err = oauthRedirectPolicy(nil)(&http.Request{URL: target}, []*http.Request{{URL: origin}})
+
+	require.NoError(t, err)
+}
+
+func TestOAuthRedirectPolicyRejectsHTTPSDowngrade(t *testing.T) {
+	t.Parallel()
+
+	target, err := url.Parse("http://auth.example.com/token")
+	require.NoError(t, err)
+	origin, err := url.Parse("https://auth.example.com/start")
+	require.NoError(t, err)
+
+	err = oauthRedirectPolicy(nil)(&http.Request{URL: target}, []*http.Request{{URL: origin}})
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "refusing HTTPS downgrade redirect")
 }
 
 func TestOAuth2ZeroValueUsesDefaults(t *testing.T) {

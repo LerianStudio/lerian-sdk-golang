@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
+	"strings"
 	"sync"
 	"time"
 )
@@ -146,12 +148,32 @@ func oauthRedirectPolicy(next func(*http.Request, []*http.Request) error) func(*
 			return fmt.Errorf("auth/oauth2: stopped after 10 redirects")
 		}
 
-		if len(via) > 0 && req.URL.Host != via[0].URL.Host {
-			return fmt.Errorf(
-				"auth/oauth2: refusing cross-host redirect from %q to %q",
-				via[0].URL.Host,
-				req.URL.Host,
-			)
+		if len(via) > 0 {
+			origin := via[0].URL
+
+			if strings.EqualFold(origin.Scheme, "https") && !strings.EqualFold(req.URL.Scheme, "https") {
+				return fmt.Errorf(
+					"auth/oauth2: refusing HTTPS downgrade redirect from %q to %q",
+					origin.Scheme+"://"+origin.Host,
+					req.URL.Scheme+"://"+req.URL.Host,
+				)
+			}
+
+			if !strings.EqualFold(req.URL.Hostname(), origin.Hostname()) {
+				return fmt.Errorf(
+					"auth/oauth2: refusing cross-host redirect from %q to %q",
+					origin.Host,
+					req.URL.Host,
+				)
+			}
+
+			if oauthURLPort(req.URL) != oauthURLPort(origin) {
+				return fmt.Errorf(
+					"auth/oauth2: refusing cross-port redirect from %q to %q",
+					origin.Host,
+					req.URL.Host,
+				)
+			}
 		}
 
 		if next != nil {
@@ -159,6 +181,22 @@ func oauthRedirectPolicy(next func(*http.Request, []*http.Request) error) func(*
 		}
 
 		return nil
+	}
+}
+
+func oauthURLPort(rawURL *url.URL) string {
+	port := rawURL.Port()
+	if port != "" {
+		return port
+	}
+
+	switch strings.ToLower(rawURL.Scheme) {
+	case "https":
+		return "443"
+	case "http":
+		return "80"
+	default:
+		return ""
 	}
 }
 
