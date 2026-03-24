@@ -1,3 +1,18 @@
+## [0.1.0](https://github.com/LerianStudio/lerian-sdk-golang/compare/v0.0.1...v0.1.0) (2026-03-24)
+
+
+### Features
+
+* **auth:** adopt Lerian-native token contract ([4bb8e8d](https://github.com/LerianStudio/lerian-sdk-golang/commit/4bb8e8d0c9ec643c2907635741a5470c806b3a19))
+
+
+### Bug Fixes
+
+* address CodeRabbit review comments ([57854b3](https://github.com/LerianStudio/lerian-sdk-golang/commit/57854b356a15b8928d71c751bc968d11d079ce88))
+* **auth:** normalize token redirect checks ([f21cbc4](https://github.com/LerianStudio/lerian-sdk-golang/commit/f21cbc4cb20e67d32dc0cc85fd09fa7ed6a7794b))
+* simplify GolangCI-Lint job and fix Trivy action version ([43d5cc8](https://github.com/LerianStudio/lerian-sdk-golang/commit/43d5cc84394e58e76e29470d53a9c964467a832c))
+* use golangci-lint v2 directly instead of shared action ([dc27bb8](https://github.com/LerianStudio/lerian-sdk-golang/commit/dc27bb8a1327304fc4f23f2943c716367e772207))
+
 ## 1.0.0-beta.1 (2026-03-24)
 
 
