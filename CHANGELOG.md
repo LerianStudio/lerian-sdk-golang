@@ -1,3 +1,10 @@
+## [0.3.0](https://github.com/LerianStudio/lerian-sdk-golang/compare/v0.2.0...v0.3.0) (2026-03-25)
+
+
+### Bug Fixes
+
+* **midaz:** expose parentTransactionId in JSON and remove unused balance model fields ([79af275](https://github.com/LerianStudio/lerian-sdk-golang/commit/79af275970c526aba08406c9029aef15773dd4ec))
+
 ## [0.2.0](https://github.com/LerianStudio/lerian-sdk-golang/compare/v0.1.0...v0.2.0) (2026-03-25)
 
 
