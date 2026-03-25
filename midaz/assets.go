@@ -1,4 +1,4 @@
-// assets.go implements the AssetsService for managing tradable instruments
+// assets.go implements the assetsServiceAPI for managing tradable instruments
 // and currencies within a ledger (e.g. "BRL", "USD", "BTC").
 //
 // Assets define the denomination of account balances and the unit of measure
@@ -15,8 +15,8 @@ import (
 	"github.com/LerianStudio/lerian-sdk-golang/pkg/pagination"
 )
 
-// AssetsService provides CRUD operations for assets.
-type AssetsService interface {
+// assetsServiceAPI provides CRUD operations for assets.
+type assetsServiceAPI interface {
 	// Create creates a new asset within the specified ledger.
 	Create(ctx context.Context, orgID, ledgerID string, input *CreateAssetInput) (*Asset, error)
 
@@ -24,31 +24,34 @@ type AssetsService interface {
 	Get(ctx context.Context, orgID, ledgerID, id string) (*Asset, error)
 
 	// List returns a paginated iterator over assets in a ledger.
-	List(ctx context.Context, orgID, ledgerID string, opts *models.ListOptions) *pagination.Iterator[Asset]
+	List(ctx context.Context, orgID, ledgerID string, opts *models.CursorListOptions) *pagination.Iterator[Asset]
 
 	// Update partially updates an existing asset.
 	Update(ctx context.Context, orgID, ledgerID, id string, input *UpdateAssetInput) (*Asset, error)
 
 	// Delete removes an asset by its unique identifier.
 	Delete(ctx context.Context, orgID, ledgerID, id string) error
+
+	// Count returns the total number of assets in a ledger.
+	Count(ctx context.Context, orgID, ledgerID string) (int, error)
 }
 
-// assetsService is the concrete implementation of [AssetsService].
+// assetsService is the concrete implementation of [assetsServiceAPI].
 // It embeds [core.BaseService] to inherit the HTTP transport layer.
 type assetsService struct {
 	core.BaseService
 }
 
-// newAssetsService creates a new [AssetsService] backed by the given
+// newAssetsService creates a new [assetsServiceAPI] backed by the given
 // onboarding [core.Backend].
-func newAssetsService(backend core.Backend) AssetsService {
+func newAssetsService(backend core.Backend) assetsServiceAPI {
 	return &assetsService{
 		BaseService: core.BaseService{Backend: backend},
 	}
 }
 
 // Compile-time interface compliance check.
-var _ AssetsService = (*assetsService)(nil)
+var _ assetsServiceAPI = (*assetsService)(nil)
 
 // assetsBasePath builds the base path for asset operations scoped to
 // an organization and ledger.
@@ -97,7 +100,7 @@ func (s *assetsService) Get(ctx context.Context, orgID, ledgerID, id string) (*A
 }
 
 // List returns a paginated iterator over assets in a ledger.
-func (s *assetsService) List(ctx context.Context, orgID, ledgerID string, opts *models.ListOptions) *pagination.Iterator[Asset] {
+func (s *assetsService) List(ctx context.Context, orgID, ledgerID string, opts *models.CursorListOptions) *pagination.Iterator[Asset] {
 	if orgID == "" || ledgerID == "" {
 		return pagination.NewIterator[Asset](func(_ context.Context, _ string) ([]Asset, string, error) {
 			return nil, "", sdkerrors.NewValidation("Assets.List", assetResource, "organization ID and ledger ID are required")
@@ -147,4 +150,23 @@ func (s *assetsService) Delete(ctx context.Context, orgID, ledgerID, id string) 
 	}
 
 	return core.Delete(ctx, &s.BaseService, assetsBasePath(orgID, ledgerID)+"/"+url.PathEscape(id))
+}
+
+// Count returns the total number of assets in a ledger.
+func (s *assetsService) Count(ctx context.Context, orgID, ledgerID string) (int, error) {
+	const operation = "Assets.Count"
+
+	if err := ensureService(s); err != nil {
+		return 0, err
+	}
+
+	if orgID == "" {
+		return 0, sdkerrors.NewValidation(operation, assetResource, "organization id is required")
+	}
+
+	if ledgerID == "" {
+		return 0, sdkerrors.NewValidation(operation, assetResource, "ledger id is required")
+	}
+
+	return core.Count(ctx, &s.BaseService, assetsBasePath(orgID, ledgerID)+"/metrics/count")
 }

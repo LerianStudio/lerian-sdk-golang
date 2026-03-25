@@ -239,7 +239,7 @@ func TestSegmentsListWithOptions(t *testing.T) {
 	}
 
 	svc := newSegmentsService(mock)
-	opts := &models.ListOptions{
+	opts := &models.CursorListOptions{
 		Limit:     25,
 		SortBy:    "name",
 		SortOrder: "asc",
@@ -454,7 +454,7 @@ func TestSegmentsDeleteBackendError(t *testing.T) {
 func TestSegmentsServiceInterfaceCompliance(t *testing.T) {
 	t.Parallel()
 
-	var _ SegmentsService = (*segmentsService)(nil)
+	var _ segmentsServiceAPI = (*segmentsService)(nil)
 
-	t.Log("segmentsService implements SegmentsService")
+	t.Log("segmentsService implements segmentsServiceAPI")
 }

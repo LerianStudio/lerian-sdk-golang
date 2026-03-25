@@ -13,7 +13,7 @@ import (
 // NewClient — struct construction
 // ---------------------------------------------------------------------------
 
-func TestNewClientConstruction(t *testing.T) {
+func TestNewClientConstructionWithoutCRM(t *testing.T) {
 	t.Parallel()
 
 	cfg := Config{
@@ -22,13 +22,10 @@ func TestNewClientConstruction(t *testing.T) {
 		Timeout:        30 * time.Second,
 	}
 
-	// nil backends are valid for construction — services are wired separately.
 	client := NewClient(nil, nil, cfg)
 	require.NotNil(t, client, "NewClient must return a non-nil *Client")
 
-	assert.Equal(t, cfg.OnboardingURL, client.config.OnboardingURL)
-	assert.Equal(t, cfg.TransactionURL, client.config.TransactionURL)
-	assert.Equal(t, cfg.Timeout, client.config.Timeout)
+	assert.Nil(t, client.CRM)
 }
 
 // ---------------------------------------------------------------------------
@@ -46,22 +43,33 @@ func TestNewClientWiredServicesNotNil(t *testing.T) {
 	client := NewClient(nil, nil, cfg)
 	require.NotNil(t, client)
 
-	// All 13 services must be non-nil after construction.
+	// Onboarding and transaction service accessors must be non-nil after construction.
 	require.NotPanics(t, func() {
-		assert.NotNil(t, client.Organizations)
-		assert.NotNil(t, client.Ledgers)
-		assert.NotNil(t, client.Accounts)
-		assert.NotNil(t, client.AccountTypes)
-		assert.NotNil(t, client.Assets)
-		assert.NotNil(t, client.AssetRates)
-		assert.NotNil(t, client.Balances)
-		assert.NotNil(t, client.Portfolios)
-		assert.NotNil(t, client.Segments)
-		assert.NotNil(t, client.Transactions)
-		assert.NotNil(t, client.TransactionRoutes)
-		assert.NotNil(t, client.Operations)
-		assert.NotNil(t, client.OperationRoutes)
+		assert.NotNil(t, client.Onboarding.Organizations)
+		assert.NotNil(t, client.Onboarding.Ledgers)
+		assert.NotNil(t, client.Onboarding.Accounts)
+		assert.NotNil(t, client.Onboarding.AccountTypes)
+		assert.NotNil(t, client.Onboarding.Assets)
+		assert.NotNil(t, client.Transactions.AssetRates)
+		assert.NotNil(t, client.Transactions.Balances)
+		assert.NotNil(t, client.Onboarding.Portfolios)
+		assert.NotNil(t, client.Onboarding.Segments)
+		assert.NotNil(t, client.Transactions.Transactions)
+		assert.NotNil(t, client.Transactions.TransactionRoutes)
+		assert.NotNil(t, client.Transactions.Operations)
+		assert.NotNil(t, client.Transactions.OperationRoutes)
 	})
+	assert.Nil(t, client.CRM)
+}
+
+func TestNewClientWithCRMWiresCRMServices(t *testing.T) {
+	t.Parallel()
+
+	client := NewClientWithCRM(nil, nil, &mockBackend{}, Config{CRMURL: "http://localhost:4003/v1"})
+	require.NotNil(t, client)
+	require.NotNil(t, client.CRM)
+	assert.NotNil(t, client.CRM.Holders)
+	assert.NotNil(t, client.CRM.Aliases)
 }
 
 // ---------------------------------------------------------------------------
@@ -90,6 +98,14 @@ func TestOptions(t *testing.T) {
 			assertCfg: func(t *testing.T, c Config) {
 				t.Helper()
 				assert.Equal(t, "http://txn:3001", c.TransactionURL)
+			},
+		},
+		{
+			name: "WithCRMURL",
+			opt:  WithCRMURL("http://crm:4003"),
+			assertCfg: func(t *testing.T, c Config) {
+				t.Helper()
+				assert.Equal(t, "http://crm:4003", c.CRMURL)
 			},
 		},
 		{
@@ -156,6 +172,7 @@ func TestConfigStringRedaction(t *testing.T) {
 	cfg := Config{
 		OnboardingURL:  "http://localhost:3000/v1",
 		TransactionURL: "http://localhost:3001/v1",
+		CRMURL:         "http://localhost:4003/v1",
 		ClientID:       "client-id",
 		ClientSecret:   "super-secret-client-secret",
 		TokenURL:       "https://auth.example.com/token",
@@ -168,6 +185,7 @@ func TestConfigStringRedaction(t *testing.T) {
 	assert.Contains(t, s, "MidazConfig")
 	assert.Contains(t, s, "http://localhost:3000/v1", "OnboardingURL should be visible")
 	assert.Contains(t, s, "http://localhost:3001/v1", "TransactionURL should be visible")
+	assert.Contains(t, s, "http://localhost:4003/v1", "CRMURL should be visible")
 	assert.Contains(t, s, "client-id", "ClientID should be visible")
 	assert.Contains(t, s, "https://auth.example.com/token", "TokenURL should be visible")
 	assert.Contains(t, s, "30s", "Timeout should be visible")
@@ -185,6 +203,7 @@ func TestConfigMarshalJSONRedaction(t *testing.T) {
 	cfg := Config{
 		OnboardingURL:  "http://localhost:3000/v1",
 		TransactionURL: "http://localhost:3001/v1",
+		CRMURL:         "http://localhost:4003/v1",
 		ClientID:       "client-id",
 		ClientSecret:   "super-secret-client-secret",
 		TokenURL:       "https://auth.example.com/token",
@@ -199,6 +218,7 @@ func TestConfigMarshalJSONRedaction(t *testing.T) {
 	assert.Contains(t, s, "[REDACTED]")
 	assert.Contains(t, s, "http://localhost:3000/v1", "OnboardingURL should be visible")
 	assert.Contains(t, s, "http://localhost:3001/v1", "TransactionURL should be visible")
+	assert.Contains(t, s, "http://localhost:4003/v1", "CRMURL should be visible")
 	assert.Contains(t, s, "client-id", "ClientID should be visible")
 	assert.Contains(t, s, "https://auth.example.com/token", "TokenURL should be visible")
 	assert.NotContains(t, s, "super-secret-client-secret",
@@ -215,21 +235,32 @@ func TestServiceInterfaceTypes(t *testing.T) {
 	// These compile-time assertions verify that each concrete entity type
 	// satisfies its corresponding service interface.
 	var (
-		_ OrganizationsService     = (*organizationsService)(nil)
-		_ LedgersService           = (*ledgersService)(nil)
-		_ AccountsService          = (*accountsService)(nil)
-		_ AccountTypesService      = (*accountTypesService)(nil)
-		_ AssetsService            = (*assetsService)(nil)
-		_ AssetRatesService        = (*assetRatesService)(nil)
-		_ BalancesService          = (*balancesService)(nil)
-		_ TransactionsService      = (*transactionsService)(nil)
-		_ TransactionRoutesService = (*transactionRoutesService)(nil)
-		_ OperationsService        = (*operationsService)(nil)
-		_ OperationRoutesService   = (*operationRoutesService)(nil)
-		_ PortfoliosService        = (*portfoliosService)(nil)
-		_ SegmentsService          = (*segmentsService)(nil)
+		_ organizationsServiceAPI     = (*organizationsService)(nil)
+		_ organizationsServiceAPI     = (*organizationsService)(nil)
+		_ ledgersServiceAPI           = (*ledgersService)(nil)
+		_ ledgersServiceAPI           = (*ledgersService)(nil)
+		_ accountsServiceAPI          = (*accountsService)(nil)
+		_ accountsServiceAPI          = (*accountsService)(nil)
+		_ accountTypesServiceAPI      = (*accountTypesService)(nil)
+		_ assetsServiceAPI            = (*assetsService)(nil)
+		_ assetsServiceAPI            = (*assetsService)(nil)
+		_ assetRatesServiceAPI        = (*assetRatesService)(nil)
+		_ balancesServiceAPI          = (*balancesService)(nil)
+		_ balancesServiceAPI          = (*balancesService)(nil)
+		_ transactionsServiceAPI      = (*transactionsService)(nil)
+		_ transactionsServiceAPI      = (*transactionsService)(nil)
+		_ transactionRoutesServiceAPI = (*transactionRoutesService)(nil)
+		_ operationsServiceAPI        = (*operationsService)(nil)
+		_ operationsServiceAPI        = (*operationsService)(nil)
+		_ operationRoutesServiceAPI   = (*operationRoutesService)(nil)
+		_ portfoliosServiceAPI        = (*portfoliosService)(nil)
+		_ portfoliosServiceAPI        = (*portfoliosService)(nil)
+		_ segmentsServiceAPI          = (*segmentsService)(nil)
+		_ segmentsServiceAPI          = (*segmentsService)(nil)
+		_ holdersServiceAPI           = (*holdersService)(nil)
+		_ aliasesServiceAPI           = (*aliasesService)(nil)
 	)
 
 	// The test passes if it compiles.
-	t.Log("all 13 service interface types exist and compile")
+	t.Log("all core and extension service interface types exist and compile")
 }

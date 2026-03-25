@@ -43,7 +43,7 @@ func TestBalancesUsesTransactionBackend(t *testing.T) {
 
 	client := NewClient(onboardingMock, transactionMock, Config{})
 
-	_, err := client.Balances.Get(context.Background(), testOrgID, testLedgerID, "bal-1")
+	_, err := client.Transactions.Balances.Get(context.Background(), testOrgID, testLedgerID, "bal-1")
 	require.NoError(t, err)
 
 	assert.False(t, onboardingCalled, "Balances must NOT use the onboarding backend")
@@ -54,21 +54,22 @@ func TestBalancesUsesTransactionBackend(t *testing.T) {
 // Balances — Create
 // ---------------------------------------------------------------------------
 
-func TestBalancesCreate(t *testing.T) {
+func TestBalancesCreateForAccount(t *testing.T) {
 	t.Parallel()
 
 	mock := &mockBackend{
 		callFn: func(_ context.Context, method, path string, body, result any) error {
 			assert.Equal(t, "POST", method)
-			assert.Equal(t, "/organizations/org-1/ledgers/led-1/balances", path)
+			assert.Equal(t, "/organizations/org-1/ledgers/led-1/accounts/acc-1/balances", path)
 			assert.NotNil(t, body)
 
-			input, ok := body.(*CreateBalanceInput)
+			input, ok := body.(*createAdditionalBalanceRequest)
 			require.True(t, ok)
-			assert.Equal(t, "acc-1", input.AccountID)
-			assert.Equal(t, "BRL", input.AssetCode)
-			assert.True(t, input.AllowSending)
-			assert.True(t, input.AllowReceiving)
+			assert.Equal(t, "asset-freeze", input.Key)
+			require.NotNil(t, input.AllowSending)
+			require.NotNil(t, input.AllowReceiving)
+			assert.True(t, *input.AllowSending)
+			assert.True(t, *input.AllowReceiving)
 
 			return unmarshalInto(Balance{
 				ID:        "bal-1",
@@ -79,11 +80,12 @@ func TestBalancesCreate(t *testing.T) {
 	}
 
 	svc := newBalancesService(mock)
-	bal, err := svc.Create(context.Background(), testOrgID, testLedgerID, &CreateBalanceInput{
-		AccountID:      "acc-1",
-		AssetCode:      "BRL",
-		AllowSending:   true,
-		AllowReceiving: true,
+	allowSending := true
+	allowReceiving := true
+	bal, err := svc.CreateForAccount(context.Background(), testOrgID, testLedgerID, "acc-1", &CreateBalanceInput{
+		Key:            "asset-freeze",
+		AllowSending:   &allowSending,
+		AllowReceiving: &allowReceiving,
 	})
 
 	require.NoError(t, err)
@@ -92,33 +94,82 @@ func TestBalancesCreate(t *testing.T) {
 	assert.Equal(t, "acc-1", bal.AccountID)
 }
 
-func TestBalancesCreateNilInput(t *testing.T) {
+func TestBalancesCreateForAccountNilInput(t *testing.T) {
 	t.Parallel()
 
 	svc := newBalancesService(&mockBackend{})
-	bal, err := svc.Create(context.Background(), testOrgID, testLedgerID, nil)
+	bal, err := svc.CreateForAccount(context.Background(), testOrgID, testLedgerID, "acc-1", nil)
 
 	require.Error(t, err)
 	assert.Nil(t, bal)
 	assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
 }
 
-func TestBalancesCreateEmptyOrgID(t *testing.T) {
+func TestBalancesCreateForAccountOmitsPermissionFlagsWhenUnset(t *testing.T) {
+	t.Parallel()
+
+	mock := &mockBackend{
+		callFn: func(_ context.Context, method, path string, body, result any) error {
+			assert.Equal(t, "POST", method)
+			assert.Equal(t, "/organizations/org-1/ledgers/led-1/accounts/acc-1/balances", path)
+
+			input, ok := body.(*createAdditionalBalanceRequest)
+			require.True(t, ok)
+			assert.Equal(t, "reserve", input.Key)
+			assert.Nil(t, input.AllowSending)
+			assert.Nil(t, input.AllowReceiving)
+
+			return unmarshalInto(Balance{ID: "bal-optional"}, result)
+		},
+	}
+
+	svc := newBalancesService(mock)
+	bal, err := svc.CreateForAccount(context.Background(), testOrgID, testLedgerID, "acc-1", &CreateBalanceInput{Key: "reserve"})
+
+	require.NoError(t, err)
+	require.NotNil(t, bal)
+	assert.Equal(t, "bal-optional", bal.ID)
+}
+
+func TestBalancesCreateForAccountEmptyAccountID(t *testing.T) {
 	t.Parallel()
 
 	svc := newBalancesService(&mockBackend{})
-	bal, err := svc.Create(context.Background(), "", testLedgerID, &CreateBalanceInput{})
+	bal, err := svc.CreateForAccount(context.Background(), testOrgID, testLedgerID, "", &CreateBalanceInput{Key: "asset-freeze"})
 
 	require.Error(t, err)
 	assert.Nil(t, bal)
 	assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
 }
 
-func TestBalancesCreateEmptyLedgerID(t *testing.T) {
+func TestBalancesCreateForAccountMissingKey(t *testing.T) {
 	t.Parallel()
 
 	svc := newBalancesService(&mockBackend{})
-	bal, err := svc.Create(context.Background(), testOrgID, "", &CreateBalanceInput{})
+	bal, err := svc.CreateForAccount(context.Background(), testOrgID, testLedgerID, "acc-1", &CreateBalanceInput{})
+
+	require.Error(t, err)
+	assert.Nil(t, bal)
+	assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
+	assert.Contains(t, err.Error(), "key is required")
+}
+
+func TestBalancesCreateForAccountEmptyOrgID(t *testing.T) {
+	t.Parallel()
+
+	svc := newBalancesService(&mockBackend{})
+	bal, err := svc.CreateForAccount(context.Background(), "", testLedgerID, "acc-1", &CreateBalanceInput{Key: "asset-freeze"})
+
+	require.Error(t, err)
+	assert.Nil(t, bal)
+	assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
+}
+
+func TestBalancesCreateForAccountEmptyLedgerID(t *testing.T) {
+	t.Parallel()
+
+	svc := newBalancesService(&mockBackend{})
+	bal, err := svc.CreateForAccount(context.Background(), testOrgID, "", "acc-1", &CreateBalanceInput{Key: "asset-freeze"})
 
 	require.Error(t, err)
 	assert.Nil(t, bal)
@@ -357,51 +408,44 @@ func TestBalancesDeleteEmptyOrgID(t *testing.T) {
 // Balances — GetByAlias
 // ---------------------------------------------------------------------------
 
-func TestBalancesGetByAlias(t *testing.T) {
+func TestBalancesListByAlias(t *testing.T) {
 	t.Parallel()
 
 	mock := &mockBackend{
-		callFn: func(_ context.Context, method, path string, body, result any) error {
-			assert.Equal(t, "GET", method)
-			assert.Equal(t, "/organizations/org-1/ledgers/led-1/balances/alias/primary-checking", path)
-			assert.Nil(t, body)
-
-			return unmarshalInto(Balance{
-				ID:           "bal-1",
-				AccountAlias: ptr("primary-checking"),
-			}, result)
+		callFn: func(_ context.Context, _, path string, _, result any) error {
+			assert.Equal(t, "/organizations/org-1/ledgers/led-1/accounts/alias/primary-checking/balances", path)
+			return unmarshalInto(balancesLookupResponse{Items: []Balance{{ID: "bal-1"}, {ID: "bal-2"}}}, result)
 		},
 	}
 
 	svc := newBalancesService(mock)
-	bal, err := svc.GetByAlias(context.Background(), testOrgID, testLedgerID, "primary-checking")
+	items, err := svc.ListByAlias(context.Background(), testOrgID, testLedgerID, "primary-checking")
 
 	require.NoError(t, err)
-	require.NotNil(t, bal)
-	assert.Equal(t, "bal-1", bal.ID)
-	require.NotNil(t, bal.AccountAlias)
-	assert.Equal(t, "primary-checking", *bal.AccountAlias)
+	require.Len(t, items, 2)
+	assert.Equal(t, "bal-1", items[0].ID)
+	assert.Equal(t, "bal-2", items[1].ID)
 }
 
-func TestBalancesGetByAliasEmptyAlias(t *testing.T) {
+func TestBalancesListByAliasEmptyAlias(t *testing.T) {
 	t.Parallel()
 
 	svc := newBalancesService(&mockBackend{})
-	bal, err := svc.GetByAlias(context.Background(), testOrgID, testLedgerID, "")
+	items, err := svc.ListByAlias(context.Background(), testOrgID, testLedgerID, "")
 
 	require.Error(t, err)
-	assert.Nil(t, bal)
+	assert.Nil(t, items)
 	assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
 }
 
-func TestBalancesGetByAliasEmptyOrgID(t *testing.T) {
+func TestBalancesListByAliasEmptyOrgID(t *testing.T) {
 	t.Parallel()
 
 	svc := newBalancesService(&mockBackend{})
-	bal, err := svc.GetByAlias(context.Background(), "", testLedgerID, "my-alias")
+	items, err := svc.ListByAlias(context.Background(), "", testLedgerID, "my-alias")
 
 	require.Error(t, err)
-	assert.Nil(t, bal)
+	assert.Nil(t, items)
 	assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
 }
 
@@ -409,48 +453,44 @@ func TestBalancesGetByAliasEmptyOrgID(t *testing.T) {
 // Balances — GetByExternalCode
 // ---------------------------------------------------------------------------
 
-func TestBalancesGetByExternalCode(t *testing.T) {
+func TestBalancesListByExternalCode(t *testing.T) {
 	t.Parallel()
 
 	mock := &mockBackend{
-		callFn: func(_ context.Context, method, path string, body, result any) error {
-			assert.Equal(t, "GET", method)
-			assert.Equal(t, "/organizations/org-1/ledgers/led-1/balances/external-code/EXT-BAL-1", path)
-			assert.Nil(t, body)
-
-			return unmarshalInto(Balance{
-				ID: "bal-1",
-			}, result)
+		callFn: func(_ context.Context, _, path string, _, result any) error {
+			assert.Equal(t, "/organizations/org-1/ledgers/led-1/accounts/external/EXT-BAL-1/balances", path)
+			return unmarshalInto(balancesLookupResponse{Items: []Balance{{ID: "bal-1"}, {ID: "bal-2"}}}, result)
 		},
 	}
 
 	svc := newBalancesService(mock)
-	bal, err := svc.GetByExternalCode(context.Background(), testOrgID, testLedgerID, "EXT-BAL-1")
+	items, err := svc.ListByExternalCode(context.Background(), testOrgID, testLedgerID, "EXT-BAL-1")
 
 	require.NoError(t, err)
-	require.NotNil(t, bal)
-	assert.Equal(t, "bal-1", bal.ID)
+	require.Len(t, items, 2)
+	assert.Equal(t, "bal-1", items[0].ID)
+	assert.Equal(t, "bal-2", items[1].ID)
 }
 
-func TestBalancesGetByExternalCodeEmpty(t *testing.T) {
+func TestBalancesListByExternalCodeEmpty(t *testing.T) {
 	t.Parallel()
 
 	svc := newBalancesService(&mockBackend{})
-	bal, err := svc.GetByExternalCode(context.Background(), testOrgID, testLedgerID, "")
+	items, err := svc.ListByExternalCode(context.Background(), testOrgID, testLedgerID, "")
 
 	require.Error(t, err)
-	assert.Nil(t, bal)
+	assert.Nil(t, items)
 	assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
 }
 
-func TestBalancesGetByExternalCodeEmptyLedgerID(t *testing.T) {
+func TestBalancesListByExternalCodeEmptyLedgerID(t *testing.T) {
 	t.Parallel()
 
 	svc := newBalancesService(&mockBackend{})
-	bal, err := svc.GetByExternalCode(context.Background(), testOrgID, "", "EXT-BAL-1")
+	items, err := svc.ListByExternalCode(context.Background(), testOrgID, "", "EXT-BAL-1")
 
 	require.Error(t, err)
-	assert.Nil(t, bal)
+	assert.Nil(t, items)
 	assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
 }
 
@@ -458,61 +498,55 @@ func TestBalancesGetByExternalCodeEmptyLedgerID(t *testing.T) {
 // Balances — GetByAccountID
 // ---------------------------------------------------------------------------
 
-func TestBalancesGetByAccountID(t *testing.T) {
+func TestBalancesListByAccountID(t *testing.T) {
 	t.Parallel()
 
 	mock := &mockBackend{
-		callFn: func(_ context.Context, method, path string, body, result any) error {
-			assert.Equal(t, "GET", method)
-			assert.Equal(t, "/organizations/org-1/ledgers/led-1/balances/account/acc-1", path)
-			assert.Nil(t, body)
-
-			return unmarshalInto(Balance{
-				ID:        "bal-1",
-				AccountID: "acc-1",
-			}, result)
+		callFn: func(_ context.Context, _, path string, _, result any) error {
+			assert.Equal(t, "/organizations/org-1/ledgers/led-1/accounts/acc-1/balances", path)
+			return unmarshalInto(balancesLookupResponse{Items: []Balance{{ID: "bal-1", AccountID: "acc-1"}, {ID: "bal-2", AccountID: "acc-1"}}}, result)
 		},
 	}
 
 	svc := newBalancesService(mock)
-	bal, err := svc.GetByAccountID(context.Background(), testOrgID, testLedgerID, "acc-1")
+	items, err := svc.ListByAccountID(context.Background(), testOrgID, testLedgerID, "acc-1")
 
 	require.NoError(t, err)
-	require.NotNil(t, bal)
-	assert.Equal(t, "bal-1", bal.ID)
-	assert.Equal(t, "acc-1", bal.AccountID)
+	require.Len(t, items, 2)
+	assert.Equal(t, "bal-1", items[0].ID)
+	assert.Equal(t, "bal-2", items[1].ID)
 }
 
-func TestBalancesGetByAccountIDEmpty(t *testing.T) {
+func TestBalancesListByAccountIDEmpty(t *testing.T) {
 	t.Parallel()
 
 	svc := newBalancesService(&mockBackend{})
-	bal, err := svc.GetByAccountID(context.Background(), testOrgID, testLedgerID, "")
+	items, err := svc.ListByAccountID(context.Background(), testOrgID, testLedgerID, "")
 
 	require.Error(t, err)
-	assert.Nil(t, bal)
+	assert.Nil(t, items)
 	assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
 }
 
-func TestBalancesGetByAccountIDEmptyOrgID(t *testing.T) {
+func TestBalancesListByAccountIDEmptyOrgID(t *testing.T) {
 	t.Parallel()
 
 	svc := newBalancesService(&mockBackend{})
-	bal, err := svc.GetByAccountID(context.Background(), "", testLedgerID, "acc-1")
+	items, err := svc.ListByAccountID(context.Background(), "", testLedgerID, "acc-1")
 
 	require.Error(t, err)
-	assert.Nil(t, bal)
+	assert.Nil(t, items)
 	assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
 }
 
-func TestBalancesGetByAccountIDEmptyLedgerID(t *testing.T) {
+func TestBalancesListByAccountIDEmptyLedgerID(t *testing.T) {
 	t.Parallel()
 
 	svc := newBalancesService(&mockBackend{})
-	bal, err := svc.GetByAccountID(context.Background(), testOrgID, "", "acc-1")
+	items, err := svc.ListByAccountID(context.Background(), testOrgID, "", "acc-1")
 
 	require.Error(t, err)
-	assert.Nil(t, bal)
+	assert.Nil(t, items)
 	assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
 }
 
@@ -520,7 +554,7 @@ func TestBalancesGetByAccountIDEmptyLedgerID(t *testing.T) {
 // Balances — Backend Error Propagation
 // ---------------------------------------------------------------------------
 
-func TestBalancesCreateBackendError(t *testing.T) {
+func TestBalancesCreateForAccountBackendError(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("backend error: conflict")
@@ -531,7 +565,7 @@ func TestBalancesCreateBackendError(t *testing.T) {
 	}
 
 	svc := newBalancesService(mock)
-	bal, err := svc.Create(context.Background(), testOrgID, testLedgerID, &CreateBalanceInput{AccountID: "acc-1", AssetCode: "BRL"})
+	bal, err := svc.CreateForAccount(context.Background(), testOrgID, testLedgerID, "acc-1", &CreateBalanceInput{Key: "asset-freeze"})
 
 	require.Error(t, err)
 	assert.Nil(t, bal)
@@ -611,7 +645,7 @@ func TestBalancesDeleteBackendError(t *testing.T) {
 	assert.Equal(t, expectedErr, err)
 }
 
-func TestBalancesGetByAliasBackendError(t *testing.T) {
+func TestBalancesListByAliasBackendError(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("backend error: not found")
@@ -622,14 +656,14 @@ func TestBalancesGetByAliasBackendError(t *testing.T) {
 	}
 
 	svc := newBalancesService(mock)
-	bal, err := svc.GetByAlias(context.Background(), testOrgID, testLedgerID, "my-alias")
+	items, err := svc.ListByAlias(context.Background(), testOrgID, testLedgerID, "my-alias")
 
 	require.Error(t, err)
-	assert.Nil(t, bal)
+	assert.Nil(t, items)
 	assert.Equal(t, expectedErr, err)
 }
 
-func TestBalancesGetByExternalCodeBackendError(t *testing.T) {
+func TestBalancesListByExternalCodeBackendError(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("backend error: not found")
@@ -640,14 +674,14 @@ func TestBalancesGetByExternalCodeBackendError(t *testing.T) {
 	}
 
 	svc := newBalancesService(mock)
-	bal, err := svc.GetByExternalCode(context.Background(), testOrgID, testLedgerID, "EXT-BAL-1")
+	items, err := svc.ListByExternalCode(context.Background(), testOrgID, testLedgerID, "EXT-BAL-1")
 
 	require.Error(t, err)
-	assert.Nil(t, bal)
+	assert.Nil(t, items)
 	assert.Equal(t, expectedErr, err)
 }
 
-func TestBalancesGetByAccountIDBackendError(t *testing.T) {
+func TestBalancesListByAccountIDBackendError(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("backend error: not found")
@@ -658,9 +692,9 @@ func TestBalancesGetByAccountIDBackendError(t *testing.T) {
 	}
 
 	svc := newBalancesService(mock)
-	bal, err := svc.GetByAccountID(context.Background(), testOrgID, testLedgerID, "acc-1")
+	items, err := svc.ListByAccountID(context.Background(), testOrgID, testLedgerID, "acc-1")
 
 	require.Error(t, err)
-	assert.Nil(t, bal)
+	assert.Nil(t, items)
 	assert.Equal(t, expectedErr, err)
 }

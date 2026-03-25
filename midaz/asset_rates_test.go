@@ -3,6 +3,7 @@ package midaz
 import (
 	"context"
 	"errors"
+	"net/http"
 	"testing"
 
 	"github.com/LerianStudio/lerian-sdk-golang/models"
@@ -334,6 +335,55 @@ func TestAssetRatesGetByExternalID(t *testing.T) {
 	assert.Equal(t, "rate-1", rate.ID)
 	require.NotNil(t, rate.ExternalID)
 	assert.Equal(t, "ext-rate-1", *rate.ExternalID)
+}
+
+func TestAssetRatesGetByExternalIDDoesNotProbeAmbiguousIDPath(t *testing.T) {
+	t.Parallel()
+
+	requestCount := 0
+	mock := &mockBackend{
+		callFn: func(_ context.Context, method, path string, body, result any) error {
+			requestCount++
+
+			assert.Equal(t, http.MethodGet, method)
+			assert.Nil(t, body)
+			assert.Equal(t, "/organizations/org-1/ledgers/led-1/asset-rates/external-id/ext-rate-1", path)
+
+			return &sdkerrors.Error{StatusCode: http.StatusNotFound, Message: "not found"}
+		},
+	}
+
+	svc := newAssetRatesService(mock)
+	rate, err := svc.GetByExternalID(context.Background(), testOrgID, testLedgerID, "ext-rate-1")
+
+	require.Error(t, err)
+	assert.Nil(t, rate)
+	assert.Equal(t, 1, requestCount)
+}
+
+func TestAssetRatesCreateDoesNotFallbackOnNonCompatibilityErrors(t *testing.T) {
+	t.Parallel()
+
+	requestCount := 0
+	expectedErr := &sdkerrors.Error{StatusCode: http.StatusInternalServerError, Message: "server error"}
+	mock := &mockBackend{
+		callFn: func(_ context.Context, method, path string, body, result any) error {
+			requestCount++
+
+			assert.Equal(t, http.MethodPost, method)
+			assert.Equal(t, "/organizations/org-1/ledgers/led-1/asset-rates", path)
+			assert.NotNil(t, body)
+
+			return expectedErr
+		},
+	}
+
+	svc := newAssetRatesService(mock)
+	rate, err := svc.Create(context.Background(), testOrgID, testLedgerID, &CreateAssetRateInput{BaseAssetCode: "BRL", CounterAssetCode: "USD", Amount: 123, Scale: 2})
+	require.Error(t, err)
+	assert.Nil(t, rate)
+	assert.Equal(t, 1, requestCount)
+	assert.ErrorIs(t, err, expectedErr)
 }
 
 func TestAssetRatesGetByExternalIDEmpty(t *testing.T) {

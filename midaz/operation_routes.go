@@ -1,4 +1,4 @@
-// operation_routes.go implements the OperationRoutesService for managing
+// operation_routes.go implements the operationRoutesServiceAPI for managing
 // routing rules within transaction routes. An operation route maps a specific
 // operation leg (debit or credit) to an account, defining how money flows
 // when transactions are processed through a given transaction route.
@@ -14,9 +14,9 @@ import (
 	"github.com/LerianStudio/lerian-sdk-golang/pkg/pagination"
 )
 
-// OperationRoutesService provides CRUD operations for operation routes
+// operationRoutesServiceAPI provides CRUD operations for operation routes
 // scoped to an organization and ledger.
-type OperationRoutesService interface {
+type operationRoutesServiceAPI interface {
 	// Create creates a new operation route within the specified organization and ledger.
 	Create(ctx context.Context, orgID, ledgerID string, input *CreateOperationRouteInput) (*OperationRoute, error)
 
@@ -24,7 +24,7 @@ type OperationRoutesService interface {
 	Get(ctx context.Context, orgID, ledgerID, id string) (*OperationRoute, error)
 
 	// List returns a paginated iterator over operation routes in a ledger.
-	List(ctx context.Context, orgID, ledgerID string, opts *models.ListOptions) *pagination.Iterator[OperationRoute]
+	List(ctx context.Context, orgID, ledgerID string, opts *models.CursorListOptions) *pagination.Iterator[OperationRoute]
 
 	// Update partially updates an existing operation route.
 	Update(ctx context.Context, orgID, ledgerID, id string, input *UpdateOperationRouteInput) (*OperationRoute, error)
@@ -33,22 +33,22 @@ type OperationRoutesService interface {
 	Delete(ctx context.Context, orgID, ledgerID, id string) error
 }
 
-// operationRoutesService is the concrete implementation of [OperationRoutesService].
+// operationRoutesService is the concrete implementation of [operationRoutesServiceAPI].
 // It embeds [core.BaseService] to inherit the HTTP transport layer.
 type operationRoutesService struct {
 	core.BaseService
 }
 
-// newOperationRoutesService creates a new [OperationRoutesService] backed
+// newOperationRoutesService creates a new [operationRoutesServiceAPI] backed
 // by the given transaction [core.Backend].
-func newOperationRoutesService(backend core.Backend) OperationRoutesService {
+func newOperationRoutesService(backend core.Backend) operationRoutesServiceAPI {
 	return &operationRoutesService{
 		BaseService: core.BaseService{Backend: backend},
 	}
 }
 
 // Compile-time interface compliance check.
-var _ OperationRoutesService = (*operationRoutesService)(nil)
+var _ operationRoutesServiceAPI = (*operationRoutesService)(nil)
 
 // operationRoutesBasePath builds the operation-routes collection path for
 // the given organization and ledger.
@@ -102,7 +102,7 @@ func (s *operationRoutesService) Get(ctx context.Context, orgID, ledgerID, id st
 }
 
 // List returns a paginated iterator over operation routes in a ledger.
-func (s *operationRoutesService) List(ctx context.Context, orgID, ledgerID string, opts *models.ListOptions) *pagination.Iterator[OperationRoute] {
+func (s *operationRoutesService) List(ctx context.Context, orgID, ledgerID string, opts *models.CursorListOptions) *pagination.Iterator[OperationRoute] {
 	if orgID == "" || ledgerID == "" {
 		return pagination.NewIterator[OperationRoute](func(_ context.Context, _ string) ([]OperationRoute, string, error) {
 			return nil, "", sdkerrors.NewValidation("OperationRoutes.List", operationRouteResource, "organization ID and ledger ID are required")

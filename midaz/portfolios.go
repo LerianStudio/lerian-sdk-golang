@@ -1,4 +1,4 @@
-// portfolios.go implements the PortfoliosService for managing portfolio
+// portfolios.go implements the portfoliosServiceAPI for managing portfolio
 // resources within a Midaz ledger. Portfolios group related accounts under a
 // single logical unit, enabling organisational reporting and access control.
 package midaz
@@ -13,8 +13,8 @@ import (
 	"github.com/LerianStudio/lerian-sdk-golang/pkg/pagination"
 )
 
-// PortfoliosService provides CRUD operations for portfolios within a ledger.
-type PortfoliosService interface {
+// portfoliosServiceAPI provides CRUD operations for portfolios within a ledger.
+type portfoliosServiceAPI interface {
 	// Create creates a new portfolio within the specified ledger.
 	Create(ctx context.Context, orgID, ledgerID string, input *CreatePortfolioInput) (*Portfolio, error)
 
@@ -22,7 +22,7 @@ type PortfoliosService interface {
 	Get(ctx context.Context, orgID, ledgerID, id string) (*Portfolio, error)
 
 	// List returns a paginated iterator over portfolios in a ledger.
-	List(ctx context.Context, orgID, ledgerID string, opts *models.ListOptions) *pagination.Iterator[Portfolio]
+	List(ctx context.Context, orgID, ledgerID string, opts *models.CursorListOptions) *pagination.Iterator[Portfolio]
 
 	// Update modifies an existing portfolio. Only non-nil fields in the
 	// input are sent in the PATCH request.
@@ -30,29 +30,32 @@ type PortfoliosService interface {
 
 	// Delete removes a portfolio by its ID.
 	Delete(ctx context.Context, orgID, ledgerID, id string) error
+
+	// Count returns the total number of portfolios in a ledger.
+	Count(ctx context.Context, orgID, ledgerID string) (int, error)
 }
 
 // ---------------------------------------------------------------------------
 // Implementation
 // ---------------------------------------------------------------------------
 
-// portfoliosService is the concrete implementation of [PortfoliosService].
+// portfoliosService is the concrete implementation of [portfoliosServiceAPI].
 // It embeds [core.BaseService] for shared HTTP infrastructure and delegates
 // all transport work to the generic core helpers.
 type portfoliosService struct {
 	core.BaseService
 }
 
-// Compile-time interface compliance check.
-var _ PortfoliosService = (*portfoliosService)(nil)
-
-// newPortfoliosService creates a [PortfoliosService] backed by the given
+// newPortfoliosService creates a [portfoliosServiceAPI] backed by the given
 // [core.Backend] (expected to point at the onboarding API).
-func newPortfoliosService(backend core.Backend) PortfoliosService {
+func newPortfoliosService(backend core.Backend) portfoliosServiceAPI {
 	return &portfoliosService{
 		BaseService: core.BaseService{Backend: backend},
 	}
 }
+
+// Compile-time interface compliance check.
+var _ portfoliosServiceAPI = (*portfoliosService)(nil)
 
 // ---------------------------------------------------------------------------
 // Path helpers
@@ -113,7 +116,7 @@ func (s *portfoliosService) Get(ctx context.Context, orgID, ledgerID, id string)
 }
 
 // List returns a paginated iterator over portfolios.
-func (s *portfoliosService) List(ctx context.Context, orgID, ledgerID string, opts *models.ListOptions) *pagination.Iterator[Portfolio] {
+func (s *portfoliosService) List(ctx context.Context, orgID, ledgerID string, opts *models.CursorListOptions) *pagination.Iterator[Portfolio] {
 	if orgID == "" || ledgerID == "" {
 		return pagination.NewIterator[Portfolio](func(_ context.Context, _ string) ([]Portfolio, string, error) {
 			return nil, "", sdkerrors.NewValidation("Portfolios.List", portfolioResource, "organization ID and ledger ID are required")
@@ -163,4 +166,23 @@ func (s *portfoliosService) Delete(ctx context.Context, orgID, ledgerID, id stri
 	}
 
 	return core.Delete(ctx, &s.BaseService, portfoliosItemPath(orgID, ledgerID, id))
+}
+
+// Count returns the total number of portfolios in a ledger.
+func (s *portfoliosService) Count(ctx context.Context, orgID, ledgerID string) (int, error) {
+	const operation = "Portfolios.Count"
+
+	if err := ensureService(s); err != nil {
+		return 0, err
+	}
+
+	if orgID == "" {
+		return 0, sdkerrors.NewValidation(operation, portfolioResource, "organization ID is required")
+	}
+
+	if ledgerID == "" {
+		return 0, sdkerrors.NewValidation(operation, portfolioResource, "ledger ID is required")
+	}
+
+	return core.Count(ctx, &s.BaseService, portfoliosBasePath(orgID, ledgerID)+"/metrics/count")
 }

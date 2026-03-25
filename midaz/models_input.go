@@ -147,14 +147,16 @@ type UpdateAssetRateInput struct {
 // Balance
 // ---------------------------------------------------------------------------
 
-// CreateBalanceInput holds the fields needed to create a balance entry.
+// CreateBalanceInput holds the fields needed to create an additional balance.
 type CreateBalanceInput struct {
-	AccountID      string          `json:"accountId"`
-	AssetCode      string          `json:"assetCode"`
-	AllowSending   bool            `json:"allowSending"`
-	AllowReceiving bool            `json:"allowReceiving"`
-	Status         *models.Status  `json:"status,omitempty"`
-	Metadata       models.Metadata `json:"metadata,omitempty"`
+	Key string `json:"key"`
+
+	// AllowSending and AllowReceiving are pointers so omitted fields stay omitted
+	// and the server can apply its default behavior.
+	AllowSending   *bool           `json:"allowSending,omitempty"`
+	AllowReceiving *bool           `json:"allowReceiving,omitempty"`
+	Status         *models.Status  `json:"-"`
+	Metadata       models.Metadata `json:"-"`
 }
 
 // UpdateBalanceInput holds the fields that may be updated on an
@@ -171,16 +173,128 @@ type UpdateBalanceInput struct {
 // ---------------------------------------------------------------------------
 
 // CreateTransactionInput holds the fields needed to create a transaction.
-// The Send/Distribute arrays define the money movement using the Midaz DSL.
+// Transactions use the canonical send-based contract via the Send field.
 type CreateTransactionInput struct {
-	Description              *string             `json:"description,omitempty"`
-	ChartOfAccountsGroupName *string             `json:"chartOfAccountsGroupName,omitempty"`
-	AssetCode                string              `json:"assetCode"`
-	Amount                   int64               `json:"amount"`
-	Scale                    int                 `json:"scale"`
-	Source                   []TransactionSource `json:"source"`
-	ParentTransactionID      *string             `json:"parentTransactionId,omitempty"`
-	Metadata                 models.Metadata     `json:"metadata,omitempty"`
+	Description              *string          `json:"description,omitempty"`
+	Code                     *string          `json:"code,omitempty"`
+	ChartOfAccountsGroupName *string          `json:"chartOfAccountsGroupName,omitempty"`
+	Pending                  *bool            `json:"pending,omitempty"`
+	Route                    *string          `json:"route,omitempty"`
+	TransactionDate          *string          `json:"transactionDate,omitempty"`
+	Send                     *TransactionSend `json:"send,omitempty"`
+	Metadata                 models.Metadata  `json:"metadata,omitempty"`
+	ParentTransactionID      *string          `json:"-"`
+}
+
+// TransactionSend represents the Midaz send-based transaction payload.
+type TransactionSend struct {
+	Asset      string                      `json:"asset"`
+	Value      string                      `json:"value"`
+	Source     TransactionSendSource       `json:"source"`
+	Distribute TransactionSendDistribution `json:"distribute"`
+}
+
+// TransactionSendSource contains the debit/source legs for a transaction.
+type TransactionSendSource struct {
+	Remaining string                    `json:"remaining,omitempty"`
+	From      []TransactionOperationLeg `json:"from,omitempty"`
+}
+
+// TransactionSendDistribution contains the credit/distribution legs.
+type TransactionSendDistribution struct {
+	Remaining string                    `json:"remaining,omitempty"`
+	To        []TransactionOperationLeg `json:"to,omitempty"`
+}
+
+// CreateTransactionInflowInput holds the fields needed to create an inflow
+// transaction, which only defines distribution targets.
+type CreateTransactionInflowInput struct {
+	Description              *string               `json:"description,omitempty"`
+	Code                     *string               `json:"code,omitempty"`
+	ChartOfAccountsGroupName *string               `json:"chartOfAccountsGroupName,omitempty"`
+	Route                    *string               `json:"route,omitempty"`
+	TransactionDate          *string               `json:"transactionDate,omitempty"`
+	Send                     TransactionInflowSend `json:"send"`
+	Metadata                 models.Metadata       `json:"metadata,omitempty"`
+}
+
+// TransactionInflowSend contains the asset, amount value, and distribution
+// legs for an inflow transaction.
+type TransactionInflowSend struct {
+	Asset      string                        `json:"asset"`
+	Value      string                        `json:"value"`
+	Distribute TransactionInflowDistribution `json:"distribute"`
+}
+
+// TransactionInflowDistribution describes the destination operations of an
+// inflow transaction.
+type TransactionInflowDistribution struct {
+	Remaining string                    `json:"remaining,omitempty"`
+	To        []TransactionOperationLeg `json:"to"`
+}
+
+// CreateTransactionOutflowInput holds the fields needed to create an outflow
+// transaction, which only defines source legs.
+type CreateTransactionOutflowInput struct {
+	Description              *string                `json:"description,omitempty"`
+	Code                     *string                `json:"code,omitempty"`
+	ChartOfAccountsGroupName *string                `json:"chartOfAccountsGroupName,omitempty"`
+	Route                    *string                `json:"route,omitempty"`
+	TransactionDate          *string                `json:"transactionDate,omitempty"`
+	Pending                  *bool                  `json:"pending,omitempty"`
+	Send                     TransactionOutflowSend `json:"send"`
+	Metadata                 models.Metadata        `json:"metadata,omitempty"`
+}
+
+// TransactionOutflowSend contains the asset, amount value, and source legs
+// for an outflow transaction.
+type TransactionOutflowSend struct {
+	Asset  string                   `json:"asset"`
+	Value  string                   `json:"value"`
+	Source TransactionOutflowSource `json:"source"`
+}
+
+// TransactionOutflowSource describes the source operations of an outflow
+// transaction.
+type TransactionOutflowSource struct {
+	Remaining string                    `json:"remaining,omitempty"`
+	From      []TransactionOperationLeg `json:"from"`
+}
+
+// TransactionOperationLeg identifies one operation leg in inflow/outflow
+// transaction payloads.
+type TransactionOperationLeg struct {
+	AccountAlias    string                `json:"accountAlias,omitempty"`
+	BalanceKey      string                `json:"balanceKey,omitempty"`
+	Amount          *TransactionLegAmount `json:"amount,omitempty"`
+	Share           *TransactionLegShare  `json:"share,omitempty"`
+	Remaining       string                `json:"remaining,omitempty"`
+	Rate            *TransactionLegRate   `json:"rate,omitempty"`
+	Metadata        models.Metadata       `json:"metadata,omitempty"`
+	ChartOfAccounts *string               `json:"chartOfAccounts,omitempty"`
+	Description     *string               `json:"description,omitempty"`
+	Route           string                `json:"route,omitempty"`
+	IsFrom          bool                  `json:"isFrom,omitempty"`
+}
+
+// TransactionLegAmount specifies the asset and value of a transaction leg.
+type TransactionLegAmount struct {
+	Asset string `json:"asset"`
+	Value string `json:"value"`
+}
+
+// TransactionLegShare specifies percentage-based distribution details.
+type TransactionLegShare struct {
+	Percentage             int64  `json:"percentage,omitempty"`
+	PercentageOfPercentage *int64 `json:"percentageOfPercentage,omitempty"`
+}
+
+// TransactionLegRate specifies conversion-rate metadata for a leg.
+type TransactionLegRate struct {
+	From       string `json:"from,omitempty"`
+	To         string `json:"to,omitempty"`
+	Value      string `json:"value,omitempty"`
+	ExternalID string `json:"externalId,omitempty"`
 }
 
 // UpdateTransactionInput holds the fields that may be updated on an
@@ -221,6 +335,17 @@ type TransactionAmount struct {
 type TransactionShare struct {
 	Percentage   int     `json:"percentage"`
 	PercentageOf *string `json:"percentageOf,omitempty"`
+}
+
+// ---------------------------------------------------------------------------
+// Operation
+// ---------------------------------------------------------------------------
+
+// UpdateOperationInput contains the mutable fields for updating an operation.
+// Only non-nil fields are sent in the PATCH request.
+type UpdateOperationInput struct {
+	Description *string         `json:"description,omitempty"`
+	Metadata    models.Metadata `json:"metadata,omitempty"`
 }
 
 // ---------------------------------------------------------------------------
@@ -305,4 +430,57 @@ type UpdateOperationRouteInput struct {
 	AccountAlias *string         `json:"accountAlias,omitempty"`
 	Description  *string         `json:"description,omitempty"`
 	Metadata     models.Metadata `json:"metadata,omitempty"`
+}
+
+// ---------------------------------------------------------------------------
+// Holder (CRM)
+// ---------------------------------------------------------------------------
+
+// CreateHolderInput contains the fields for creating a new holder.
+type CreateHolderInput struct {
+	Name          string          `json:"name"`
+	Type          string          `json:"type"`
+	Document      string          `json:"document"`
+	ExternalID    *string         `json:"externalId,omitempty"`
+	Addresses     *HolderAddress  `json:"addresses,omitempty"`
+	Contact       *Contact        `json:"contact,omitempty"`
+	NaturalPerson *NaturalPerson  `json:"naturalPerson,omitempty"`
+	LegalPerson   *LegalPerson    `json:"legalPerson,omitempty"`
+	Metadata      models.Metadata `json:"metadata,omitempty"`
+}
+
+// UpdateHolderInput contains the mutable fields for updating a holder.
+// Only non-nil fields are sent in the PATCH request.
+type UpdateHolderInput struct {
+	Name          *string         `json:"name,omitempty"`
+	ExternalID    *string         `json:"externalId,omitempty"`
+	Addresses     *HolderAddress  `json:"addresses,omitempty"`
+	Contact       *Contact        `json:"contact,omitempty"`
+	NaturalPerson *NaturalPerson  `json:"naturalPerson,omitempty"`
+	LegalPerson   *LegalPerson    `json:"legalPerson,omitempty"`
+	Metadata      models.Metadata `json:"metadata,omitempty"`
+}
+
+// ---------------------------------------------------------------------------
+// Alias (CRM)
+// ---------------------------------------------------------------------------
+
+// CreateAliasInput contains the fields for creating a new alias account
+// linking a holder to a ledger account.
+type CreateAliasInput struct {
+	LedgerID         string            `json:"ledgerId"`
+	AccountID        string            `json:"accountId"`
+	BankingDetails   *BankingDetails   `json:"bankingDetails,omitempty"`
+	RegulatoryFields *RegulatoryFields `json:"regulatoryFields,omitempty"`
+	RelatedParties   []RelatedParty    `json:"relatedParties,omitempty"`
+	Metadata         models.Metadata   `json:"metadata,omitempty"`
+}
+
+// UpdateAliasInput contains the mutable fields for updating an alias.
+// Only non-nil fields are sent in the PATCH request.
+type UpdateAliasInput struct {
+	BankingDetails   *BankingDetails   `json:"bankingDetails,omitempty"`
+	RegulatoryFields *RegulatoryFields `json:"regulatoryFields,omitempty"`
+	RelatedParties   *[]RelatedParty   `json:"relatedParties,omitempty"`
+	Metadata         models.Metadata   `json:"metadata,omitempty"`
 }

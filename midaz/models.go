@@ -223,3 +223,133 @@ type OperationRoute struct {
 	CreatedAt          time.Time       `json:"createdAt"`
 	UpdatedAt          time.Time       `json:"updatedAt"`
 }
+
+// ---------------------------------------------------------------------------
+// CRM Models
+// ---------------------------------------------------------------------------
+
+// Holder represents a customer or entity in the CRM system. Holders are the
+// root objects for managing customer relationships and are linked to ledger
+// accounts through aliases.
+type Holder struct {
+	ID            string          `json:"id"`
+	Name          string          `json:"name"`
+	Type          string          `json:"type"`
+	Document      string          `json:"document"`
+	ExternalID    string          `json:"externalId,omitempty"`
+	Addresses     *HolderAddress  `json:"addresses,omitempty"`
+	Contact       *Contact        `json:"contact,omitempty"`
+	NaturalPerson *NaturalPerson  `json:"naturalPerson,omitempty"`
+	LegalPerson   *LegalPerson    `json:"legalPerson,omitempty"`
+	Metadata      models.Metadata `json:"metadata,omitempty"`
+	CreatedAt     time.Time       `json:"createdAt"`
+	UpdatedAt     time.Time       `json:"updatedAt"`
+	DeletedAt     *time.Time      `json:"deletedAt,omitempty"`
+}
+
+// Alias represents an alias account linking a holder to a ledger account
+// in the CRM system. Aliases carry banking details, regulatory fields, and
+// related-party information.
+type Alias struct {
+	ID               string            `json:"id"`
+	HolderID         string            `json:"holderId"`
+	LedgerID         string            `json:"ledgerId"`
+	AccountID        string            `json:"accountId"`
+	Type             string            `json:"type,omitempty"`
+	Document         string            `json:"document,omitempty"`
+	BankingDetails   *BankingDetails   `json:"bankingDetails,omitempty"`
+	RegulatoryFields *RegulatoryFields `json:"regulatoryFields,omitempty"`
+	RelatedParties   []RelatedParty    `json:"relatedParties,omitempty"`
+	Metadata         models.Metadata   `json:"metadata,omitempty"`
+	CreatedAt        time.Time         `json:"createdAt"`
+	UpdatedAt        time.Time         `json:"updatedAt"`
+	DeletedAt        *time.Time        `json:"deletedAt,omitempty"`
+}
+
+// HolderAddress contains primary and additional address information for a
+// holder. The CRM address structure differs from the shared [models.Address]
+// type used by organizations.
+type HolderAddress struct {
+	Primary     *CRMAddress `json:"primary,omitempty"`
+	Additional1 *CRMAddress `json:"additional1,omitempty"`
+	Additional2 *CRMAddress `json:"additional2,omitempty"`
+}
+
+// CRMAddress represents a physical address within the CRM system.
+type CRMAddress struct {
+	Line1       string `json:"line1,omitempty"`
+	Line2       string `json:"line2,omitempty"`
+	City        string `json:"city,omitempty"`
+	State       string `json:"state,omitempty"`
+	ZipCode     string `json:"zipCode,omitempty"`
+	Country     string `json:"country,omitempty"`
+	Description string `json:"description,omitempty"`
+}
+
+// Contact holds contact information for a holder.
+type Contact struct {
+	PrimaryEmail   string `json:"primaryEmail,omitempty"`
+	SecondaryEmail string `json:"secondaryEmail,omitempty"`
+	MobilePhone    string `json:"mobilePhone,omitempty"`
+	OtherPhone     string `json:"otherPhone,omitempty"`
+}
+
+// NaturalPerson holds information specific to individual persons.
+type NaturalPerson struct {
+	BirthDate    string `json:"birthDate,omitempty"`
+	Gender       string `json:"gender,omitempty"`
+	Nationality  string `json:"nationality,omitempty"`
+	MotherName   string `json:"motherName,omitempty"`
+	FatherName   string `json:"fatherName,omitempty"`
+	SocialName   string `json:"socialName,omitempty"`
+	FavoriteName string `json:"favoriteName,omitempty"`
+	CivilStatus  string `json:"civilStatus,omitempty"`
+	Status       string `json:"status,omitempty"`
+}
+
+// LegalPerson holds information specific to legal entities (companies,
+// institutions, etc.).
+type LegalPerson struct {
+	TradeName      string          `json:"tradeName,omitempty"`
+	FoundingDate   string          `json:"foundingDate,omitempty"`
+	Activity       string          `json:"activity,omitempty"`
+	Size           string          `json:"size,omitempty"`
+	Type           string          `json:"type,omitempty"`
+	Status         string          `json:"status,omitempty"`
+	Representative *Representative `json:"representative,omitempty"`
+}
+
+// Representative holds information about a legal entity's representative.
+type Representative struct {
+	Name     string `json:"name,omitempty"`
+	Document string `json:"document,omitempty"`
+	Email    string `json:"email,omitempty"`
+	Role     string `json:"role,omitempty"`
+}
+
+// BankingDetails holds banking information for an alias.
+type BankingDetails struct {
+	Branch      string `json:"branch,omitempty"`
+	Account     string `json:"account,omitempty"`
+	BankID      string `json:"bankId,omitempty"`
+	Type        string `json:"type,omitempty"`
+	IBAN        string `json:"iban,omitempty"`
+	CountryCode string `json:"countryCode,omitempty"`
+	OpeningDate string `json:"openingDate,omitempty"`
+	ClosingDate string `json:"closingDate,omitempty"`
+}
+
+// RegulatoryFields holds regulatory information for an alias.
+type RegulatoryFields struct {
+	ParticipantDocument string `json:"participantDocument,omitempty"`
+}
+
+// RelatedParty represents a related party on an alias.
+type RelatedParty struct {
+	ID        string `json:"id,omitempty"`
+	Name      string `json:"name"`
+	Document  string `json:"document"`
+	Role      string `json:"role"`
+	StartDate string `json:"startDate"`
+	EndDate   string `json:"endDate,omitempty"`
+}

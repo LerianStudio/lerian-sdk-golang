@@ -223,7 +223,7 @@ func TestTransactionRoutesListWithOptions(t *testing.T) {
 	}
 
 	svc := newTransactionRoutesService(mock)
-	opts := &models.ListOptions{Limit: 50, SortBy: "transactionType"}
+	opts := &models.CursorListOptions{Limit: 50, SortBy: "transactionType"}
 	iter := svc.List(context.Background(), "org-1", "led-1", opts)
 
 	require.True(t, iter.Next(context.Background()))
@@ -402,7 +402,7 @@ func TestTransactionRoutesDeleteBackendError(t *testing.T) {
 func TestTransactionRoutesServiceInterfaceCompliance(t *testing.T) {
 	t.Parallel()
 
-	var _ TransactionRoutesService = (*transactionRoutesService)(nil)
+	var _ transactionRoutesServiceAPI = (*transactionRoutesService)(nil)
 
-	t.Log("transactionRoutesService implements TransactionRoutesService")
+	t.Log("transactionRoutesService implements transactionRoutesServiceAPI")
 }

@@ -1,4 +1,4 @@
-// organizations.go implements the OrganizationsService for managing
+// organizations.go implements the organizationsServiceAPI for managing
 // top-level organizational entities in Midaz. Organizations are the root
 // scope for ledgers, accounts, and all other financial domain objects.
 package midaz
@@ -13,8 +13,8 @@ import (
 	"github.com/LerianStudio/lerian-sdk-golang/pkg/pagination"
 )
 
-// OrganizationsService provides CRUD operations for organizations.
-type OrganizationsService interface {
+// organizationsServiceAPI provides CRUD operations for organizations.
+type organizationsServiceAPI interface {
 	// Create creates a new organization from the given input.
 	Create(ctx context.Context, input *CreateOrganizationInput) (*Organization, error)
 
@@ -22,31 +22,34 @@ type OrganizationsService interface {
 	Get(ctx context.Context, id string) (*Organization, error)
 
 	// List returns a paginated iterator over organizations.
-	List(ctx context.Context, opts *models.ListOptions) *pagination.Iterator[Organization]
+	List(ctx context.Context, opts *models.CursorListOptions) *pagination.Iterator[Organization]
 
 	// Update partially updates an existing organization.
 	Update(ctx context.Context, id string, input *UpdateOrganizationInput) (*Organization, error)
 
 	// Delete removes an organization by its unique identifier.
 	Delete(ctx context.Context, id string) error
+
+	// Count returns the total number of organizations.
+	Count(ctx context.Context) (int, error)
 }
 
-// organizationsService is the concrete implementation of [OrganizationsService].
+// organizationsService is the concrete implementation of [organizationsServiceAPI].
 // It embeds [core.BaseService] to inherit the HTTP transport layer.
 type organizationsService struct {
 	core.BaseService
 }
 
-// newOrganizationsService creates a new [OrganizationsService] backed by the
+// newOrganizationsService creates a new [organizationsServiceAPI] backed by the
 // given onboarding [core.Backend].
-func newOrganizationsService(backend core.Backend) OrganizationsService {
+func newOrganizationsService(backend core.Backend) organizationsServiceAPI {
 	return &organizationsService{
 		BaseService: core.BaseService{Backend: backend},
 	}
 }
 
 // Compile-time interface compliance check.
-var _ OrganizationsService = (*organizationsService)(nil)
+var _ organizationsServiceAPI = (*organizationsService)(nil)
 
 // Create creates a new organization from the given input.
 func (s *organizationsService) Create(ctx context.Context, input *CreateOrganizationInput) (*Organization, error) {
@@ -71,7 +74,7 @@ func (s *organizationsService) Get(ctx context.Context, id string) (*Organizatio
 }
 
 // List returns a paginated iterator over organizations.
-func (s *organizationsService) List(ctx context.Context, opts *models.ListOptions) *pagination.Iterator[Organization] {
+func (s *organizationsService) List(ctx context.Context, opts *models.CursorListOptions) *pagination.Iterator[Organization] {
 	return core.List[Organization](ctx, &s.BaseService, "/organizations", opts)
 }
 
@@ -99,4 +102,13 @@ func (s *organizationsService) Delete(ctx context.Context, id string) error {
 	}
 
 	return core.Delete(ctx, &s.BaseService, "/organizations/"+url.PathEscape(id))
+}
+
+// Count returns the total number of organizations.
+func (s *organizationsService) Count(ctx context.Context) (int, error) {
+	if err := ensureService(s); err != nil {
+		return 0, err
+	}
+
+	return core.Count(ctx, &s.BaseService, "/organizations/metrics/count")
 }

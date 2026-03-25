@@ -1,4 +1,4 @@
-// segments.go implements the SegmentsService for managing segment resources
+// segments.go implements the segmentsServiceAPI for managing segment resources
 // within a Midaz ledger. Segments classify and group accounts for reporting
 // and access-control purposes.
 package midaz
@@ -13,8 +13,8 @@ import (
 	"github.com/LerianStudio/lerian-sdk-golang/pkg/pagination"
 )
 
-// SegmentsService provides CRUD operations for segments within a ledger.
-type SegmentsService interface {
+// segmentsServiceAPI provides CRUD operations for segments within a ledger.
+type segmentsServiceAPI interface {
 	// Create creates a new segment within the specified ledger.
 	Create(ctx context.Context, orgID, ledgerID string, input *CreateSegmentInput) (*Segment, error)
 
@@ -22,7 +22,7 @@ type SegmentsService interface {
 	Get(ctx context.Context, orgID, ledgerID, id string) (*Segment, error)
 
 	// List returns a paginated iterator over segments in a ledger.
-	List(ctx context.Context, orgID, ledgerID string, opts *models.ListOptions) *pagination.Iterator[Segment]
+	List(ctx context.Context, orgID, ledgerID string, opts *models.CursorListOptions) *pagination.Iterator[Segment]
 
 	// Update modifies an existing segment. Only non-nil fields in the
 	// input are sent in the PATCH request.
@@ -30,29 +30,32 @@ type SegmentsService interface {
 
 	// Delete removes a segment by its ID.
 	Delete(ctx context.Context, orgID, ledgerID, id string) error
+
+	// Count returns the total number of segments in a ledger.
+	Count(ctx context.Context, orgID, ledgerID string) (int, error)
 }
 
 // ---------------------------------------------------------------------------
 // Implementation
 // ---------------------------------------------------------------------------
 
-// segmentsService is the concrete implementation of [SegmentsService].
+// segmentsService is the concrete implementation of [segmentsServiceAPI].
 // It embeds [core.BaseService] for shared HTTP infrastructure and delegates
 // all transport work to the generic core helpers.
 type segmentsService struct {
 	core.BaseService
 }
 
-// Compile-time interface compliance check.
-var _ SegmentsService = (*segmentsService)(nil)
-
-// newSegmentsService creates a [SegmentsService] backed by the given
+// newSegmentsService creates a [segmentsServiceAPI] backed by the given
 // [core.Backend] (expected to point at the onboarding API).
-func newSegmentsService(backend core.Backend) SegmentsService {
+func newSegmentsService(backend core.Backend) segmentsServiceAPI {
 	return &segmentsService{
 		BaseService: core.BaseService{Backend: backend},
 	}
 }
+
+// Compile-time interface compliance check.
+var _ segmentsServiceAPI = (*segmentsService)(nil)
 
 // ---------------------------------------------------------------------------
 // Path helpers
@@ -113,7 +116,7 @@ func (s *segmentsService) Get(ctx context.Context, orgID, ledgerID, id string) (
 }
 
 // List returns a paginated iterator over segments.
-func (s *segmentsService) List(ctx context.Context, orgID, ledgerID string, opts *models.ListOptions) *pagination.Iterator[Segment] {
+func (s *segmentsService) List(ctx context.Context, orgID, ledgerID string, opts *models.CursorListOptions) *pagination.Iterator[Segment] {
 	if orgID == "" || ledgerID == "" {
 		return pagination.NewIterator[Segment](func(_ context.Context, _ string) ([]Segment, string, error) {
 			return nil, "", sdkerrors.NewValidation("Segments.List", segmentResource, "organization ID and ledger ID are required")
@@ -163,4 +166,23 @@ func (s *segmentsService) Delete(ctx context.Context, orgID, ledgerID, id string
 	}
 
 	return core.Delete(ctx, &s.BaseService, segmentsItemPath(orgID, ledgerID, id))
+}
+
+// Count returns the total number of segments in a ledger.
+func (s *segmentsService) Count(ctx context.Context, orgID, ledgerID string) (int, error) {
+	const operation = "Segments.Count"
+
+	if err := ensureService(s); err != nil {
+		return 0, err
+	}
+
+	if orgID == "" {
+		return 0, sdkerrors.NewValidation(operation, segmentResource, "organization ID is required")
+	}
+
+	if ledgerID == "" {
+		return 0, sdkerrors.NewValidation(operation, segmentResource, "ledger ID is required")
+	}
+
+	return core.Count(ctx, &s.BaseService, segmentsBasePath(orgID, ledgerID)+"/metrics/count")
 }

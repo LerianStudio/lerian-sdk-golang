@@ -1,4 +1,4 @@
-// ledgers.go implements the LedgersService for managing isolated
+// ledgers.go implements the ledgersServiceAPI for managing isolated
 // double-entry ledgers within an organization. All accounts, transactions,
 // and balances belong to exactly one ledger.
 package midaz
@@ -13,8 +13,8 @@ import (
 	"github.com/LerianStudio/lerian-sdk-golang/pkg/pagination"
 )
 
-// LedgersService provides CRUD operations for ledgers scoped to an organization.
-type LedgersService interface {
+// ledgersServiceAPI provides CRUD operations for ledgers scoped to an organization.
+type ledgersServiceAPI interface {
 	// Create creates a new ledger within the specified organization.
 	Create(ctx context.Context, orgID string, input *CreateLedgerInput) (*Ledger, error)
 
@@ -22,31 +22,34 @@ type LedgersService interface {
 	Get(ctx context.Context, orgID, ledgerID string) (*Ledger, error)
 
 	// List returns a paginated iterator over ledgers in an organization.
-	List(ctx context.Context, orgID string, opts *models.ListOptions) *pagination.Iterator[Ledger]
+	List(ctx context.Context, orgID string, opts *models.CursorListOptions) *pagination.Iterator[Ledger]
 
 	// Update partially updates an existing ledger within an organization.
 	Update(ctx context.Context, orgID, ledgerID string, input *UpdateLedgerInput) (*Ledger, error)
 
 	// Delete removes a ledger by its unique identifier within an organization.
 	Delete(ctx context.Context, orgID, ledgerID string) error
+
+	// Count returns the total number of ledgers in an organization.
+	Count(ctx context.Context, orgID string) (int, error)
 }
 
-// ledgersService is the concrete implementation of [LedgersService].
+// ledgersService is the concrete implementation of [ledgersServiceAPI].
 // It embeds [core.BaseService] to inherit the HTTP transport layer.
 type ledgersService struct {
 	core.BaseService
 }
 
-// newLedgersService creates a new [LedgersService] backed by the
+// newLedgersService creates a new [ledgersServiceAPI] backed by the
 // given onboarding [core.Backend].
-func newLedgersService(backend core.Backend) LedgersService {
+func newLedgersService(backend core.Backend) ledgersServiceAPI {
 	return &ledgersService{
 		BaseService: core.BaseService{Backend: backend},
 	}
 }
 
 // Compile-time interface compliance check.
-var _ LedgersService = (*ledgersService)(nil)
+var _ ledgersServiceAPI = (*ledgersService)(nil)
 
 // basePath builds the ledgers collection path for the given organization.
 func ledgersBasePath(orgID string) string {
@@ -91,7 +94,7 @@ func (s *ledgersService) Get(ctx context.Context, orgID, ledgerID string) (*Ledg
 }
 
 // List returns a paginated iterator over ledgers in an organization.
-func (s *ledgersService) List(ctx context.Context, orgID string, opts *models.ListOptions) *pagination.Iterator[Ledger] {
+func (s *ledgersService) List(ctx context.Context, orgID string, opts *models.CursorListOptions) *pagination.Iterator[Ledger] {
 	if orgID == "" {
 		return pagination.NewIterator[Ledger](func(_ context.Context, _ string) ([]Ledger, string, error) {
 			return nil, "", sdkerrors.NewValidation("Ledgers.List", ledgerResource, "organization ID is required")
@@ -133,4 +136,17 @@ func (s *ledgersService) Delete(ctx context.Context, orgID, ledgerID string) err
 	}
 
 	return core.Delete(ctx, &s.BaseService, ledgersItemPath(orgID, ledgerID))
+}
+
+// Count returns the total number of ledgers in an organization.
+func (s *ledgersService) Count(ctx context.Context, orgID string) (int, error) {
+	if err := ensureService(s); err != nil {
+		return 0, err
+	}
+
+	if orgID == "" {
+		return 0, sdkerrors.NewValidation("Ledgers.Count", ledgerResource, "organization id is required")
+	}
+
+	return core.Count(ctx, &s.BaseService, "/organizations/"+url.PathEscape(orgID)+"/ledgers/metrics/count")
 }

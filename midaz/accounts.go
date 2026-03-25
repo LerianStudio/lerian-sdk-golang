@@ -1,4 +1,4 @@
-// accounts.go implements the AccountsService for managing financial accounts
+// accounts.go implements the accountsServiceAPI for managing financial accounts
 // within a ledger. Accounts hold balances denominated in a specific asset and
 // participate in transactions via operations.
 //
@@ -17,8 +17,8 @@ import (
 	"github.com/LerianStudio/lerian-sdk-golang/pkg/pagination"
 )
 
-// AccountsService provides CRUD and lookup operations for accounts.
-type AccountsService interface {
+// accountsServiceAPI provides CRUD and lookup operations for accounts.
+type accountsServiceAPI interface {
 	// Create creates a new account within the specified ledger.
 	Create(ctx context.Context, orgID, ledgerID string, input *CreateAccountInput) (*Account, error)
 
@@ -26,7 +26,7 @@ type AccountsService interface {
 	Get(ctx context.Context, orgID, ledgerID, id string) (*Account, error)
 
 	// List returns a paginated iterator over accounts in a ledger.
-	List(ctx context.Context, orgID, ledgerID string, opts *models.ListOptions) *pagination.Iterator[Account]
+	List(ctx context.Context, orgID, ledgerID string, opts *models.CursorListOptions) *pagination.Iterator[Account]
 
 	// Update partially updates an existing account.
 	Update(ctx context.Context, orgID, ledgerID, id string, input *UpdateAccountInput) (*Account, error)
@@ -39,24 +39,27 @@ type AccountsService interface {
 
 	// GetByExternalCode retrieves an account by its external code.
 	GetByExternalCode(ctx context.Context, orgID, ledgerID, code string) (*Account, error)
+
+	// Count returns the total number of accounts in a ledger.
+	Count(ctx context.Context, orgID, ledgerID string) (int, error)
 }
 
-// accountsService is the concrete implementation of [AccountsService].
+// accountsService is the concrete implementation of [accountsServiceAPI].
 // It embeds [core.BaseService] to inherit the HTTP transport layer.
 type accountsService struct {
 	core.BaseService
 }
 
-// newAccountsService creates a new [AccountsService] backed by the given
+// newAccountsService creates a new [accountsServiceAPI] backed by the given
 // onboarding [core.Backend].
-func newAccountsService(backend core.Backend) AccountsService {
+func newAccountsService(backend core.Backend) accountsServiceAPI {
 	return &accountsService{
 		BaseService: core.BaseService{Backend: backend},
 	}
 }
 
 // Compile-time interface compliance check.
-var _ AccountsService = (*accountsService)(nil)
+var _ accountsServiceAPI = (*accountsService)(nil)
 
 // accountsBasePath builds the base path for account operations scoped to
 // an organization and ledger.
@@ -105,7 +108,7 @@ func (s *accountsService) Get(ctx context.Context, orgID, ledgerID, id string) (
 }
 
 // List returns a paginated iterator over accounts in a ledger.
-func (s *accountsService) List(ctx context.Context, orgID, ledgerID string, opts *models.ListOptions) *pagination.Iterator[Account] {
+func (s *accountsService) List(ctx context.Context, orgID, ledgerID string, opts *models.CursorListOptions) *pagination.Iterator[Account] {
 	if orgID == "" || ledgerID == "" {
 		return pagination.NewIterator[Account](func(_ context.Context, _ string) ([]Account, string, error) {
 			return nil, "", sdkerrors.NewValidation("Accounts.List", accountResource, "organization ID and ledger ID are required")
@@ -180,6 +183,10 @@ func (s *accountsService) GetByAlias(ctx context.Context, orgID, ledgerID, alias
 func (s *accountsService) GetByExternalCode(ctx context.Context, orgID, ledgerID, code string) (*Account, error) {
 	const operation = "Accounts.GetByExternalCode"
 
+	if err := ensureService(s); err != nil {
+		return nil, err
+	}
+
 	if orgID == "" {
 		return nil, sdkerrors.NewValidation(operation, accountResource, "organization id is required")
 	}
@@ -192,5 +199,24 @@ func (s *accountsService) GetByExternalCode(ctx context.Context, orgID, ledgerID
 		return nil, sdkerrors.NewValidation(operation, accountResource, "external code is required")
 	}
 
-	return core.Get[Account](ctx, &s.BaseService, accountsBasePath(orgID, ledgerID)+"/external-code/"+url.PathEscape(code))
+	return core.Get[Account](ctx, &s.BaseService, accountsBasePath(orgID, ledgerID)+"/external/"+url.PathEscape(code))
+}
+
+// Count returns the total number of accounts in a ledger.
+func (s *accountsService) Count(ctx context.Context, orgID, ledgerID string) (int, error) {
+	const operation = "Accounts.Count"
+
+	if err := ensureService(s); err != nil {
+		return 0, err
+	}
+
+	if orgID == "" {
+		return 0, sdkerrors.NewValidation(operation, accountResource, "organization id is required")
+	}
+
+	if ledgerID == "" {
+		return 0, sdkerrors.NewValidation(operation, accountResource, "ledger id is required")
+	}
+
+	return core.Count(ctx, &s.BaseService, accountsBasePath(orgID, ledgerID)+"/metrics/count")
 }

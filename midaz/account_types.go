@@ -1,4 +1,4 @@
-// account_types.go implements the AccountTypesService for managing
+// account_types.go implements the accountTypesServiceAPI for managing
 // account type classifications within a ledger (e.g., "deposit",
 // "savings", "external"). Account types define the categories that
 // accounts can belong to.
@@ -14,9 +14,9 @@ import (
 	"github.com/LerianStudio/lerian-sdk-golang/pkg/pagination"
 )
 
-// AccountTypesService provides CRUD operations for account types scoped to
+// accountTypesServiceAPI provides CRUD operations for account types scoped to
 // an organization and ledger.
-type AccountTypesService interface {
+type accountTypesServiceAPI interface {
 	// Create creates a new account type within the specified organization and ledger.
 	Create(ctx context.Context, orgID, ledgerID string, input *CreateAccountTypeInput) (*AccountType, error)
 
@@ -24,7 +24,7 @@ type AccountTypesService interface {
 	Get(ctx context.Context, orgID, ledgerID, id string) (*AccountType, error)
 
 	// List returns a paginated iterator over account types in a ledger.
-	List(ctx context.Context, orgID, ledgerID string, opts *models.ListOptions) *pagination.Iterator[AccountType]
+	List(ctx context.Context, orgID, ledgerID string, opts *models.CursorListOptions) *pagination.Iterator[AccountType]
 
 	// Update partially updates an existing account type.
 	Update(ctx context.Context, orgID, ledgerID, id string, input *UpdateAccountTypeInput) (*AccountType, error)
@@ -33,22 +33,22 @@ type AccountTypesService interface {
 	Delete(ctx context.Context, orgID, ledgerID, id string) error
 }
 
-// accountTypesService is the concrete implementation of [AccountTypesService].
+// accountTypesService is the concrete implementation of [accountTypesServiceAPI].
 // It embeds [core.BaseService] to inherit the HTTP transport layer.
 type accountTypesService struct {
 	core.BaseService
 }
 
-// newAccountTypesService creates a new [AccountTypesService] backed by the
+// newAccountTypesService creates a new [accountTypesServiceAPI] backed by the
 // given onboarding [core.Backend].
-func newAccountTypesService(backend core.Backend) AccountTypesService {
+func newAccountTypesService(backend core.Backend) accountTypesServiceAPI {
 	return &accountTypesService{
 		BaseService: core.BaseService{Backend: backend},
 	}
 }
 
 // Compile-time interface compliance check.
-var _ AccountTypesService = (*accountTypesService)(nil)
+var _ accountTypesServiceAPI = (*accountTypesService)(nil)
 
 // accountTypesBasePath builds the account-types collection path for the
 // given organization and ledger.
@@ -103,7 +103,7 @@ func (s *accountTypesService) Get(ctx context.Context, orgID, ledgerID, id strin
 }
 
 // List returns a paginated iterator over account types in a ledger.
-func (s *accountTypesService) List(ctx context.Context, orgID, ledgerID string, opts *models.ListOptions) *pagination.Iterator[AccountType] {
+func (s *accountTypesService) List(ctx context.Context, orgID, ledgerID string, opts *models.CursorListOptions) *pagination.Iterator[AccountType] {
 	if orgID == "" || ledgerID == "" {
 		return pagination.NewIterator[AccountType](func(_ context.Context, _ string) ([]AccountType, string, error) {
 			return nil, "", sdkerrors.NewValidation("AccountTypes.List", accountTypeResource, "organization ID and ledger ID are required")

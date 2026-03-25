@@ -1,4 +1,4 @@
-// asset_rates.go implements the AssetRatesService for managing exchange rates
+// asset_rates.go implements the assetRatesServiceAPI for managing exchange rates
 // between pairs of assets at specific points in time.
 //
 // In addition to standard CRUD, the service provides lookup-by-external-id
@@ -16,8 +16,8 @@ import (
 	"github.com/LerianStudio/lerian-sdk-golang/pkg/pagination"
 )
 
-// AssetRatesService provides CRUD and lookup operations for asset rates.
-type AssetRatesService interface {
+// assetRatesServiceAPI provides CRUD and lookup operations for asset rates.
+type assetRatesServiceAPI interface {
 	// Create creates a new asset rate within the specified ledger.
 	Create(ctx context.Context, orgID, ledgerID string, input *CreateAssetRateInput) (*AssetRate, error)
 
@@ -25,7 +25,7 @@ type AssetRatesService interface {
 	Get(ctx context.Context, orgID, ledgerID, id string) (*AssetRate, error)
 
 	// List returns a paginated iterator over asset rates in a ledger.
-	List(ctx context.Context, orgID, ledgerID string, opts *models.ListOptions) *pagination.Iterator[AssetRate]
+	List(ctx context.Context, orgID, ledgerID string, opts *models.CursorListOptions) *pagination.Iterator[AssetRate]
 
 	// Update partially updates an existing asset rate.
 	Update(ctx context.Context, orgID, ledgerID, id string, input *UpdateAssetRateInput) (*AssetRate, error)
@@ -40,22 +40,22 @@ type AssetRatesService interface {
 	GetFromAssetCode(ctx context.Context, orgID, ledgerID, assetCode string) (*AssetRate, error)
 }
 
-// assetRatesService is the concrete implementation of [AssetRatesService].
+// assetRatesService is the concrete implementation of [assetRatesServiceAPI].
 // It embeds [core.BaseService] to inherit the HTTP transport layer.
 type assetRatesService struct {
 	core.BaseService
 }
 
-// newAssetRatesService creates a new [AssetRatesService] backed by the given
-// onboarding [core.Backend].
-func newAssetRatesService(backend core.Backend) AssetRatesService {
+// newAssetRatesService creates a new [assetRatesServiceAPI] backed by the given
+// transaction [core.Backend].
+func newAssetRatesService(backend core.Backend) assetRatesServiceAPI {
 	return &assetRatesService{
 		BaseService: core.BaseService{Backend: backend},
 	}
 }
 
 // Compile-time interface compliance check.
-var _ AssetRatesService = (*assetRatesService)(nil)
+var _ assetRatesServiceAPI = (*assetRatesService)(nil)
 
 // assetRatesBasePath builds the base path for asset rate operations scoped to
 // an organization and ledger.
@@ -68,6 +68,10 @@ const assetRateResource = "AssetRate"
 // Create creates a new asset rate within the specified ledger.
 func (s *assetRatesService) Create(ctx context.Context, orgID, ledgerID string, input *CreateAssetRateInput) (*AssetRate, error) {
 	const operation = "AssetRates.Create"
+
+	if err := ensureService(s); err != nil {
+		return nil, err
+	}
 
 	if orgID == "" {
 		return nil, sdkerrors.NewValidation(operation, assetRateResource, "organization id is required")
@@ -104,7 +108,7 @@ func (s *assetRatesService) Get(ctx context.Context, orgID, ledgerID, id string)
 }
 
 // List returns a paginated iterator over asset rates in a ledger.
-func (s *assetRatesService) List(ctx context.Context, orgID, ledgerID string, opts *models.ListOptions) *pagination.Iterator[AssetRate] {
+func (s *assetRatesService) List(ctx context.Context, orgID, ledgerID string, opts *models.CursorListOptions) *pagination.Iterator[AssetRate] {
 	if orgID == "" || ledgerID == "" {
 		return pagination.NewIterator[AssetRate](func(_ context.Context, _ string) ([]AssetRate, string, error) {
 			return nil, "", sdkerrors.NewValidation("AssetRates.List", assetRateResource, "organization ID and ledger ID are required")
@@ -160,6 +164,10 @@ func (s *assetRatesService) Delete(ctx context.Context, orgID, ledgerID, id stri
 func (s *assetRatesService) GetByExternalID(ctx context.Context, orgID, ledgerID, externalID string) (*AssetRate, error) {
 	const operation = "AssetRates.GetByExternalID"
 
+	if err := ensureService(s); err != nil {
+		return nil, err
+	}
+
 	if orgID == "" {
 		return nil, sdkerrors.NewValidation(operation, assetRateResource, "organization id is required")
 	}
@@ -178,6 +186,10 @@ func (s *assetRatesService) GetByExternalID(ctx context.Context, orgID, ledgerID
 // GetFromAssetCode retrieves an asset rate by the source (from) asset code.
 func (s *assetRatesService) GetFromAssetCode(ctx context.Context, orgID, ledgerID, assetCode string) (*AssetRate, error) {
 	const operation = "AssetRates.GetFromAssetCode"
+
+	if err := ensureService(s); err != nil {
+		return nil, err
+	}
 
 	if orgID == "" {
 		return nil, sdkerrors.NewValidation(operation, assetRateResource, "organization id is required")

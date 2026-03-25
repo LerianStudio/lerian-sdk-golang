@@ -3,6 +3,7 @@ package midaz
 import (
 	"context"
 	"errors"
+	"net/http"
 	"testing"
 
 	"github.com/LerianStudio/lerian-sdk-golang/models"
@@ -376,7 +377,7 @@ func TestAccountsGetByExternalCode(t *testing.T) {
 	mock := &mockBackend{
 		callFn: func(_ context.Context, method, path string, body, result any) error {
 			assert.Equal(t, "GET", method)
-			assert.Equal(t, "/organizations/org-1/ledgers/led-1/accounts/external-code/EXT-001", path)
+			assert.Equal(t, "/organizations/org-1/ledgers/led-1/accounts/external/EXT-001", path)
 			assert.Nil(t, body)
 
 			return unmarshalInto(Account{
@@ -394,6 +395,31 @@ func TestAccountsGetByExternalCode(t *testing.T) {
 	assert.Equal(t, "acc-1", acc.ID)
 	require.NotNil(t, acc.ExternalCode)
 	assert.Equal(t, "EXT-001", *acc.ExternalCode)
+}
+
+func TestAccountsGetByExternalCodeDoesNotFallbackOnNonCompatibilityErrors(t *testing.T) {
+	t.Parallel()
+
+	requestCount := 0
+	expectedErr := &sdkerrors.Error{StatusCode: http.StatusInternalServerError, Message: "server error"}
+	mock := &mockBackend{
+		callFn: func(_ context.Context, method, path string, body, result any) error {
+			requestCount++
+
+			assert.Equal(t, http.MethodGet, method)
+			assert.Equal(t, "/organizations/org-1/ledgers/led-1/accounts/external/EXT-1", path)
+			assert.Nil(t, body)
+
+			return expectedErr
+		},
+	}
+
+	svc := newAccountsService(mock)
+	account, err := svc.GetByExternalCode(context.Background(), testOrgID, testLedgerID, "EXT-1")
+	require.Error(t, err)
+	assert.Nil(t, account)
+	assert.Equal(t, 1, requestCount)
+	assert.ErrorIs(t, err, expectedErr)
 }
 
 func TestAccountsGetByExternalCodeEmptyCode(t *testing.T) {

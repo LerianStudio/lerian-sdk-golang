@@ -1,4 +1,4 @@
-// transaction_routes.go implements the TransactionRoutesService for managing
+// transaction_routes.go implements the transactionRoutesServiceAPI for managing
 // routing templates that govern how transactions of a given type are processed.
 // Transaction routes define the rules and account mappings applied when a
 // transaction is created with a matching transaction type.
@@ -14,9 +14,9 @@ import (
 	"github.com/LerianStudio/lerian-sdk-golang/pkg/pagination"
 )
 
-// TransactionRoutesService provides CRUD operations for transaction routes
+// transactionRoutesServiceAPI provides CRUD operations for transaction routes
 // scoped to an organization and ledger.
-type TransactionRoutesService interface {
+type transactionRoutesServiceAPI interface {
 	// Create creates a new transaction route within the specified organization and ledger.
 	Create(ctx context.Context, orgID, ledgerID string, input *CreateTransactionRouteInput) (*TransactionRoute, error)
 
@@ -24,7 +24,7 @@ type TransactionRoutesService interface {
 	Get(ctx context.Context, orgID, ledgerID, id string) (*TransactionRoute, error)
 
 	// List returns a paginated iterator over transaction routes in a ledger.
-	List(ctx context.Context, orgID, ledgerID string, opts *models.ListOptions) *pagination.Iterator[TransactionRoute]
+	List(ctx context.Context, orgID, ledgerID string, opts *models.CursorListOptions) *pagination.Iterator[TransactionRoute]
 
 	// Update partially updates an existing transaction route.
 	Update(ctx context.Context, orgID, ledgerID, id string, input *UpdateTransactionRouteInput) (*TransactionRoute, error)
@@ -33,22 +33,22 @@ type TransactionRoutesService interface {
 	Delete(ctx context.Context, orgID, ledgerID, id string) error
 }
 
-// transactionRoutesService is the concrete implementation of [TransactionRoutesService].
+// transactionRoutesService is the concrete implementation of [transactionRoutesServiceAPI].
 // It embeds [core.BaseService] to inherit the HTTP transport layer.
 type transactionRoutesService struct {
 	core.BaseService
 }
 
-// newTransactionRoutesService creates a new [TransactionRoutesService] backed
+// newTransactionRoutesService creates a new [transactionRoutesServiceAPI] backed
 // by the given transaction [core.Backend].
-func newTransactionRoutesService(backend core.Backend) TransactionRoutesService {
+func newTransactionRoutesService(backend core.Backend) transactionRoutesServiceAPI {
 	return &transactionRoutesService{
 		BaseService: core.BaseService{Backend: backend},
 	}
 }
 
 // Compile-time interface compliance check.
-var _ TransactionRoutesService = (*transactionRoutesService)(nil)
+var _ transactionRoutesServiceAPI = (*transactionRoutesService)(nil)
 
 // transactionRoutesBasePath builds the transaction-routes collection path for
 // the given organization and ledger.
@@ -102,7 +102,7 @@ func (s *transactionRoutesService) Get(ctx context.Context, orgID, ledgerID, id 
 }
 
 // List returns a paginated iterator over transaction routes in a ledger.
-func (s *transactionRoutesService) List(ctx context.Context, orgID, ledgerID string, opts *models.ListOptions) *pagination.Iterator[TransactionRoute] {
+func (s *transactionRoutesService) List(ctx context.Context, orgID, ledgerID string, opts *models.CursorListOptions) *pagination.Iterator[TransactionRoute] {
 	if orgID == "" || ledgerID == "" {
 		return pagination.NewIterator[TransactionRoute](func(_ context.Context, _ string) ([]TransactionRoute, string, error) {
 			return nil, "", sdkerrors.NewValidation("TransactionRoutes.List", transactionRouteResource, "organization ID and ledger ID are required")

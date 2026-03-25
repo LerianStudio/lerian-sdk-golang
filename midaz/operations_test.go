@@ -157,7 +157,7 @@ func TestOperationsListWithOptions(t *testing.T) {
 	}
 
 	svc := newOperationsService(mock)
-	opts := &models.ListOptions{Limit: 25, SortBy: "type", SortOrder: "asc"}
+	opts := &models.CursorListOptions{Limit: 25, SortBy: "type", SortOrder: "asc"}
 	iter := svc.List(context.Background(), "org-1", "led-1", opts)
 
 	require.True(t, iter.Next(context.Background()))
@@ -227,7 +227,7 @@ func TestOperationsListByTransactionWithOptions(t *testing.T) {
 	}
 
 	svc := newOperationsService(mock)
-	opts := &models.ListOptions{Limit: 50}
+	opts := &models.CursorListOptions{Limit: 50}
 	iter := svc.ListByTransaction(context.Background(), "org-1", "led-1", "txn-1", opts)
 
 	require.True(t, iter.Next(context.Background()))
@@ -313,7 +313,7 @@ func TestOperationsListByAccountWithOptions(t *testing.T) {
 	}
 
 	svc := newOperationsService(mock)
-	opts := &models.ListOptions{Limit: 30, SortOrder: "desc"}
+	opts := &models.CursorListOptions{Limit: 30, SortOrder: "desc"}
 	iter := svc.ListByAccount(context.Background(), "org-1", "led-1", "acc-1", opts)
 
 	require.True(t, iter.Next(context.Background()))
@@ -346,7 +346,7 @@ func TestOperationsListByAccountBackendError(t *testing.T) {
 func TestOperationsServiceInterfaceCompliance(t *testing.T) {
 	t.Parallel()
 
-	var _ OperationsService = (*operationsService)(nil)
+	var _ operationsServiceAPI = (*operationsService)(nil)
 
-	t.Log("operationsService implements OperationsService")
+	t.Log("operationsService implements operationsServiceAPI")
 }

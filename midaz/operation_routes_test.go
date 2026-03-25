@@ -246,7 +246,7 @@ func TestOperationRoutesListWithOptions(t *testing.T) {
 	}
 
 	svc := newOperationRoutesService(mock)
-	opts := &models.ListOptions{Limit: 50, SortBy: "type"}
+	opts := &models.CursorListOptions{Limit: 50, SortBy: "type"}
 	iter := svc.List(context.Background(), "org-1", "led-1", opts)
 
 	require.True(t, iter.Next(context.Background()))
@@ -427,7 +427,7 @@ func TestOperationRoutesDeleteBackendError(t *testing.T) {
 func TestOperationRoutesServiceInterfaceCompliance(t *testing.T) {
 	t.Parallel()
 
-	var _ OperationRoutesService = (*operationRoutesService)(nil)
+	var _ operationRoutesServiceAPI = (*operationRoutesService)(nil)
 
-	t.Log("operationRoutesService implements OperationRoutesService")
+	t.Log("operationRoutesService implements operationRoutesServiceAPI")
 }

@@ -239,7 +239,7 @@ func TestPortfoliosListWithOptions(t *testing.T) {
 	}
 
 	svc := newPortfoliosService(mock)
-	opts := &models.ListOptions{
+	opts := &models.CursorListOptions{
 		Limit:     25,
 		SortBy:    "name",
 		SortOrder: "asc",
@@ -454,7 +454,7 @@ func TestPortfoliosDeleteBackendError(t *testing.T) {
 func TestPortfoliosServiceInterfaceCompliance(t *testing.T) {
 	t.Parallel()
 
-	var _ PortfoliosService = (*portfoliosService)(nil)
+	var _ portfoliosServiceAPI = (*portfoliosService)(nil)
 
-	t.Log("portfoliosService implements PortfoliosService")
+	t.Log("portfoliosService implements portfoliosServiceAPI")
 }

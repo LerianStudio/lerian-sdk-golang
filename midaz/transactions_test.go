@@ -24,10 +24,15 @@ func TestTransactionsCreate(t *testing.T) {
 			assert.Equal(t, "/organizations/org-1/ledgers/led-1/transactions", path)
 			assert.NotNil(t, body)
 
-			input, ok := body.(*CreateTransactionInput)
+			input, ok := body.(*createTransactionRequest)
 			require.True(t, ok)
-			assert.Equal(t, "BRL", input.AssetCode)
-			assert.Equal(t, int64(15000), input.Amount)
+			require.NotNil(t, input.Send)
+			assert.Equal(t, "BRL", input.Send.Asset)
+			assert.Equal(t, "150.00", input.Send.Value)
+			require.Len(t, input.Send.Source.From, 1)
+			require.Len(t, input.Send.Distribute.To, 1)
+			assert.Equal(t, "acc-1", input.Send.Source.From[0].AccountAlias)
+			assert.Equal(t, "acc-2", input.Send.Distribute.To[0].AccountAlias)
 
 			return unmarshalInto(Transaction{
 				ID:             "txn-1",
@@ -42,14 +47,15 @@ func TestTransactionsCreate(t *testing.T) {
 
 	svc := newTransactionsService(mock)
 	txn, err := svc.Create(context.Background(), "org-1", "led-1", &CreateTransactionInput{
-		AssetCode: "BRL",
-		Amount:    15000,
-		Scale:     2,
-		Source: []TransactionSource{
-			{
-				From: TransactionFromTo{Account: "acc-1"},
-				To:   TransactionFromTo{Account: "acc-2"},
-			},
+		Send: &TransactionSend{
+			Asset: "BRL",
+			Value: "150.00",
+			Source: TransactionSendSource{From: []TransactionOperationLeg{{
+				AccountAlias: "acc-1",
+			}}},
+			Distribute: TransactionSendDistribution{To: []TransactionOperationLeg{{
+				AccountAlias: "acc-2",
+			}}},
 		},
 	})
 
@@ -60,11 +66,77 @@ func TestTransactionsCreate(t *testing.T) {
 	assert.Equal(t, int64(15000), txn.Amount)
 }
 
+func TestTransactionsCreateWithModernSendPayload(t *testing.T) {
+	t.Parallel()
+
+	description := "modern payload"
+	code := "TX-001"
+	pending := true
+	route := "route-1"
+	transactionDate := "2026-03-24T10:00:00Z"
+	parentTransactionID := "txn-parent"
+
+	mock := &mockBackend{
+		callFn: func(_ context.Context, method, path string, body, result any) error {
+			assert.Equal(t, "POST", method)
+			assert.Equal(t, "/organizations/org-1/ledgers/led-1/transactions", path)
+
+			input, ok := body.(*createTransactionRequest)
+			require.True(t, ok)
+			require.NotNil(t, input.Send)
+			require.NotNil(t, input.Pending)
+			require.NotNil(t, input.Route)
+			require.NotNil(t, input.TransactionDate)
+			assert.Equal(t, description, *input.Description)
+			assert.Equal(t, code, *input.Code)
+			require.NotNil(t, input.ParentTransactionID)
+			assert.Equal(t, parentTransactionID, *input.ParentTransactionID)
+			assert.True(t, *input.Pending)
+			assert.Equal(t, route, *input.Route)
+			assert.Equal(t, transactionDate, *input.TransactionDate)
+			assert.Equal(t, "BRL", input.Send.Asset)
+			assert.Equal(t, "150.00", input.Send.Value)
+			assert.Equal(t, "freeze", input.Send.Source.From[0].BalanceKey)
+			assert.Equal(t, "route-from", input.Send.Source.From[0].Route)
+			assert.Equal(t, "remaining", input.Send.Distribute.To[0].Remaining)
+
+			return unmarshalInto(Transaction{ID: "txn-modern"}, result)
+		},
+	}
+
+	svc := newTransactionsService(mock)
+	txn, err := svc.Create(context.Background(), "org-1", "led-1", &CreateTransactionInput{
+		Description:         &description,
+		Code:                &code,
+		ParentTransactionID: &parentTransactionID,
+		Pending:             &pending,
+		Route:               &route,
+		TransactionDate:     &transactionDate,
+		Send: &TransactionSend{
+			Asset: "BRL",
+			Value: "150.00",
+			Source: TransactionSendSource{From: []TransactionOperationLeg{{
+				AccountAlias: "acc-1",
+				BalanceKey:   "freeze",
+				Route:        "route-from",
+			}}},
+			Distribute: TransactionSendDistribution{To: []TransactionOperationLeg{{
+				AccountAlias: "acc-2",
+				Remaining:    "remaining",
+			}}},
+		},
+	})
+
+	require.NoError(t, err)
+	require.NotNil(t, txn)
+	assert.Equal(t, "txn-modern", txn.ID)
+}
+
 func TestTransactionsCreateEmptyOrgID(t *testing.T) {
 	t.Parallel()
 
 	svc := newTransactionsService(&mockBackend{})
-	txn, err := svc.Create(context.Background(), "", "led-1", &CreateTransactionInput{AssetCode: "BRL"})
+	txn, err := svc.Create(context.Background(), "", "led-1", &CreateTransactionInput{Send: &TransactionSend{Asset: "BRL", Value: "1.00"}})
 
 	require.Error(t, err)
 	assert.Nil(t, txn)
@@ -75,7 +147,7 @@ func TestTransactionsCreateEmptyLedgerID(t *testing.T) {
 	t.Parallel()
 
 	svc := newTransactionsService(&mockBackend{})
-	txn, err := svc.Create(context.Background(), "org-1", "", &CreateTransactionInput{AssetCode: "BRL"})
+	txn, err := svc.Create(context.Background(), "org-1", "", &CreateTransactionInput{Send: &TransactionSend{Asset: "BRL", Value: "1.00"}})
 
 	require.Error(t, err)
 	assert.Nil(t, txn)
@@ -104,11 +176,30 @@ func TestTransactionsCreateBackendError(t *testing.T) {
 	}
 
 	svc := newTransactionsService(mock)
-	txn, err := svc.Create(context.Background(), "org-1", "led-1", &CreateTransactionInput{AssetCode: "BRL"})
+	txn, err := svc.Create(context.Background(), "org-1", "led-1", &CreateTransactionInput{
+		Send: &TransactionSend{
+			Asset:      "BRL",
+			Value:      "1.00",
+			Source:     TransactionSendSource{From: []TransactionOperationLeg{{AccountAlias: "acc-1"}}},
+			Distribute: TransactionSendDistribution{To: []TransactionOperationLeg{{AccountAlias: "acc-2"}}},
+		},
+	})
 
 	require.Error(t, err)
 	assert.Nil(t, txn)
 	assert.Equal(t, expectedErr, err)
+}
+
+func TestTransactionsCreateWithoutSend(t *testing.T) {
+	t.Parallel()
+
+	svc := newTransactionsService(&mockBackend{})
+	txn, err := svc.Create(context.Background(), "org-1", "led-1", &CreateTransactionInput{})
+
+	require.Error(t, err)
+	assert.Nil(t, txn)
+	assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
+	assert.Contains(t, err.Error(), "send is required")
 }
 
 // ---------------------------------------------------------------------------
@@ -233,7 +324,7 @@ func TestTransactionsListWithOptions(t *testing.T) {
 	}
 
 	svc := newTransactionsService(mock)
-	opts := &models.ListOptions{Limit: 25, SortBy: "createdAt", SortOrder: "desc"}
+	opts := &models.CursorListOptions{Limit: 25, SortBy: "createdAt", SortOrder: "desc"}
 	iter := svc.List(context.Background(), "org-1", "led-1", opts)
 
 	require.True(t, iter.Next(context.Background()))
@@ -549,7 +640,7 @@ func TestTransactionsRevertBackendError(t *testing.T) {
 func TestTransactionsServiceInterfaceCompliance(t *testing.T) {
 	t.Parallel()
 
-	var _ TransactionsService = (*transactionsService)(nil)
+	var _ transactionsServiceAPI = (*transactionsService)(nil)
 
-	t.Log("transactionsService implements TransactionsService")
+	t.Log("transactionsService implements transactionsServiceAPI")
 }
