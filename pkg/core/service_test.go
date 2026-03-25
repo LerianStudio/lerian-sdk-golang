@@ -48,6 +48,13 @@ type mockBackend struct {
 	callHeadFn     func(ctx context.Context, path string) (map[string][]string, error)
 }
 
+type nilResponseBackend struct{}
+
+//nolint:nilnil // intentional nil response backend for resilience tests
+func (nilResponseBackend) Do(context.Context, Request) (*Response, error) {
+	return nil, nil
+}
+
 func (m *mockBackend) Do(ctx context.Context, req Request) (*Response, error) {
 	switch req.Method {
 	case http.MethodHead:
@@ -1067,6 +1074,16 @@ func TestCountErrors(t *testing.T) {
 		assert.Equal(t, 0, count)
 		assert.ErrorIs(t, err, ErrNilBackend)
 	})
+
+	t.Run("nil response", func(t *testing.T) {
+		t.Parallel()
+
+		svc := &BaseService{Backend: nilResponseBackend{}}
+		count, err := Count(context.Background(), svc, "/organizations/metrics/count")
+		require.Error(t, err)
+		assert.Equal(t, 0, count)
+		assert.Contains(t, err.Error(), "backend returned nil response")
+	})
 }
 
 func TestActionWithHeaders(t *testing.T) {
@@ -1172,6 +1189,25 @@ func TestList_NilBackend(t *testing.T) {
 		assert.False(t, iter.Next(ctx), "poisoned iterator must return false on first Next()")
 		assert.ErrorIs(t, iter.Err(), ErrNilBackend)
 	})
+}
+
+func TestGet_NilResponse(t *testing.T) {
+	t.Parallel()
+
+	svc := &BaseService{Backend: nilResponseBackend{}}
+	org, err := Get[testOrg](context.Background(), svc, "/organizations/org-1")
+	require.Error(t, err)
+	assert.Nil(t, org)
+	assert.Contains(t, err.Error(), "backend returned nil response")
+}
+
+func TestList_NilResponse(t *testing.T) {
+	t.Parallel()
+
+	svc := &BaseService{Backend: nilResponseBackend{}}
+	iter := List[testOrg](context.Background(), svc, "/organizations", nil)
+	assert.False(t, iter.Next(context.Background()))
+	assert.Contains(t, iter.Err().Error(), "backend returned nil response")
 }
 
 func TestAction_NilBackend(t *testing.T) {
