@@ -54,6 +54,12 @@ func (c Config) String() string {
 	)
 }
 
+// GoString implements fmt.GoStringer to prevent credential leakage in `%#v`
+// debug formatting.
+func (c Config) GoString() string {
+	return c.String()
+}
+
 // MarshalJSON prevents credential leakage during JSON serialization.
 // The ClientSecret field is replaced with "[REDACTED]" in the output.
 func (c Config) MarshalJSON() ([]byte, error) {
@@ -274,13 +280,10 @@ func newClient(onboardingBackend, transactionBackend, crmBackend core.Backend, _
 			Operations:        newOperationsService(transactionBackend),
 			OperationRoutes:   newOperationRoutesService(transactionBackend),
 		},
-	}
-
-	if crmBackend != nil {
-		client.CRM = &CRMClient{
+		CRM: &CRMClient{
 			Holders: newHoldersService(crmBackend),
 			Aliases: newAliasesService(crmBackend),
-		}
+		},
 	}
 
 	return client

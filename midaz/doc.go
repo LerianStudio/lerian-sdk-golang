@@ -47,8 +47,8 @@
 //
 // The CRM backend (Holders and Aliases) uses the X-Organization-Id header
 // instead of URL path parameters for organization context. CRM list methods
-// follow the SDK iterator pattern and accept `models.CursorListOptions` for paging
-// and filtering.
+// follow the SDK iterator pattern and accept `CRMListOptions` or
+// `AliasListOptions` for paging and filtering.
 //
 // # Transaction Lifecycle
 //

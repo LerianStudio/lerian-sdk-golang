@@ -82,6 +82,44 @@ func applyCRMListOptions(params url.Values, page int, opts *CRMListOptions) {
 	}
 }
 
+func normalizeCRMListOptions(operation, resource string, opts *CRMListOptions) (*CRMListOptions, error) {
+	if opts == nil {
+		return &CRMListOptions{}, nil
+	}
+
+	normalized := *opts
+
+	normalized.SortOrder = strings.ToLower(strings.TrimSpace(opts.SortOrder))
+	if normalized.SortOrder != "" && normalized.SortOrder != "asc" && normalized.SortOrder != "desc" {
+		return nil, sdkerrors.NewValidation(operation, resource, "sort order must be either asc or desc")
+	}
+
+	return &normalized, nil
+}
+
+func normalizeAliasListOptions(operation, resource string, opts *AliasListOptions) (*AliasListOptions, error) {
+	if opts == nil {
+		return &AliasListOptions{}, nil
+	}
+
+	normalizedCRM, err := normalizeCRMListOptions(operation, resource, &opts.CRMListOptions)
+	if err != nil {
+		return nil, err
+	}
+
+	normalized := *opts
+	normalized.CRMListOptions = *normalizedCRM
+
+	if opts.HolderID != "" {
+		normalized.HolderID, err = validateCRMIdentifier(operation, resource, opts.HolderID, "holder id")
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return &normalized, nil
+}
+
 // buildCRMListPath constructs CRM list query parameters.
 func buildCRMListPath(path string, opts *CRMListOptions, page int) string {
 	params := url.Values{}
@@ -95,8 +133,9 @@ func buildCRMAliasListPath(path string, opts *AliasListOptions, page int) string
 	if opts != nil {
 		applyCRMListOptions(params, page, &opts.CRMListOptions)
 
-		if strings.TrimSpace(opts.HolderID) != "" {
-			params.Set("holder_id", opts.HolderID)
+		holderID := strings.TrimSpace(opts.HolderID)
+		if holderID != "" {
+			params.Set("holder_id", holderID)
 		}
 	} else {
 		applyCRMListOptions(params, page, nil)
