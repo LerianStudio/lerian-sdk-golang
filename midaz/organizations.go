@@ -55,6 +55,10 @@ var _ organizationsServiceAPI = (*organizationsService)(nil)
 func (s *organizationsService) Create(ctx context.Context, input *CreateOrganizationInput) (*Organization, error) {
 	const operation = "Organizations.Create"
 
+	if err := ensureService(s); err != nil {
+		return nil, err
+	}
+
 	if input == nil {
 		return nil, sdkerrors.NewValidation(operation, "Organization", "input is required")
 	}
@@ -66,6 +70,10 @@ func (s *organizationsService) Create(ctx context.Context, input *CreateOrganiza
 func (s *organizationsService) Get(ctx context.Context, id string) (*Organization, error) {
 	const operation = "Organizations.Get"
 
+	if err := ensureService(s); err != nil {
+		return nil, err
+	}
+
 	if id == "" {
 		return nil, sdkerrors.NewValidation(operation, "Organization", "id is required")
 	}
@@ -75,12 +83,20 @@ func (s *organizationsService) Get(ctx context.Context, id string) (*Organizatio
 
 // List returns a paginated iterator over organizations.
 func (s *organizationsService) List(ctx context.Context, opts *models.CursorListOptions) *pagination.Iterator[Organization] {
+	if err := ensureService(s); err != nil {
+		return newErrorIterator[Organization](err)
+	}
+
 	return core.List[Organization](ctx, &s.BaseService, "/organizations", opts)
 }
 
 // Update partially updates an existing organization.
 func (s *organizationsService) Update(ctx context.Context, id string, input *UpdateOrganizationInput) (*Organization, error) {
 	const operation = "Organizations.Update"
+
+	if err := ensureService(s); err != nil {
+		return nil, err
+	}
 
 	if id == "" {
 		return nil, sdkerrors.NewValidation(operation, "Organization", "id is required")
@@ -96,6 +112,10 @@ func (s *organizationsService) Update(ctx context.Context, id string, input *Upd
 // Delete removes an organization by its unique identifier.
 func (s *organizationsService) Delete(ctx context.Context, id string) error {
 	const operation = "Organizations.Delete"
+
+	if err := ensureService(s); err != nil {
+		return err
+	}
 
 	if id == "" {
 		return sdkerrors.NewValidation(operation, "Organization", "id is required")

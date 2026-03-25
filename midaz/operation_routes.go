@@ -67,6 +67,10 @@ const operationRouteResource = "OperationRoute"
 func (s *operationRoutesService) Create(ctx context.Context, orgID, ledgerID string, input *CreateOperationRouteInput) (*OperationRoute, error) {
 	const operation = "OperationRoutes.Create"
 
+	if err := ensureService(s); err != nil {
+		return nil, err
+	}
+
 	if orgID == "" {
 		return nil, sdkerrors.NewValidation(operation, operationRouteResource, "organization id is required")
 	}
@@ -86,6 +90,10 @@ func (s *operationRoutesService) Create(ctx context.Context, orgID, ledgerID str
 func (s *operationRoutesService) Get(ctx context.Context, orgID, ledgerID, id string) (*OperationRoute, error) {
 	const operation = "OperationRoutes.Get"
 
+	if err := ensureService(s); err != nil {
+		return nil, err
+	}
+
 	if orgID == "" {
 		return nil, sdkerrors.NewValidation(operation, operationRouteResource, "organization id is required")
 	}
@@ -103,10 +111,12 @@ func (s *operationRoutesService) Get(ctx context.Context, orgID, ledgerID, id st
 
 // List returns a paginated iterator over operation routes in a ledger.
 func (s *operationRoutesService) List(ctx context.Context, orgID, ledgerID string, opts *models.CursorListOptions) *pagination.Iterator[OperationRoute] {
+	if err := ensureService(s); err != nil {
+		return newErrorIterator[OperationRoute](err)
+	}
+
 	if orgID == "" || ledgerID == "" {
-		return pagination.NewIterator[OperationRoute](func(_ context.Context, _ string) ([]OperationRoute, string, error) {
-			return nil, "", sdkerrors.NewValidation("OperationRoutes.List", operationRouteResource, "organization ID and ledger ID are required")
-		})
+		return newErrorIterator[OperationRoute](sdkerrors.NewValidation("OperationRoutes.List", operationRouteResource, "organization ID and ledger ID are required"))
 	}
 
 	return core.List[OperationRoute](ctx, &s.BaseService, operationRoutesBasePath(orgID, ledgerID), opts)
@@ -115,6 +125,10 @@ func (s *operationRoutesService) List(ctx context.Context, orgID, ledgerID strin
 // Update partially updates an existing operation route.
 func (s *operationRoutesService) Update(ctx context.Context, orgID, ledgerID, id string, input *UpdateOperationRouteInput) (*OperationRoute, error) {
 	const operation = "OperationRoutes.Update"
+
+	if err := ensureService(s); err != nil {
+		return nil, err
+	}
 
 	if orgID == "" {
 		return nil, sdkerrors.NewValidation(operation, operationRouteResource, "organization id is required")
@@ -138,6 +152,10 @@ func (s *operationRoutesService) Update(ctx context.Context, orgID, ledgerID, id
 // Delete removes an operation route by its unique identifier.
 func (s *operationRoutesService) Delete(ctx context.Context, orgID, ledgerID, id string) error {
 	const operation = "OperationRoutes.Delete"
+
+	if err := ensureService(s); err != nil {
+		return err
+	}
 
 	if orgID == "" {
 		return sdkerrors.NewValidation(operation, operationRouteResource, "organization id is required")

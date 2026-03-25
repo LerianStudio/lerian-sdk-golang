@@ -68,6 +68,10 @@ const accountTypeResource = "AccountType"
 func (s *accountTypesService) Create(ctx context.Context, orgID, ledgerID string, input *CreateAccountTypeInput) (*AccountType, error) {
 	const operation = "AccountTypes.Create"
 
+	if err := ensureService(s); err != nil {
+		return nil, err
+	}
+
 	if orgID == "" {
 		return nil, sdkerrors.NewValidation(operation, accountTypeResource, "organization id is required")
 	}
@@ -87,6 +91,10 @@ func (s *accountTypesService) Create(ctx context.Context, orgID, ledgerID string
 func (s *accountTypesService) Get(ctx context.Context, orgID, ledgerID, id string) (*AccountType, error) {
 	const operation = "AccountTypes.Get"
 
+	if err := ensureService(s); err != nil {
+		return nil, err
+	}
+
 	if orgID == "" {
 		return nil, sdkerrors.NewValidation(operation, accountTypeResource, "organization id is required")
 	}
@@ -104,10 +112,12 @@ func (s *accountTypesService) Get(ctx context.Context, orgID, ledgerID, id strin
 
 // List returns a paginated iterator over account types in a ledger.
 func (s *accountTypesService) List(ctx context.Context, orgID, ledgerID string, opts *models.CursorListOptions) *pagination.Iterator[AccountType] {
+	if err := ensureService(s); err != nil {
+		return newErrorIterator[AccountType](err)
+	}
+
 	if orgID == "" || ledgerID == "" {
-		return pagination.NewIterator[AccountType](func(_ context.Context, _ string) ([]AccountType, string, error) {
-			return nil, "", sdkerrors.NewValidation("AccountTypes.List", accountTypeResource, "organization ID and ledger ID are required")
-		})
+		return newErrorIterator[AccountType](sdkerrors.NewValidation("AccountTypes.List", accountTypeResource, "organization ID and ledger ID are required"))
 	}
 
 	return core.List[AccountType](ctx, &s.BaseService, accountTypesBasePath(orgID, ledgerID), opts)
@@ -116,6 +126,10 @@ func (s *accountTypesService) List(ctx context.Context, orgID, ledgerID string, 
 // Update partially updates an existing account type.
 func (s *accountTypesService) Update(ctx context.Context, orgID, ledgerID, id string, input *UpdateAccountTypeInput) (*AccountType, error) {
 	const operation = "AccountTypes.Update"
+
+	if err := ensureService(s); err != nil {
+		return nil, err
+	}
 
 	if orgID == "" {
 		return nil, sdkerrors.NewValidation(operation, accountTypeResource, "organization id is required")
@@ -139,6 +153,10 @@ func (s *accountTypesService) Update(ctx context.Context, orgID, ledgerID, id st
 // Delete removes an account type by its unique identifier.
 func (s *accountTypesService) Delete(ctx context.Context, orgID, ledgerID, id string) error {
 	const operation = "AccountTypes.Delete"
+
+	if err := ensureService(s); err != nil {
+		return err
+	}
 
 	if orgID == "" {
 		return sdkerrors.NewValidation(operation, accountTypeResource, "organization id is required")
