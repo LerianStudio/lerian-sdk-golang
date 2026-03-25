@@ -192,3 +192,231 @@ func TestMetricsServicesRejectNilReceivers(t *testing.T) {
 		assert.ErrorIs(t, err, core.ErrNilService)
 	})
 }
+
+func TestListServicesRejectNilReceivers(t *testing.T) {
+	t.Parallel()
+
+	t.Run("organizations list", func(t *testing.T) {
+		t.Parallel()
+
+		var svc *organizationsService
+
+		items, err := svc.List(context.Background(), nil).Collect(context.Background())
+		require.Error(t, err)
+		assert.Nil(t, items)
+		assert.ErrorIs(t, err, core.ErrNilService)
+	})
+
+	t.Run("ledgers list", func(t *testing.T) {
+		t.Parallel()
+
+		var svc *ledgersService
+
+		items, err := svc.List(context.Background(), "org-1", nil).Collect(context.Background())
+		require.Error(t, err)
+		assert.Nil(t, items)
+		assert.ErrorIs(t, err, core.ErrNilService)
+	})
+
+	t.Run("account types list", func(t *testing.T) {
+		t.Parallel()
+
+		var svc *accountTypesService
+
+		items, err := svc.List(context.Background(), "org-1", "ledger-1", nil).Collect(context.Background())
+		require.Error(t, err)
+		assert.Nil(t, items)
+		assert.ErrorIs(t, err, core.ErrNilService)
+	})
+
+	t.Run("accounts list", func(t *testing.T) {
+		t.Parallel()
+
+		var svc *accountsService
+
+		items, err := svc.List(context.Background(), "org-1", "ledger-1", nil).Collect(context.Background())
+		require.Error(t, err)
+		assert.Nil(t, items)
+		assert.ErrorIs(t, err, core.ErrNilService)
+	})
+
+	t.Run("assets list", func(t *testing.T) {
+		t.Parallel()
+
+		var svc *assetsService
+
+		items, err := svc.List(context.Background(), "org-1", "ledger-1", nil).Collect(context.Background())
+		require.Error(t, err)
+		assert.Nil(t, items)
+		assert.ErrorIs(t, err, core.ErrNilService)
+	})
+
+	t.Run("asset rates list", func(t *testing.T) {
+		t.Parallel()
+
+		var svc *assetRatesService
+
+		items, err := svc.List(context.Background(), "org-1", "ledger-1", nil).Collect(context.Background())
+		require.Error(t, err)
+		assert.Nil(t, items)
+		assert.ErrorIs(t, err, core.ErrNilService)
+	})
+
+	t.Run("balances list", func(t *testing.T) {
+		t.Parallel()
+
+		var svc *balancesService
+
+		items, err := svc.List(context.Background(), "org-1", "ledger-1", nil).Collect(context.Background())
+		require.Error(t, err)
+		assert.Nil(t, items)
+		assert.ErrorIs(t, err, core.ErrNilService)
+	})
+
+	t.Run("operations list", func(t *testing.T) {
+		t.Parallel()
+
+		var svc *operationsService
+
+		items, err := svc.List(context.Background(), "org-1", "ledger-1", nil).Collect(context.Background())
+		require.Error(t, err)
+		assert.Nil(t, items)
+		assert.ErrorIs(t, err, core.ErrNilService)
+	})
+
+	t.Run("operations list by transaction", func(t *testing.T) {
+		t.Parallel()
+
+		var svc *operationsService
+
+		items, err := svc.ListByTransaction(context.Background(), "org-1", "ledger-1", "tx-1", nil).Collect(context.Background())
+		require.Error(t, err)
+		assert.Nil(t, items)
+		assert.ErrorIs(t, err, core.ErrNilService)
+	})
+
+	t.Run("operations list by account", func(t *testing.T) {
+		t.Parallel()
+
+		var svc *operationsService
+
+		items, err := svc.ListByAccount(context.Background(), "org-1", "ledger-1", "acc-1", nil).Collect(context.Background())
+		require.Error(t, err)
+		assert.Nil(t, items)
+		assert.ErrorIs(t, err, core.ErrNilService)
+	})
+
+	t.Run("portfolios list", func(t *testing.T) {
+		t.Parallel()
+
+		var svc *portfoliosService
+
+		items, err := svc.List(context.Background(), "org-1", "ledger-1", nil).Collect(context.Background())
+		require.Error(t, err)
+		assert.Nil(t, items)
+		assert.ErrorIs(t, err, core.ErrNilService)
+	})
+
+	t.Run("segments list", func(t *testing.T) {
+		t.Parallel()
+
+		var svc *segmentsService
+
+		items, err := svc.List(context.Background(), "org-1", "ledger-1", nil).Collect(context.Background())
+		require.Error(t, err)
+		assert.Nil(t, items)
+		assert.ErrorIs(t, err, core.ErrNilService)
+	})
+
+	t.Run("transactions list", func(t *testing.T) {
+		t.Parallel()
+
+		var svc *transactionsService
+
+		items, err := svc.List(context.Background(), "org-1", "ledger-1", nil).Collect(context.Background())
+		require.Error(t, err)
+		assert.Nil(t, items)
+		assert.ErrorIs(t, err, core.ErrNilService)
+	})
+
+	t.Run("transaction routes list", func(t *testing.T) {
+		t.Parallel()
+
+		var svc *transactionRoutesService
+
+		items, err := svc.List(context.Background(), "org-1", "ledger-1", nil).Collect(context.Background())
+		require.Error(t, err)
+		assert.Nil(t, items)
+		assert.ErrorIs(t, err, core.ErrNilService)
+	})
+
+	t.Run("operation routes list", func(t *testing.T) {
+		t.Parallel()
+
+		var svc *operationRoutesService
+
+		items, err := svc.List(context.Background(), "org-1", "ledger-1", nil).Collect(context.Background())
+		require.Error(t, err)
+		assert.Nil(t, items)
+		assert.ErrorIs(t, err, core.ErrNilService)
+	})
+}
+
+func TestTransactionsLifecycleRejectNilReceivers(t *testing.T) {
+	t.Parallel()
+
+	t.Run("get", func(t *testing.T) {
+		t.Parallel()
+
+		var svc *transactionsService
+
+		tx, err := svc.Get(context.Background(), "org-1", "ledger-1", "txn-1")
+		require.Error(t, err)
+		assert.Nil(t, tx)
+		assert.ErrorIs(t, err, core.ErrNilService)
+	})
+
+	t.Run("update", func(t *testing.T) {
+		t.Parallel()
+
+		var svc *transactionsService
+
+		tx, err := svc.Update(context.Background(), "org-1", "ledger-1", "txn-1", &UpdateTransactionInput{})
+		require.Error(t, err)
+		assert.Nil(t, tx)
+		assert.ErrorIs(t, err, core.ErrNilService)
+	})
+
+	t.Run("commit", func(t *testing.T) {
+		t.Parallel()
+
+		var svc *transactionsService
+
+		tx, err := svc.Commit(context.Background(), "org-1", "ledger-1", "txn-1")
+		require.Error(t, err)
+		assert.Nil(t, tx)
+		assert.ErrorIs(t, err, core.ErrNilService)
+	})
+
+	t.Run("cancel", func(t *testing.T) {
+		t.Parallel()
+
+		var svc *transactionsService
+
+		tx, err := svc.Cancel(context.Background(), "org-1", "ledger-1", "txn-1")
+		require.Error(t, err)
+		assert.Nil(t, tx)
+		assert.ErrorIs(t, err, core.ErrNilService)
+	})
+
+	t.Run("revert", func(t *testing.T) {
+		t.Parallel()
+
+		var svc *transactionsService
+
+		tx, err := svc.Revert(context.Background(), "org-1", "ledger-1", "txn-1")
+		require.Error(t, err)
+		assert.Nil(t, tx)
+		assert.ErrorIs(t, err, core.ErrNilService)
+	})
+}

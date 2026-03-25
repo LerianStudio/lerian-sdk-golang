@@ -39,6 +39,35 @@ func TestClientRoutesAssetRatesToTransactionBackend(t *testing.T) {
 	assert.True(t, transactionCalled)
 }
 
+func TestClientRoutesOrganizationsToOnboardingBackend(t *testing.T) {
+	t.Parallel()
+
+	onboardingCalled := false
+	transactionCalled := false
+
+	onboarding := &mockBackend{callFn: func(_ context.Context, method, path string, body, result any) error {
+		onboardingCalled = true
+
+		assert.Equal(t, "GET", method)
+		assert.Equal(t, "/organizations/org-1", path)
+		assert.Nil(t, body)
+
+		return unmarshalInto(Organization{ID: "org-1"}, result)
+	}}
+	transaction := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
+		transactionCalled = true
+		return nil
+	}}
+
+	client := NewClient(onboarding, transaction, Config{})
+	org, err := client.Onboarding.Organizations.Get(context.Background(), "org-1")
+
+	require.NoError(t, err)
+	require.NotNil(t, org)
+	assert.True(t, onboardingCalled)
+	assert.False(t, transactionCalled)
+}
+
 func TestClientRoutesCRMServicesToCRMBackend(t *testing.T) {
 	t.Parallel()
 

@@ -3,6 +3,7 @@ package midaz
 import (
 	"context"
 	"errors"
+	"net/url"
 	"testing"
 
 	"github.com/LerianStudio/lerian-sdk-golang/models"
@@ -51,6 +52,26 @@ func TestHoldersDeleteIncludesHardDelete(t *testing.T) {
 
 	svc := newHoldersService(mock)
 	err := svc.Delete(context.Background(), "org-1", "holder-1", &CRMDeleteOptions{HardDelete: true})
+	require.NoError(t, err)
+}
+
+func TestHoldersDeleteDefaultsToSoftDelete(t *testing.T) {
+	t.Parallel()
+
+	mock := &mockBackend{
+		callWithHdrsFn: func(_ context.Context, method, path string, headers map[string]string, body, result any) error {
+			assert.Equal(t, "DELETE", method)
+			assert.Equal(t, "/holders/holder-1", path)
+			assert.Equal(t, "org-1", headers["X-Organization-Id"])
+			assert.Nil(t, body)
+			assert.Nil(t, result)
+
+			return nil
+		},
+	}
+
+	svc := newHoldersService(mock)
+	err := svc.Delete(context.Background(), "org-1", "holder-1", nil)
 	require.NoError(t, err)
 }
 
@@ -213,12 +234,16 @@ func TestAliasesListUsesOrgHeaderAndOptions(t *testing.T) {
 	mock := &mockBackend{
 		callWithHdrsFn: func(_ context.Context, method, path string, headers map[string]string, body, result any) error {
 			assert.Equal(t, "GET", method)
-			assert.Contains(t, path, "/aliases?")
-			assert.Contains(t, path, "holder_id=holder-1")
-			assert.Contains(t, path, "include_deleted=true")
-			assert.Contains(t, path, "limit=25")
-			assert.Contains(t, path, "page=2")
-			assert.Contains(t, path, "sort_order=desc")
+
+			parsed, err := url.Parse(path)
+			require.NoError(t, err)
+
+			assert.Equal(t, "/aliases", parsed.Path)
+			assert.Equal(t, "holder-1", parsed.Query().Get("holder_id"))
+			assert.Equal(t, "true", parsed.Query().Get("include_deleted"))
+			assert.Equal(t, "25", parsed.Query().Get("limit"))
+			assert.Equal(t, "2", parsed.Query().Get("page"))
+			assert.Equal(t, "desc", parsed.Query().Get("sort_order"))
 			assert.Equal(t, "org-1", headers["X-Organization-Id"])
 			assert.Nil(t, body)
 
@@ -233,6 +258,35 @@ func TestAliasesListUsesOrgHeaderAndOptions(t *testing.T) {
 	iter := svc.List(context.Background(), "org-1", &AliasListOptions{
 		CRMListOptions: CRMListOptions{PageSize: 25, PageNumber: 2, SortOrder: "desc", IncludeDeleted: true},
 		HolderID:       "holder-1",
+	})
+	items, err := iter.Collect(context.Background())
+
+	require.NoError(t, err)
+	assert.Len(t, items, 1)
+}
+
+func TestAliasesListNormalizesHolderAndSortOrder(t *testing.T) {
+	t.Parallel()
+
+	mock := &mockBackend{
+		callWithHdrsFn: func(_ context.Context, method, path string, headers map[string]string, body, result any) error {
+			assert.Equal(t, "GET", method)
+
+			parsed, err := url.Parse(path)
+			require.NoError(t, err)
+
+			assert.Equal(t, "holder-1", parsed.Query().Get("holder_id"))
+			assert.Equal(t, "desc", parsed.Query().Get("sort_order"))
+			assert.Equal(t, "org-1", headers["X-Organization-Id"])
+
+			return unmarshalInto(models.ListResponse[Alias]{Items: []Alias{{ID: "alias-1", HolderID: "holder-1"}}, Pagination: models.Pagination{Total: 1, Limit: 25}}, result)
+		},
+	}
+
+	svc := newAliasesService(mock)
+	iter := svc.List(context.Background(), "org-1", &AliasListOptions{
+		CRMListOptions: CRMListOptions{PageSize: 25, SortOrder: " DESC "},
+		HolderID:       " holder-1 ",
 	})
 	items, err := iter.Collect(context.Background())
 
@@ -257,6 +311,26 @@ func TestAliasesDeleteIncludesHardDelete(t *testing.T) {
 
 	svc := newAliasesService(mock)
 	err := svc.Delete(context.Background(), "org-1", "holder-1", "alias-1", &CRMDeleteOptions{HardDelete: true})
+	require.NoError(t, err)
+}
+
+func TestAliasesDeleteDefaultsToSoftDelete(t *testing.T) {
+	t.Parallel()
+
+	mock := &mockBackend{
+		callWithHdrsFn: func(_ context.Context, method, path string, headers map[string]string, body, result any) error {
+			assert.Equal(t, "DELETE", method)
+			assert.Equal(t, "/holders/holder-1/aliases/alias-1", path)
+			assert.Equal(t, "org-1", headers["X-Organization-Id"])
+			assert.Nil(t, body)
+			assert.Nil(t, result)
+
+			return nil
+		},
+	}
+
+	svc := newAliasesService(mock)
+	err := svc.Delete(context.Background(), "org-1", "holder-1", "alias-1", nil)
 	require.NoError(t, err)
 }
 
@@ -309,6 +383,30 @@ func TestCRMServicesTrimOrganizationID(t *testing.T) {
 		require.Error(t, err)
 		assert.Nil(t, items)
 		assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
+	})
+
+	t.Run("aliases list rejects whitespace holder filter", func(t *testing.T) {
+		t.Parallel()
+
+		svc := newAliasesService(&mockBackend{})
+		iter := svc.List(context.Background(), "org-1", &AliasListOptions{HolderID: " \t "})
+		items, err := iter.Collect(context.Background())
+		require.Error(t, err)
+		assert.Nil(t, items)
+		assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
+		assert.Contains(t, err.Error(), "holder id is required")
+	})
+
+	t.Run("holders list rejects invalid sort order", func(t *testing.T) {
+		t.Parallel()
+
+		svc := newHoldersService(&mockBackend{})
+		iter := svc.List(context.Background(), "org-1", &CRMListOptions{SortOrder: "sideways"})
+		items, err := iter.Collect(context.Background())
+		require.Error(t, err)
+		assert.Nil(t, items)
+		assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
+		assert.Contains(t, err.Error(), "sort order")
 	})
 
 	t.Run("holders get rejects whitespace id", func(t *testing.T) {
@@ -367,6 +465,35 @@ func TestCRMServicesRejectNilReceivers(t *testing.T) {
 		assert.Nil(t, items)
 		assert.ErrorIs(t, err, core.ErrNilService)
 	})
+
+	t.Run("holders create nil input", func(t *testing.T) {
+		t.Parallel()
+
+		svc := newHoldersService(&mockBackend{})
+		holder, err := svc.Create(context.Background(), "org-1", nil)
+		require.Error(t, err)
+		assert.Nil(t, holder)
+		assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
+	})
+
+	t.Run("aliases update nil input", func(t *testing.T) {
+		t.Parallel()
+
+		svc := newAliasesService(&mockBackend{})
+		alias, err := svc.Update(context.Background(), "org-1", "holder-1", "alias-1", nil)
+		require.Error(t, err)
+		assert.Nil(t, alias)
+		assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
+	})
+
+	t.Run("aliases delete related party rejects invalid id", func(t *testing.T) {
+		t.Parallel()
+
+		svc := newAliasesService(&mockBackend{})
+		err := svc.DeleteRelatedParty(context.Background(), "org-1", "holder-1", "alias-1", " ")
+		require.Error(t, err)
+		assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
+	})
 }
 
 func TestBuildCRMListPath(t *testing.T) {
@@ -386,10 +513,12 @@ func TestBuildCRMListPath(t *testing.T) {
 			HolderID:       "holder-1",
 		}, 3)
 
-		assert.Contains(t, path, "/aliases?")
-		assert.Contains(t, path, "holder_id=holder-1")
-		assert.Contains(t, path, "limit=10")
-		assert.Contains(t, path, "page=3")
-		assert.Contains(t, path, "sort_order=asc")
+		parsed, err := url.Parse(path)
+		require.NoError(t, err)
+		assert.Equal(t, "/aliases", parsed.Path)
+		assert.Equal(t, "holder-1", parsed.Query().Get("holder_id"))
+		assert.Equal(t, "10", parsed.Query().Get("limit"))
+		assert.Equal(t, "3", parsed.Query().Get("page"))
+		assert.Equal(t, "asc", parsed.Query().Get("sort_order"))
 	})
 }
