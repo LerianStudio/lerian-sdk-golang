@@ -31,17 +31,17 @@ func main() {
 	// -----------------------------------------------------------------------
 	// Step 1: Create the SDK client configured for the Midaz product.
 	//
-	// WithMidaz() requires at minimum the two service URLs (onboarding and
-	// transaction). Authentication is configured with OAuth2 client credentials.
+	// Midaz requires at minimum the two service URLs (onboarding and
+	// transaction). Authentication can be loaded into the config separately.
 	// -----------------------------------------------------------------------
 	// NOTE: Use HTTPS URLs in production. HTTP is only for local development.
-	client, err := lerian.New(
-		lerian.WithMidaz(
-			midaz.WithOnboardingURL(envOr("LERIAN_MIDAZ_ONBOARDING_URL", "http://localhost:3000/v1")),
-			midaz.WithTransactionURL(envOr("LERIAN_MIDAZ_TRANSACTION_URL", "http://localhost:3001/v1")),
-		),
-		lerian.WithDebug(os.Getenv("LERIAN_DEBUG") == "true"),
-	)
+	client, err := lerian.New(lerian.Config{
+		Debug: os.Getenv("LERIAN_DEBUG") == "true",
+		Midaz: &midaz.Config{
+			OnboardingURL:  envOr("LERIAN_MIDAZ_ONBOARDING_URL", "http://localhost:3000/v1"),
+			TransactionURL: envOr("LERIAN_MIDAZ_TRANSACTION_URL", "http://localhost:3001/v1"),
+		},
+	})
 	if err != nil {
 		log.Fatalf("Failed to create client: %v", err)
 	}
@@ -56,7 +56,7 @@ func main() {
 	// Organizations own ledgers, accounts, assets, and transactions. The
 	// LegalName and LegalDocument fields are required by the API.
 	// -----------------------------------------------------------------------
-	org, err := client.Midaz.Organizations.Create(ctx, &midaz.CreateOrganizationInput{
+	org, err := client.Midaz.Onboarding.Organizations.Create(ctx, &midaz.CreateOrganizationInput{
 		LegalName:     "Acme Corp",
 		LegalDocument: "12345678000100",
 	})
@@ -72,7 +72,7 @@ func main() {
 	// A ledger is an isolated double-entry bookkeeping container. All
 	// accounts, assets, and transactions belong to exactly one ledger.
 	// -----------------------------------------------------------------------
-	ledger, err := client.Midaz.Ledgers.Create(ctx, org.ID, &midaz.CreateLedgerInput{
+	ledger, err := client.Midaz.Onboarding.Ledgers.Create(ctx, org.ID, &midaz.CreateLedgerInput{
 		Name: "Main Ledger",
 	})
 	if err != nil {
@@ -87,7 +87,7 @@ func main() {
 	// Assets specify the denomination for account balances and transaction
 	// amounts. Here we register BRL (Brazilian Real) as a currency type.
 	// -----------------------------------------------------------------------
-	asset, err := client.Midaz.Assets.Create(ctx, org.ID, ledger.ID, &midaz.CreateAssetInput{
+	asset, err := client.Midaz.Onboarding.Assets.Create(ctx, org.ID, ledger.ID, &midaz.CreateAssetInput{
 		Name: "Brazilian Real",
 		Code: "BRL",
 		Type: "currency",
@@ -105,7 +105,7 @@ func main() {
 	// categorizes the account (e.g. deposit, savings, external). AssetCode
 	// must match an existing asset within the same ledger.
 	// -----------------------------------------------------------------------
-	sender, err := client.Midaz.Accounts.Create(ctx, org.ID, ledger.ID, &midaz.CreateAccountInput{
+	sender, err := client.Midaz.Onboarding.Accounts.Create(ctx, org.ID, ledger.ID, &midaz.CreateAccountInput{
 		Name:      "Sender Account",
 		AssetCode: "BRL",
 		Type:      "deposit",
@@ -116,7 +116,7 @@ func main() {
 
 	fmt.Printf("Created sender account: %s (ID: %s)\n", sender.Name, sender.ID)
 
-	receiver, err := client.Midaz.Accounts.Create(ctx, org.ID, ledger.ID, &midaz.CreateAccountInput{
+	receiver, err := client.Midaz.Onboarding.Accounts.Create(ctx, org.ID, ledger.ID, &midaz.CreateAccountInput{
 		Name:      "Receiver Account",
 		AssetCode: "BRL",
 		Type:      "deposit",
@@ -130,20 +130,20 @@ func main() {
 	// -----------------------------------------------------------------------
 	// Step 6: Create a transaction with explicit source -> destination routing.
 	//
-	// Transactions in Midaz use a DSL-style Source array to describe money
-	// movement. Each TransactionSource links a From account to a To account
-	// with an explicit amount. The Amount/Scale at the top level represent
-	// the total amount (10000 with scale 2 = R$ 100.00).
+	// Transactions in Midaz use a send-based payload. The value is decimal
+	// text and the debit/credit legs are described explicitly in the send
+	// source/distribution sections.
 	// -----------------------------------------------------------------------
-	txn, err := client.Midaz.Transactions.Create(ctx, org.ID, ledger.ID, &midaz.CreateTransactionInput{
-		AssetCode: "BRL",
-		Amount:    10000, // R$ 100.00 in cents
-		Scale:     2,
-		Source: []midaz.TransactionSource{
-			{
-				From: midaz.TransactionFromTo{Account: sender.ID},
-				To:   midaz.TransactionFromTo{Account: receiver.ID},
-			},
+	txn, err := client.Midaz.Transactions.Transactions.Create(ctx, org.ID, ledger.ID, &midaz.CreateTransactionInput{
+		Send: &midaz.TransactionSend{
+			Asset: "BRL",
+			Value: "100.00",
+			Source: midaz.TransactionSendSource{From: []midaz.TransactionOperationLeg{{
+				AccountAlias: sender.ID,
+			}}},
+			Distribute: midaz.TransactionSendDistribution{To: []midaz.TransactionOperationLeg{{
+				AccountAlias: receiver.ID,
+			}}},
 		},
 	})
 	if err != nil {
@@ -159,7 +159,7 @@ func main() {
 	// Committing finalizes all operations and applies balance changes. Once
 	// committed, a transaction can be reverted but not cancelled.
 	// -----------------------------------------------------------------------
-	committed, err := client.Midaz.Transactions.Commit(ctx, org.ID, ledger.ID, txn.ID)
+	committed, err := client.Midaz.Transactions.Transactions.Commit(ctx, org.ID, ledger.ID, txn.ID)
 	if err != nil {
 		log.Fatalf("Failed to commit transaction: %v", err)
 	}
@@ -175,7 +175,7 @@ func main() {
 	// -----------------------------------------------------------------------
 	fmt.Println("\n--- Listing Organizations ---")
 
-	iter := client.Midaz.Organizations.List(ctx, nil)
+	iter := client.Midaz.Onboarding.Organizations.List(ctx, nil)
 	for iter.Next(ctx) {
 		o := iter.Item()
 		fmt.Printf("  - %s (ID: %s)\n", o.LegalName, o.ID)
@@ -192,7 +192,7 @@ func main() {
 	// ErrValidation, ErrConflict, etc.) that work with errors.Is() across
 	// all products. This enables product-agnostic error handling.
 	// -----------------------------------------------------------------------
-	_, err = client.Midaz.Organizations.Get(ctx, "non-existent-id")
+	_, err = client.Midaz.Onboarding.Organizations.Get(ctx, "non-existent-id")
 	if err != nil {
 		if errors.Is(err, lerian.ErrNotFound) {
 			fmt.Println("\nCorrectly caught ErrNotFound for non-existent organization")

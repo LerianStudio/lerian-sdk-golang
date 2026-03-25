@@ -34,12 +34,12 @@ func main() {
 	// endpoints (rules, validations, limits, audit events).
 	// -----------------------------------------------------------------------
 	// NOTE: Use HTTPS URLs in production. HTTP is only for local development.
-	client, err := lerian.New(
-		lerian.WithTracer(
-			tracer.WithBaseURL(envOr("LERIAN_TRACER_URL", "http://localhost:3003/v1")),
-		),
-		lerian.WithDebug(os.Getenv("LERIAN_DEBUG") == "true"),
-	)
+	client, err := lerian.New(lerian.Config{
+		Debug: os.Getenv("LERIAN_DEBUG") == "true",
+		Tracer: &tracer.Config{
+			BaseURL: envOr("LERIAN_TRACER_URL", "http://localhost:3003/v1"),
+		},
+	})
 	if err != nil {
 		log.Fatalf("Failed to create client: %v", err)
 	}

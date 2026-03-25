@@ -1,9 +1,9 @@
 // Example: Fees Estimation Workflow
 //
 // Demonstrates the Fees calculation product using the Lerian SDK v3.
-// The example creates a fee package with multiple rule types, previews
-// charges via the estimation endpoint, and then calculates a fee linked
-// to a transaction.
+// The example creates a fee package with calculation rules, previews
+// charges via the estimation endpoint, and then calculates fees by
+// submitting a transaction DSL for fee injection.
 //
 // Configure via environment variables:
 //
@@ -12,7 +12,7 @@
 //	LERIAN_FEES_CLIENT_ID     (required with secret + token URL for OAuth2)
 //	LERIAN_FEES_CLIENT_SECRET (required with client ID + token URL for OAuth2)
 //	LERIAN_FEES_TOKEN_URL     (required with client ID + secret for OAuth2)
-//	LERIAN_DEBUG              (optional, set "true" for verbose logging)
+//	LERIAN_DEBUG              (optional, set "true" for verbose logging; avoid enabling it with sensitive transaction/account data outside local development)
 package main
 
 import (
@@ -30,21 +30,19 @@ func main() {
 	// -----------------------------------------------------------------------
 	// Step 1: Create the SDK client configured for the Fees product.
 	//
-	// Like Reporter, Fees requires an OrganizationID sent as the
-	// X-Organization-Id header. Authentication uses OAuth2 client credentials.
+	// Fees requires an OrganizationID sent as the X-Organization-Id header.
+	// Authentication uses OAuth2 client credentials.
 	// -----------------------------------------------------------------------
 	orgID := envOr("LERIAN_FEES_ORG_ID", "org-placeholder-id")
 
 	// NOTE: Use HTTPS URLs in production. HTTP is only for local development.
-	// OAuth2 credentials are read from LERIAN_FEES_CLIENT_ID,
-	// LERIAN_FEES_CLIENT_SECRET, and LERIAN_FEES_TOKEN_URL when set.
-	client, err := lerian.New(
-		lerian.WithFees(
-			fees.WithBaseURL(envOr("LERIAN_FEES_URL", "http://localhost:3005/v1")),
-			fees.WithOrganizationID(orgID),
-		),
-		lerian.WithDebug(os.Getenv("LERIAN_DEBUG") == "true"),
-	)
+	client, err := lerian.New(lerian.Config{
+		Debug: os.Getenv("LERIAN_DEBUG") == "true",
+		Fees: &fees.Config{
+			BaseURL:        envOr("LERIAN_FEES_URL", "http://localhost:3005/v1"),
+			OrganizationID: orgID,
+		},
+	})
 	if err != nil {
 		log.Fatalf("Failed to create client: %v", err)
 	}
@@ -54,32 +52,53 @@ func main() {
 	ctx := context.Background()
 
 	// -----------------------------------------------------------------------
-	// Step 2: Create a fee package with multiple rule types.
+	// Step 2: Create a fee package with calculation rules.
 	//
-	// A fee package groups one or more FeeRule definitions. Rules can be:
-	//   - "flat":       a fixed amount per transaction
-	//   - "percentage": a percentage of the transaction amount
-	//   - "tiered":     a combination with min/max caps
+	// A fee package groups one or more Fee definitions, each with a
+	// CalculationModel that determines how the fee is computed:
+	//   - "flatFee":          a fixed amount per transaction
+	//   - "percentual":       a percentage of the transaction amount
+	//   - "maxBetweenTypes":  multiple calculations, takes the maximum
 	//
-	// Amounts are in the smallest currency unit (e.g. cents for BRL).
+	// Packages are scoped to a ledger and optionally a segment, with
+	// minimum/maximum transaction amount thresholds.
 	// -----------------------------------------------------------------------
-	flatAmount := int64(150) // R$ 1.50 flat fee
-	pctValue := "1.5"        // 1.5% of the transaction amount
 	pkgDesc := "Standard fees for BRL wire transfers"
+	enablePkg := true
 
 	pkg, err := client.Fees.Packages.Create(ctx, &fees.CreatePackageInput{
-		Name:        "Wire Transfer Fees - BRL",
-		Description: &pkgDesc,
-		Rules: []fees.FeeRule{
-			{
-				Type:     "flat",
-				Amount:   &flatAmount,
-				Currency: "BRL",
+		FeeGroupLabel: "Wire Transfer Fees - BRL",
+		Description:   &pkgDesc,
+		LedgerID:      "00000000-0000-0000-0000-000000000001",
+		MinimumAmount: "100.00",
+		MaximumAmount: "100000.00",
+		Enable:        &enablePkg,
+		Fees: map[string]fees.Fee{
+			"administrativeFee": {
+				FeeLabel: "Taxa Administrativa",
+				CalculationModel: &fees.CalculationModel{
+					ApplicationRule: "flatFee",
+					Calculations: []fees.Calculation{
+						{Type: "flat", Value: "1.50"},
+					},
+				},
+				ReferenceAmount:  "originalAmount",
+				Priority:         1,
+				IsDeductibleFrom: boolPtr(true),
+				CreditAccount:    "@revenue_fees",
 			},
-			{
-				Type:       "percentage",
-				Percentage: &pctValue,
-				Currency:   "BRL",
+			"serviceFee": {
+				FeeLabel: "Taxa de Serviço",
+				CalculationModel: &fees.CalculationModel{
+					ApplicationRule: "percentual",
+					Calculations: []fees.Calculation{
+						{Type: "percentage", Value: "1.5"},
+					},
+				},
+				ReferenceAmount:  "originalAmount",
+				Priority:         2,
+				IsDeductibleFrom: boolPtr(false),
+				CreditAccount:    "@revenue_service",
 			},
 		},
 	})
@@ -87,95 +106,120 @@ func main() {
 		log.Fatalf("Failed to create fee package: %v", err)
 	}
 
-	fmt.Printf("Created fee package: %s (ID: %s)\n", pkg.Name, pkg.ID)
-	fmt.Printf("  Rules: %d\n", len(pkg.Rules))
+	fmt.Printf("Created fee package: %s (ID: %s)\n", pkg.FeeGroupLabel, pkg.ID)
+	fmt.Printf("  Amount range: %s - %s\n", pkg.MinimumAmount, pkg.MaximumAmount)
+	fmt.Printf("  Fees: %d\n", len(pkg.Fees))
 
-	for i, r := range pkg.Rules {
-		switch r.Type {
-		case "flat":
-			fmt.Printf("  [%d] flat: %d cents %s\n", i+1, derefInt64(r.Amount), r.Currency)
-		case "percentage":
-			fmt.Printf("  [%d] percentage: %s%% %s\n", i+1, derefStr(r.Percentage), r.Currency)
+	for key, feeDefinition := range pkg.Fees {
+		rule := "<missing calculation model>"
+		if feeDefinition.CalculationModel != nil {
+			rule = feeDefinition.CalculationModel.ApplicationRule
 		}
+
+		fmt.Printf("  [%s] %s (rule: %s, priority: %d)\n",
+			key, feeDefinition.FeeLabel, rule, feeDefinition.Priority)
 	}
 
 	// -----------------------------------------------------------------------
-	// Step 3: Calculate an estimate (preview) without a real transaction.
+	// Step 3: Calculate an estimate (preview) for a transaction.
 	//
-	// The Estimates.Calculate method is RPC-style: it accepts a package ID,
-	// amount, scale, and currency, then returns the computed fee breakdown
-	// without persisting anything or linking to a transaction.
+	// The Estimates.Calculate method takes a package ID, ledger ID, and a
+	// transaction DSL, then returns whether any fees would be applied
+	// without persisting anything.
 	// -----------------------------------------------------------------------
-	estimate, err := client.Fees.Estimates.Calculate(ctx, &fees.CalculateEstimateInput{
+	estimateResp, err := client.Fees.Estimates.Calculate(ctx, &fees.FeeEstimateInput{
 		PackageID: pkg.ID,
-		Amount:    50000, // R$ 500.00
-		Scale:     2,
-		Currency:  "BRL",
+		LedgerID:  "00000000-0000-0000-0000-000000000001",
+		Transaction: fees.TransactionDSL{
+			Description: "Wire transfer estimate",
+			Send: fees.TransactionDSLSend{
+				Asset: "BRL",
+				Value: "500.00", // R$ 500.00
+				Source: fees.TransactionDSLSource{
+					From: []fees.TransactionDSLLeg{
+						{AccountAlias: "@sender", Share: &fees.TransactionDSLShare{Percentage: 100}},
+					},
+				},
+				Distribute: fees.TransactionDSLDistribute{
+					To: []fees.TransactionDSLLeg{
+						{AccountAlias: "@receiver", Share: &fees.TransactionDSLShare{Percentage: 100}},
+					},
+				},
+			},
+		},
 	})
 	if err != nil {
 		log.Fatalf("Failed to calculate estimate: %v", err)
 	}
 
-	fmt.Printf("\n--- Fee Estimate for R$ 500.00 ---\n")
-	fmt.Printf("  Total fee: %d (scale: %d, currency: %s)\n",
-		estimate.TotalFee, estimate.TotalFeeScale, estimate.Currency)
+	fmt.Printf("\n--- Fee Estimate ---\n")
+	fmt.Printf("  Message: %s\n", estimateResp.Message)
 
-	for _, fr := range estimate.FeeResults {
-		fmt.Printf("  [%s] %d %s (applied: %t)\n",
-			fr.RuleType, fr.Amount, fr.Currency, fr.Applied)
+	if estimateResp.FeesApplied != nil {
+		fmt.Println("  Fees were applied to the transaction DSL")
+	} else {
+		fmt.Println("  No fees matched the given parameters")
 	}
 
 	// -----------------------------------------------------------------------
-	// Step 4: Calculate a fee linked to a transaction.
+	// Step 4: Calculate fees for a real transaction via DSL injection.
 	//
-	// Unlike estimates, calculated fees can be linked to an actual
-	// transaction via TransactionID. The resulting Fee object tracks
-	// its lifecycle through a status field and is persisted.
+	// The Fees.Calculate method sends a transaction DSL to the fees service.
+	// The service evaluates matching fee packages and returns the mutated
+	// transaction with fee legs injected into source and distribute arrays.
 	// -----------------------------------------------------------------------
-	txnID := "txn-example-12345"
+	segmentID := "00000000-0000-0000-0000-000000000002"
 
-	fee, err := client.Fees.Fees.Calculate(ctx, &fees.CalculateFeeInput{
-		PackageID:     pkg.ID,
-		TransactionID: &txnID,
-		Amount:        100000, // R$ 1,000.00
-		Scale:         2,
-		Currency:      "BRL",
+	feeResult, err := client.Fees.Fees.Calculate(ctx, &fees.FeeCalculate{
+		SegmentID: &segmentID,
+		LedgerID:  "00000000-0000-0000-0000-000000000001",
+		Transaction: fees.TransactionDSL{
+			Description: "Wire transfer with fees",
+			Route:       "wire_transfer",
+			Send: fees.TransactionDSLSend{
+				Asset: "BRL",
+				Value: "1000.00", // R$ 1,000.00
+				Source: fees.TransactionDSLSource{
+					From: []fees.TransactionDSLLeg{
+						{AccountAlias: "@sender", Share: &fees.TransactionDSLShare{Percentage: 100}},
+					},
+				},
+				Distribute: fees.TransactionDSLDistribute{
+					To: []fees.TransactionDSLLeg{
+						{AccountAlias: "@receiver", Share: &fees.TransactionDSLShare{Percentage: 100}},
+					},
+				},
+			},
+		},
 	})
 	if err != nil {
 		log.Fatalf("Failed to calculate fee: %v", err)
 	}
 
 	fmt.Printf("\n--- Fee Calculation for R$ 1,000.00 ---\n")
-	fmt.Printf("  Fee ID:    %s\n", fee.ID)
-	fmt.Printf("  Total fee: %d (scale: %d)\n", fee.TotalFee, fee.TotalFeeScale)
-	fmt.Printf("  Status:    %s\n", fee.Status)
-
-	if fee.TransactionID != nil {
-		fmt.Printf("  Linked to: %s\n", *fee.TransactionID)
-	}
-
-	for _, fr := range fee.FeeResults {
-		fmt.Printf("  [%s] %d %s (applied: %t", fr.RuleType, fr.Amount, fr.Currency, fr.Applied)
-		if fr.Reason != "" {
-			fmt.Printf(", reason: %s", fr.Reason)
-		}
-
-		fmt.Println(")")
-	}
+	fmt.Printf("  Ledger:   %s\n", feeResult.LedgerID)
+	fmt.Printf("  Source legs:     %d\n", len(feeResult.Transaction.Send.Source.From))
+	fmt.Printf("  Distribute legs: %d\n", len(feeResult.Transaction.Send.Distribute.To))
 
 	// -----------------------------------------------------------------------
-	// Step 5: List all fee packages.
+	// Step 5: List all fee packages with optional filters.
 	// -----------------------------------------------------------------------
 	fmt.Println("\n--- All Fee Packages ---")
 
-	pkgIter := client.Fees.Packages.List(ctx, nil)
-	for pkgIter.Next(ctx) {
-		p := pkgIter.Item()
-		fmt.Printf("  - %s (status: %s, rules: %d)\n", p.Name, p.Status, len(p.Rules))
+	listResp, err := client.Fees.Packages.List(ctx, nil)
+	if err != nil {
+		log.Fatalf("Failed to list packages: %v", err)
 	}
 
-	if err := pkgIter.Err(); err != nil {
-		log.Fatalf("Failed to list packages: %v", err)
+	fmt.Printf("  Total: %d (page: %d/%d, size: %d)\n", listResp.TotalItems, listResp.PageNumber, listResp.TotalPages, listResp.PageSize)
+
+	for _, p := range listResp.Items {
+		enabled := "disabled"
+		if p.Enable != nil && *p.Enable {
+			enabled = "enabled"
+		}
+
+		fmt.Printf("  - %s (%s, fees: %d)\n", p.FeeGroupLabel, enabled, len(p.Fees))
 	}
 
 	// -----------------------------------------------------------------------
@@ -203,20 +247,7 @@ func envOr(key, fallback string) string {
 	return fallback
 }
 
-// derefInt64 safely dereferences a *int64 pointer, returning 0 if nil.
-func derefInt64(p *int64) int64 {
-	if p != nil {
-		return *p
-	}
-
-	return 0
-}
-
-// derefStr safely dereferences a *string pointer, returning "" if nil.
-func derefStr(p *string) string {
-	if p != nil {
-		return *p
-	}
-
-	return ""
+// boolPtr returns a pointer to the given bool value.
+func boolPtr(b bool) *bool {
+	return &b
 }

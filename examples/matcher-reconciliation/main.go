@@ -34,12 +34,12 @@ func main() {
 	// Matcher endpoints unlike Midaz which has two microservices.
 	// -----------------------------------------------------------------------
 	// NOTE: Use HTTPS URLs in production. HTTP is only for local development.
-	client, err := lerian.New(
-		lerian.WithMatcher(
-			matcher.WithBaseURL(envOr("LERIAN_MATCHER_URL", "http://localhost:3002/v1")),
-		),
-		lerian.WithDebug(os.Getenv("LERIAN_DEBUG") == "true"),
-	)
+	client, err := lerian.New(lerian.Config{
+		Debug: os.Getenv("LERIAN_DEBUG") == "true",
+		Matcher: &matcher.Config{
+			BaseURL: envOr("LERIAN_MATCHER_URL", "http://localhost:3002/v1"),
+		},
+	})
 	if err != nil {
 		log.Fatalf("Failed to create client: %v", err)
 	}

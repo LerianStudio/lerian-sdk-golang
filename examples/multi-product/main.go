@@ -42,36 +42,23 @@ func main() {
 	// -----------------------------------------------------------------------
 	// Step 1: Create a single client with multiple products.
 	//
-	// The lerian.New() function accepts multiple With<Product>() options,
-	// each configuring a different product. Shared options like WithDebug()
-	// and WithObservability() apply to ALL products, providing a unified
-	// configuration surface.
+	// The root config enables multiple products at once. Shared fields like
+	// Debug and Observability apply to every configured product.
 	// -----------------------------------------------------------------------
 	// NOTE: Use HTTPS URLs in production. HTTP is only for local development.
-	client, err := lerian.New(
-		// Midaz: financial ledger
-		lerian.WithMidaz(
-			midaz.WithOnboardingURL(envOr("LERIAN_MIDAZ_ONBOARDING_URL", "http://localhost:3000/v1")),
-			midaz.WithTransactionURL(envOr("LERIAN_MIDAZ_TRANSACTION_URL", "http://localhost:3001/v1")),
-		),
-
-		// Tracer: compliance validation
-		lerian.WithTracer(
-			tracer.WithBaseURL(envOr("LERIAN_TRACER_URL", "http://localhost:3003/v1")),
-		),
-
-		// Matcher: reconciliation
-		lerian.WithMatcher(
-			matcher.WithBaseURL(envOr("LERIAN_MATCHER_URL", "http://localhost:3002/v1")),
-		),
-
-		// Shared: debug logging across all products.
-		// In production, replace WithDebug with WithObservability for
-		// structured OTel telemetry:
-		//   lerian.WithObservability(true, true, true),
-		//   lerian.WithCollectorEndpoint("http://otel-collector:4318"),
-		lerian.WithDebug(os.Getenv("LERIAN_DEBUG") == "true"),
-	)
+	client, err := lerian.New(lerian.Config{
+		Debug: os.Getenv("LERIAN_DEBUG") == "true",
+		Midaz: &midaz.Config{
+			OnboardingURL:  envOr("LERIAN_MIDAZ_ONBOARDING_URL", "http://localhost:3000/v1"),
+			TransactionURL: envOr("LERIAN_MIDAZ_TRANSACTION_URL", "http://localhost:3001/v1"),
+		},
+		Tracer: &tracer.Config{
+			BaseURL: envOr("LERIAN_TRACER_URL", "http://localhost:3003/v1"),
+		},
+		Matcher: &matcher.Config{
+			BaseURL: envOr("LERIAN_MATCHER_URL", "http://localhost:3002/v1"),
+		},
+	})
 	if err != nil {
 		log.Fatalf("Failed to create multi-product client: %v", err)
 	}
@@ -92,7 +79,7 @@ func main() {
 	fmt.Println("\n=== Phase 1: Midaz - Create Transaction ===")
 
 	// Create an organization to scope all ledger operations.
-	org, err := client.Midaz.Organizations.Create(ctx, &midaz.CreateOrganizationInput{
+	org, err := client.Midaz.Onboarding.Organizations.Create(ctx, &midaz.CreateOrganizationInput{
 		LegalName:     "Multi-Product Demo Corp",
 		LegalDocument: "98765432000199",
 	})
@@ -103,7 +90,7 @@ func main() {
 	fmt.Printf("Organization: %s (ID: %s)\n", org.LegalName, org.ID)
 
 	// Create a ledger.
-	ledger, err := client.Midaz.Ledgers.Create(ctx, org.ID, &midaz.CreateLedgerInput{
+	ledger, err := client.Midaz.Onboarding.Ledgers.Create(ctx, org.ID, &midaz.CreateLedgerInput{
 		Name: "Cross-Product Ledger",
 	})
 	if err != nil {
@@ -113,7 +100,7 @@ func main() {
 	fmt.Printf("Ledger: %s (ID: %s)\n", ledger.Name, ledger.ID)
 
 	// Create a BRL asset.
-	_, err = client.Midaz.Assets.Create(ctx, org.ID, ledger.ID, &midaz.CreateAssetInput{
+	_, err = client.Midaz.Onboarding.Assets.Create(ctx, org.ID, ledger.ID, &midaz.CreateAssetInput{
 		Name: "Brazilian Real",
 		Code: "BRL",
 		Type: "currency",
@@ -123,7 +110,7 @@ func main() {
 	}
 
 	// Create sender and receiver accounts.
-	sender, err := client.Midaz.Accounts.Create(ctx, org.ID, ledger.ID, &midaz.CreateAccountInput{
+	sender, err := client.Midaz.Onboarding.Accounts.Create(ctx, org.ID, ledger.ID, &midaz.CreateAccountInput{
 		Name:      "Treasury",
 		AssetCode: "BRL",
 		Type:      "deposit",
@@ -132,7 +119,7 @@ func main() {
 		log.Fatalf("Failed to create sender: %v", err)
 	}
 
-	receiver, err := client.Midaz.Accounts.Create(ctx, org.ID, ledger.ID, &midaz.CreateAccountInput{
+	receiver, err := client.Midaz.Onboarding.Accounts.Create(ctx, org.ID, ledger.ID, &midaz.CreateAccountInput{
 		Name:      "Vendor Payout",
 		AssetCode: "BRL",
 		Type:      "deposit",
@@ -142,15 +129,16 @@ func main() {
 	}
 
 	// Create a transaction (R$ 25,000.00).
-	txn, err := client.Midaz.Transactions.Create(ctx, org.ID, ledger.ID, &midaz.CreateTransactionInput{
-		AssetCode: "BRL",
-		Amount:    2500000, // R$ 25,000.00
-		Scale:     2,
-		Source: []midaz.TransactionSource{
-			{
-				From: midaz.TransactionFromTo{Account: sender.ID},
-				To:   midaz.TransactionFromTo{Account: receiver.ID},
-			},
+	txn, err := client.Midaz.Transactions.Transactions.Create(ctx, org.ID, ledger.ID, &midaz.CreateTransactionInput{
+		Send: &midaz.TransactionSend{
+			Asset: "BRL",
+			Value: "25000.00",
+			Source: midaz.TransactionSendSource{From: []midaz.TransactionOperationLeg{{
+				AccountAlias: sender.ID,
+			}}},
+			Distribute: midaz.TransactionSendDistribution{To: []midaz.TransactionOperationLeg{{
+				AccountAlias: receiver.ID,
+			}}},
 		},
 	})
 	if err != nil {
@@ -197,7 +185,7 @@ func main() {
 	if validation.Result == "rejected" {
 		fmt.Println("Transaction REJECTED by compliance -- cancelling...")
 
-		cancelled, cErr := client.Midaz.Transactions.Cancel(ctx, org.ID, ledger.ID, txn.ID)
+		cancelled, cErr := client.Midaz.Transactions.Transactions.Cancel(ctx, org.ID, ledger.ID, txn.ID)
 		if cErr != nil {
 			log.Fatalf("Failed to cancel transaction: %v", cErr)
 		}
@@ -206,7 +194,7 @@ func main() {
 	} else {
 		fmt.Println("Transaction APPROVED by compliance -- committing...")
 
-		committed, cErr := client.Midaz.Transactions.Commit(ctx, org.ID, ledger.ID, txn.ID)
+		committed, cErr := client.Midaz.Transactions.Transactions.Commit(ctx, org.ID, ledger.ID, txn.ID)
 		if cErr != nil {
 			log.Fatalf("Failed to commit transaction: %v", cErr)
 		}
@@ -286,7 +274,7 @@ func main() {
 		{
 			name: "Midaz: get non-existent organization",
 			fn: func() error {
-				_, err := client.Midaz.Organizations.Get(ctx, "does-not-exist")
+				_, err := client.Midaz.Onboarding.Organizations.Get(ctx, "does-not-exist")
 				return err
 			},
 		},

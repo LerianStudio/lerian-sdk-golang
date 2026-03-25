@@ -37,13 +37,13 @@ func main() {
 	orgID := envOr("LERIAN_REPORTER_ORG_ID", "org-placeholder-id")
 
 	// NOTE: Use HTTPS URLs in production. HTTP is only for local development.
-	client, err := lerian.New(
-		lerian.WithReporter(
-			reporter.WithBaseURL(envOr("LERIAN_REPORTER_URL", "http://localhost:3004/v1")),
-			reporter.WithOrganizationID(orgID),
-		),
-		lerian.WithDebug(os.Getenv("LERIAN_DEBUG") == "true"),
-	)
+	client, err := lerian.New(lerian.Config{
+		Debug: os.Getenv("LERIAN_DEBUG") == "true",
+		Reporter: &reporter.Config{
+			BaseURL:        envOr("LERIAN_REPORTER_URL", "http://localhost:3004/v1"),
+			OrganizationID: orgID,
+		},
+	})
 	if err != nil {
 		log.Fatalf("Failed to create client: %v", err)
 	}
