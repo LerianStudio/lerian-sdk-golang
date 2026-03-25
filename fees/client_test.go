@@ -17,16 +17,8 @@ import (
 
 type fakeBackend struct{}
 
-func (f *fakeBackend) Call(_ context.Context, _, _ string, _, _ any) error {
-	return nil
-}
-
-func (f *fakeBackend) CallWithHeaders(_ context.Context, _, _ string, _ map[string]string, _, _ any) error {
-	return nil
-}
-
-func (f *fakeBackend) CallRaw(_ context.Context, _, _ string, _ any) ([]byte, error) {
-	return nil, nil
+func (f *fakeBackend) Do(_ context.Context, _ core.Request) (*core.Response, error) {
+	return &core.Response{}, nil
 }
 
 // Compile-time check that fakeBackend satisfies core.Backend.
@@ -51,11 +43,9 @@ func TestNewClient(t *testing.T) {
 	client := NewClient(backend, cfg)
 
 	require.NotNil(t, client)
-	assert.Equal(t, cfg.BaseURL, client.config.BaseURL)
-	assert.Equal(t, cfg.ClientID, client.config.ClientID)
-	assert.Equal(t, cfg.ClientSecret, client.config.ClientSecret)
-	assert.Equal(t, cfg.TokenURL, client.config.TokenURL)
-	assert.Equal(t, cfg.OrganizationID, client.config.OrganizationID)
+	assert.NotNil(t, client.Packages)
+	assert.NotNil(t, client.Estimates)
+	assert.NotNil(t, client.Fees)
 }
 
 func TestNewClientServiceFieldsAreWired(t *testing.T) {
@@ -71,7 +61,7 @@ func TestNewClientServiceFieldsAreWired(t *testing.T) {
 
 	require.NotNil(t, client)
 
-	// Service implementations are now wired during construction.
+	// Service implementations are wired during construction.
 	assert.NotNil(t, client.Packages, "Packages should be wired")
 	assert.NotNil(t, client.Estimates, "Estimates should be wired")
 	assert.NotNil(t, client.Fees, "Fees should be wired")
@@ -86,12 +76,9 @@ func TestNewClientMinimalConfig(t *testing.T) {
 	client := NewClient(backend, cfg)
 
 	require.NotNil(t, client)
-	assert.Empty(t, client.config.BaseURL)
-	assert.Empty(t, client.config.ClientID)
-	assert.Empty(t, client.config.ClientSecret)
-	assert.Empty(t, client.config.TokenURL)
-	assert.Empty(t, client.config.OrganizationID)
-	assert.Zero(t, client.config.Timeout)
+	assert.NotNil(t, client.Packages)
+	assert.NotNil(t, client.Estimates)
+	assert.NotNil(t, client.Fees)
 }
 
 // ---------------------------------------------------------------------------

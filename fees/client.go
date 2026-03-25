@@ -103,40 +103,35 @@ func WithTimeout(d time.Duration) Option {
 }
 
 // Service interfaces are declared in their respective service files:
-//   - PackagesService  → packages.go
-//   - EstimatesService → estimates.go
-//   - FeesService      → fees_service.go
+//   - packagesServiceAPI  → packages.go
+//   - estimatesServiceAPI → estimates.go
+//   - feesServiceAPI      → fees_service.go
 
 // ---------------------------------------------------------------------------
 // Client
 // ---------------------------------------------------------------------------
 
-// Client is the Fees product client. It is constructed by the root
-// [lerian.Client] when the WithFees option is supplied and provides
-// access to all Fees service endpoints through domain-specific accessors.
+// Client is the Fees product client. It is typically constructed by the root
+// [lerian.Client] from [lerian.Config] and provides access to all Fees service
+// endpoints through domain-specific accessors.
 type Client struct {
-	backend core.Backend
-	config  Config
-
 	// Packages provides access to fee package management endpoints.
-	Packages PackagesService
+	Packages packagesServiceAPI
 
 	// Estimates provides access to fee estimation (preview) endpoints.
-	Estimates EstimatesService
+	Estimates estimatesServiceAPI
 
 	// Fees provides access to fee calculation and management endpoints.
-	Fees FeesService
+	Fees feesServiceAPI
 }
 
 // NewClient creates a Fees product [Client] from a pre-configured backend
 // and a validated [Config].
 //
-// This function is called internally by the umbrella client during
-// [lerian.New] -- SDK consumers should not call it directly.
-func NewClient(backend core.Backend, cfg Config) *Client {
+// Prefer constructing Fees through the root [lerian.New] API unless you are
+// wiring a custom integration layer.
+func NewClient(backend core.Backend, _ Config) *Client {
 	return &Client{
-		backend:   backend,
-		config:    cfg,
 		Packages:  newPackagesService(backend),
 		Estimates: newEstimatesService(backend),
 		Fees:      newFeesCalcService(backend),

@@ -7,77 +7,58 @@ import "time"
 // ---------------------------------------------------------------------------
 
 // Package represents a fee package configuration. A package groups one or
-// more [FeeRule] definitions that are evaluated together when calculating
-// fees for a transaction.
+// more [Fee] definitions that are evaluated together when calculating
+// fees for a transaction. Packages are scoped to an organization and
+// optionally to a specific ledger and segment.
 type Package struct {
-	ID          string         `json:"id"`
-	Name        string         `json:"name"`
-	Description *string        `json:"description,omitempty"`
-	Status      string         `json:"status"`
-	Rules       []FeeRule      `json:"rules"`
-	Metadata    map[string]any `json:"metadata,omitempty"`
-	CreatedAt   time.Time      `json:"createdAt"`
-	UpdatedAt   time.Time      `json:"updatedAt"`
+	ID               string         `json:"id"`
+	FeeGroupLabel    string         `json:"feeGroupLabel"`
+	Description      *string        `json:"description,omitempty"`
+	SegmentID        *string        `json:"segmentId,omitempty"`
+	LedgerID         string         `json:"ledgerId"`
+	TransactionRoute *string        `json:"transactionRoute,omitempty"`
+	MinimumAmount    string         `json:"minimumAmount"`
+	MaximumAmount    string         `json:"maximumAmount"`
+	WaivedAccounts   *[]string      `json:"waivedAccounts,omitempty"`
+	Fees             map[string]Fee `json:"fees"`
+	Enable           *bool          `json:"enable"`
+	CreatedAt        time.Time      `json:"createdAt"`
+	UpdatedAt        time.Time      `json:"updatedAt"`
+	DeletedAt        *time.Time     `json:"deletedAt,omitempty"`
 }
 
-// FeeRule defines a single fee calculation rule within a [Package].
-// The Type field determines which value fields are relevant:
-//   - "flat": uses Amount
-//   - "percentage": uses Percentage
-//   - "tiered": uses both Amount and Percentage with MinAmount/MaxAmount caps
-type FeeRule struct {
-	Type       string  `json:"type"`                 // "flat", "percentage", "tiered"
-	Amount     *int64  `json:"amount,omitempty"`     // for flat fees (in smallest unit)
-	Percentage *string `json:"percentage,omitempty"` // for percentage fees (e.g., "2.5")
-	MinAmount  *int64  `json:"minAmount,omitempty"`  // minimum fee cap
-	MaxAmount  *int64  `json:"maxAmount,omitempty"`  // maximum fee cap
-	Currency   string  `json:"currency"`
-	AssetCode  *string `json:"assetCode,omitempty"`
-}
-
-// Estimate represents a fee estimation result. Estimates are computed
-// without being associated with a real transaction and are useful for
-// previewing fee charges before committing.
-type Estimate struct {
-	ID            string      `json:"id"`
-	PackageID     string      `json:"packageId"`
-	Amount        int64       `json:"amount"`
-	Scale         int         `json:"scale"`
-	Currency      string      `json:"currency"`
-	FeeResults    []FeeResult `json:"feeResults"`
-	TotalFee      int64       `json:"totalFee"`
-	TotalFeeScale int         `json:"totalFeeScale"`
-	CreatedAt     time.Time   `json:"createdAt"`
-}
-
-// Fee represents a calculated fee result that may be linked to an actual
-// transaction. Unlike [Estimate], a Fee tracks its lifecycle via a Status
-// field and optionally carries a TransactionID.
+// Fee defines a single fee rule within a [Package]. The CalculationModel
+// determines how the fee amount is computed (flat, percentage, or
+// max-between-types). Priority controls evaluation order, and
+// IsDeductibleFrom indicates whether the fee is subtracted from the
+// original transaction amount.
 type Fee struct {
-	ID            string      `json:"id"`
-	PackageID     string      `json:"packageId"`
-	TransactionID *string     `json:"transactionId,omitempty"`
-	Amount        int64       `json:"amount"`
-	Scale         int         `json:"scale"`
-	Currency      string      `json:"currency"`
-	FeeResults    []FeeResult `json:"feeResults"`
-	TotalFee      int64       `json:"totalFee"`
-	TotalFeeScale int         `json:"totalFeeScale"`
-	Status        string      `json:"status"`
-	CreatedAt     time.Time   `json:"createdAt"`
+	FeeLabel         string            `json:"feeLabel"`
+	CalculationModel *CalculationModel `json:"calculationModel"`
+	ReferenceAmount  string            `json:"referenceAmount"`
+	Priority         int               `json:"priority,omitempty"`
+	IsDeductibleFrom *bool             `json:"isDeductibleFrom"`
+	CreditAccount    string            `json:"creditAccount"`
+	RouteFrom        *string           `json:"routeFrom,omitempty"`
+	RouteTo          *string           `json:"routeTo,omitempty"`
 }
 
-// FeeResult represents the result of applying a single fee rule during
-// fee calculation. Each result corresponds to one [FeeRule] in the
-// package and indicates whether the rule was applied along with the
-// computed amount.
-type FeeResult struct {
-	RuleType string `json:"ruleType"`
-	Amount   int64  `json:"amount"`
-	Scale    int    `json:"scale"`
-	Currency string `json:"currency"`
-	Applied  bool   `json:"applied"`
-	Reason   string `json:"reason,omitempty"`
+// CalculationModel defines the rule engine for computing a fee amount.
+// The ApplicationRule field selects the strategy:
+//   - "flatFee": uses a single Calculation of type "flat"
+//   - "percentual": uses a single Calculation of type "percentage"
+//   - "maxBetweenTypes": evaluates multiple Calculations and takes the maximum
+type CalculationModel struct {
+	ApplicationRule string        `json:"applicationRule"`
+	Calculations    []Calculation `json:"calculations"`
+}
+
+// Calculation holds the type and value for a single fee computation step.
+// Type is either "flat" (fixed amount) or "percentage" (proportion of
+// the transaction amount). Value is a decimal string (e.g. "100.00" or "2.5").
+type Calculation struct {
+	Type  string `json:"type"`
+	Value string `json:"value"`
 }
 
 // ---------------------------------------------------------------------------
@@ -86,69 +67,99 @@ type FeeResult struct {
 
 // CreatePackageInput is the request payload for creating a new fee package.
 type CreatePackageInput struct {
-	Name        string         `json:"name"`
-	Description *string        `json:"description,omitempty"`
-	Rules       []FeeRule      `json:"rules"`
-	Metadata    map[string]any `json:"metadata,omitempty"`
+	FeeGroupLabel    string         `json:"feeGroupLabel"`
+	Description      *string        `json:"description,omitempty"`
+	SegmentID        *string        `json:"segmentId,omitempty"`
+	LedgerID         string         `json:"ledgerId"`
+	TransactionRoute *string        `json:"transactionRoute,omitempty"`
+	MinimumAmount    string         `json:"minimumAmount"`
+	MaximumAmount    string         `json:"maximumAmount"`
+	WaivedAccounts   *[]string      `json:"waivedAccounts,omitempty"`
+	Fees             map[string]Fee `json:"fees"`
+	Enable           *bool          `json:"enable"`
 }
 
 // UpdatePackageInput is the request payload for partially updating an
 // existing fee package. Only non-nil/non-empty fields are patched.
 type UpdatePackageInput struct {
-	Name        *string        `json:"name,omitempty"`
-	Description *string        `json:"description,omitempty"`
-	Rules       []FeeRule      `json:"rules,omitempty"`
-	Metadata    map[string]any `json:"metadata,omitempty"`
+	FeeGroupLabel  string         `json:"feeGroupLabel,omitempty"`
+	Description    string         `json:"description,omitempty"`
+	MinimumAmount  *string        `json:"minimumAmount,omitempty"`
+	MaximumAmount  *string        `json:"maximumAmount,omitempty"`
+	WaivedAccounts *[]string      `json:"waivedAccounts,omitempty"`
+	Fees           map[string]Fee `json:"fees,omitempty"`
+	Enable         *bool          `json:"enable,omitempty"`
 }
 
-// CalculateEstimateInput is the request payload for an RPC-style fee
-// estimation. The caller provides the package, amount, and currency to
-// receive a preview of the fees that would be charged.
-type CalculateEstimateInput struct {
-	PackageID string `json:"packageId"`
-	Amount    int64  `json:"amount"`
-	Scale     int    `json:"scale"`
-	Currency  string `json:"currency"`
-	AssetCode string `json:"assetCode,omitempty"`
-}
-
-// CalculateFeeInput is the request payload for an RPC-style fee
-// calculation. Similar to [CalculateEstimateInput] but optionally links
-// the resulting fee to a transaction via TransactionID.
-type CalculateFeeInput struct {
-	PackageID     string  `json:"packageId"`
-	TransactionID *string `json:"transactionId,omitempty"`
-	Amount        int64   `json:"amount"`
-	Scale         int     `json:"scale"`
-	Currency      string  `json:"currency"`
-	AssetCode     string  `json:"assetCode,omitempty"`
-}
-
-// TransformTransactionInput is the request payload for DSL-based fee
-// transformation. The fees service injects fee legs into the transaction DSL
-// and returns the mutated structure.
-type TransformTransactionInput struct {
+// FeeCalculate is the request and response payload for the fee calculation
+// endpoint (POST /fees). The service evaluates matching fee packages and
+// mutates the transaction DSL by injecting fee legs into the source and
+// distribute arrays.
+type FeeCalculate struct {
 	SegmentID   *string        `json:"segmentId,omitempty"`
 	LedgerID    string         `json:"ledgerId"`
 	Transaction TransactionDSL `json:"transaction"`
 }
 
-// TransformTransactionOutput is the response from a DSL fee transformation.
-type TransformTransactionOutput struct {
+// FeeEstimateInput is the request payload for the fee estimation endpoint
+// (POST /estimates). Unlike [FeeCalculate], the caller specifies a
+// PackageID explicitly to preview fees for a given transaction.
+type FeeEstimateInput struct {
+	PackageID   string         `json:"packageId"`
+	LedgerID    string         `json:"ledgerId"`
 	Transaction TransactionDSL `json:"transaction"`
 }
 
+// FeeEstimateResponse is the response payload from the fee estimation
+// endpoint. When no matching fee rules are found, Message describes the
+// situation and FeesApplied is nil.
+type FeeEstimateResponse struct {
+	Message     string        `json:"message"`
+	FeesApplied *FeeCalculate `json:"feesApplied"`
+}
+
+// ---------------------------------------------------------------------------
+// List types
+// ---------------------------------------------------------------------------
+
+// PackageListOptions configures filtering and page-based listing for fee
+// packages. The SDK exposes package semantics here and maps them internally
+// to whatever query parameter format the backend expects.
+type PackageListOptions struct {
+	SegmentID        string     `json:"segmentId,omitempty"`
+	LedgerID         string     `json:"ledgerId,omitempty"`
+	TransactionRoute string     `json:"transactionRoute,omitempty"`
+	Enabled          *bool      `json:"enabled,omitempty"`
+	PageNumber       int        `json:"pageNumber,omitempty"`
+	PageSize         int        `json:"pageSize,omitempty"`
+	SortOrder        string     `json:"sortOrder,omitempty"`
+	CreatedFrom      *time.Time `json:"createdFrom,omitempty"`
+	CreatedTo        *time.Time `json:"createdTo,omitempty"`
+}
+
+// PackagePage is the normalized paginated response for fee packages.
+type PackagePage struct {
+	Items      []Package `json:"items"`
+	PageNumber int       `json:"pageNumber"`
+	PageSize   int       `json:"pageSize"`
+	TotalItems int       `json:"totalItems"`
+	TotalPages int       `json:"totalPages"`
+}
+
+// ---------------------------------------------------------------------------
+// Transaction DSL types
+// ---------------------------------------------------------------------------
+
 // TransactionDSL represents the transaction DSL shape used by the fees
-// transformation endpoint. The service may mutate this structure by adding
-// fee legs and metadata to the source and distribute arrays.
+// service. The service may mutate this structure by adding fee legs and
+// metadata to the source and distribute arrays.
 type TransactionDSL struct {
 	ChartOfAccountsGroupName string             `json:"chartOfAccountsGroupName,omitempty"`
 	Description              string             `json:"description,omitempty"`
 	Code                     string             `json:"code,omitempty"`
-	Pending                  bool               `json:"pending"`
+	Pending                  bool               `json:"pending,omitempty"`
 	Metadata                 map[string]any     `json:"metadata,omitempty"`
 	Route                    string             `json:"route,omitempty"`
-	RouteID                  *string            `json:"routeId,omitempty"`
 	TransactionDate          any                `json:"transactionDate,omitempty"`
 	Send                     TransactionDSLSend `json:"send"`
 }
@@ -175,7 +186,6 @@ type TransactionDSLDistribute struct {
 
 // TransactionDSLLeg is a single source or distribute entry.
 type TransactionDSLLeg struct {
-	Account         string                `json:"account,omitempty"`
 	AccountAlias    string                `json:"accountAlias,omitempty"`
 	BalanceKey      string                `json:"balanceKey,omitempty"`
 	Amount          *TransactionDSLAmount `json:"amount,omitempty"`
@@ -183,7 +193,6 @@ type TransactionDSLLeg struct {
 	Remaining       string                `json:"remaining,omitempty"`
 	Rate            *TransactionDSLRate   `json:"rate,omitempty"`
 	Route           string                `json:"route,omitempty"`
-	RouteID         *string               `json:"routeId,omitempty"`
 	Description     string                `json:"description,omitempty"`
 	ChartOfAccounts string                `json:"chartOfAccounts,omitempty"`
 	Metadata        map[string]any        `json:"metadata,omitempty"`
@@ -192,8 +201,10 @@ type TransactionDSLLeg struct {
 
 // TransactionDSLAmount specifies the asset and value for a leg.
 type TransactionDSLAmount struct {
-	Asset string `json:"asset"`
-	Value any    `json:"value"`
+	Asset           string `json:"asset"`
+	Operation       string `json:"operation,omitempty"`
+	TransactionType string `json:"transactionType,omitempty"`
+	Value           any    `json:"value"`
 }
 
 // TransactionDSLShare specifies percentage-based distribution details for a leg.

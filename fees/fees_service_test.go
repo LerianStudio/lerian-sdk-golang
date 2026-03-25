@@ -5,33 +5,19 @@ import (
 	"errors"
 	"fmt"
 	"testing"
-	"time"
 
 	sdkerrors "github.com/LerianStudio/lerian-sdk-golang/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-// ---------------------------------------------------------------------------
-// Shared fixture
-// ---------------------------------------------------------------------------
+type nilStringer struct{}
 
-var testFee = Fee{
-	ID:            "fee-001",
-	PackageID:     "pkg-001",
-	TransactionID: strPtr("txn-001"),
-	Amount:        10000,
-	Scale:         2,
-	Currency:      "USD",
-	FeeResults: []FeeResult{
-		{RuleType: "flat", Amount: 100, Scale: 2, Currency: "USD", Applied: true},
-		{RuleType: "percentage", Amount: 250, Scale: 2, Currency: "USD", Applied: true},
-	},
-	TotalFee:      350,
-	TotalFeeScale: 2,
-	Status:        "calculated",
-	CreatedAt:     time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
-}
+func (*nilStringer) String() string { return "10.00" }
+
+// ---------------------------------------------------------------------------
+// Shared fixture — builds a realistic TransactionDSL for fee calculation
+// ---------------------------------------------------------------------------
 
 func testTransactionDSL() TransactionDSL {
 	return TransactionDSL{
@@ -47,16 +33,16 @@ func testTransactionDSL() TransactionDSL {
 			Source: TransactionDSLSource{
 				From: []TransactionDSLLeg{
 					{
-						Account: "sender",
-						Amount:  &TransactionDSLAmount{Asset: "BRL", Value: "15000"},
+						AccountAlias: "sender",
+						Amount:       &TransactionDSLAmount{Asset: "BRL", Value: "15000"},
 					},
 				},
 			},
 			Distribute: TransactionDSLDistribute{
 				To: []TransactionDSLLeg{
 					{
-						Account: "recipient",
-						Amount:  &TransactionDSLAmount{Asset: "BRL", Value: "15000"},
+						AccountAlias: "recipient",
+						Amount:       &TransactionDSLAmount{Asset: "BRL", Value: "15000"},
 					},
 				},
 			},
@@ -64,83 +50,108 @@ func testTransactionDSL() TransactionDSL {
 	}
 }
 
-func transformedTransactionDSL() TransactionDSL {
-	tx := testTransactionDSL()
-	tx.Send.Value = "15500"
-	tx.Send.Source.From = append(tx.Send.Source.From,
-		TransactionDSLLeg{
-			Account: "sender",
-			Amount:  &TransactionDSLAmount{Asset: "BRL", Value: "500"},
-			Metadata: map[string]any{
-				"feeLabel": "ted_transfer_fee",
+var testFeeCalculateResponse = FeeCalculate{
+	SegmentID: strPtr("seg-retail"),
+	LedgerID:  "ledger-001",
+	Transaction: TransactionDSL{
+		Description: "TED transfer",
+		Route:       "ted_out",
+		Pending:     true,
+		Metadata: map[string]any{
+			"transferType":     "TED_OUT",
+			"packageAppliedID": "fee-package-uuid",
+		},
+		Send: TransactionDSLSend{
+			Asset: "BRL",
+			Value: "15500",
+			Source: TransactionDSLSource{
+				From: []TransactionDSLLeg{
+					{
+						AccountAlias: "sender",
+						Amount:       &TransactionDSLAmount{Asset: "BRL", Value: "15000"},
+					},
+					{
+						AccountAlias: "sender",
+						Amount:       &TransactionDSLAmount{Asset: "BRL", Value: "500"},
+						Metadata: map[string]any{
+							"feeLabel": "ted_transfer_fee",
+						},
+					},
+				},
+			},
+			Distribute: TransactionDSLDistribute{
+				To: []TransactionDSLLeg{
+					{
+						AccountAlias: "recipient",
+						Amount:       &TransactionDSLAmount{Asset: "BRL", Value: "15000"},
+					},
+					{
+						AccountAlias: "platform-fee-account",
+						Amount:       &TransactionDSLAmount{Asset: "BRL", Value: "500"},
+						Metadata: map[string]any{
+							"feeLabel": "ted_transfer_fee",
+						},
+					},
+				},
 			},
 		},
-	)
-	tx.Send.Distribute.To = append(tx.Send.Distribute.To,
-		TransactionDSLLeg{
-			Account: "platform-fee-account",
-			Amount:  &TransactionDSLAmount{Asset: "BRL", Value: "500"},
-			Metadata: map[string]any{
-				"feeLabel": "ted_transfer_fee",
-			},
-		},
-	)
-	tx.Metadata["packageAppliedID"] = "fee-package-uuid"
-
-	return tx
+	},
 }
 
 // ---------------------------------------------------------------------------
-// FeesService.Calculate — success
+// feesServiceAPI.Calculate — success
 // ---------------------------------------------------------------------------
 
 func TestFeesCalculate(t *testing.T) {
+	t.Parallel()
+
 	backend := &mockBackend{
 		callFn: func(_ context.Context, method, path string, body, result any) error {
 			assert.Equal(t, "POST", method)
-			assert.Equal(t, "/fees/calculate", path)
+			assert.Equal(t, "/fees", path)
 			assert.NotNil(t, body)
 
-			return jsonInto(testFee, result)
+			return jsonInto(testFeeCalculateResponse, result)
 		},
 	}
 
 	svc := newFeesCalcService(backend)
-	txnID := "txn-001"
-	input := &CalculateFeeInput{
-		PackageID:     "pkg-001",
-		TransactionID: &txnID,
-		Amount:        10000,
-		Scale:         2,
-		Currency:      "USD",
+	input := &FeeCalculate{
+		SegmentID:   strPtr("seg-retail"),
+		LedgerID:    "ledger-001",
+		Transaction: testTransactionDSL(),
 	}
 
-	fee, err := svc.Calculate(context.Background(), input)
+	resp, err := svc.Calculate(context.Background(), input)
 	require.NoError(t, err)
-	require.NotNil(t, fee)
-	assert.Equal(t, "fee-001", fee.ID)
-	assert.Equal(t, "pkg-001", fee.PackageID)
-	assert.Equal(t, "txn-001", *fee.TransactionID)
-	assert.Equal(t, int64(10000), fee.Amount)
-	assert.Equal(t, "USD", fee.Currency)
-	assert.Len(t, fee.FeeResults, 2)
-	assert.Equal(t, int64(350), fee.TotalFee)
-	assert.Equal(t, "calculated", fee.Status)
+	require.NotNil(t, resp)
+	assert.Equal(t, "ledger-001", resp.LedgerID)
+	assert.NotNil(t, resp.SegmentID)
+	assert.Equal(t, "seg-retail", *resp.SegmentID)
+	assert.Equal(t, "TED transfer", resp.Transaction.Description)
+	assert.Equal(t, "15500", resp.Transaction.Send.Value)
+
+	// The response should have fee legs injected.
+	assert.Len(t, resp.Transaction.Send.Source.From, 2, "should have original + fee leg")
+	assert.Len(t, resp.Transaction.Send.Distribute.To, 2, "should have original + fee leg")
+	assert.Equal(t, "platform-fee-account", resp.Transaction.Send.Distribute.To[1].AccountAlias)
+	assert.Equal(t, "ted_transfer_fee", resp.Transaction.Send.Distribute.To[1].Metadata["feeLabel"])
 }
 
 // ---------------------------------------------------------------------------
-// FeesService.Calculate — nil input guard clause
+// feesServiceAPI.Calculate — nil input guard clause
 // ---------------------------------------------------------------------------
 
 func TestFeesCalculateNilInput(t *testing.T) {
+	t.Parallel()
+
 	svc := newFeesCalcService(&mockBackend{})
 
-	fee, err := svc.Calculate(context.Background(), nil)
+	resp, err := svc.Calculate(context.Background(), nil)
 	require.Error(t, err)
-	assert.Nil(t, fee)
+	assert.Nil(t, resp)
 	assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
 
-	// Verify the error has the right operation and resource.
 	var sdkErr *sdkerrors.Error
 	require.True(t, errors.As(err, &sdkErr))
 	assert.Equal(t, "Fees.Calculate", sdkErr.Operation)
@@ -149,10 +160,165 @@ func TestFeesCalculateNilInput(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// FeesService.Calculate — backend error propagation
+// feesServiceAPI.Calculate — empty LedgerID guard clause
+// ---------------------------------------------------------------------------
+
+func TestFeesCalculateEmptyLedgerID(t *testing.T) {
+	t.Parallel()
+
+	svc := newFeesCalcService(&mockBackend{})
+
+	resp, err := svc.Calculate(context.Background(), &FeeCalculate{
+		Transaction: testTransactionDSL(),
+	})
+	require.Error(t, err)
+	assert.Nil(t, resp)
+	assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
+
+	var sdkErr *sdkerrors.Error
+	require.True(t, errors.As(err, &sdkErr))
+	assert.Equal(t, "Fees.Calculate", sdkErr.Operation)
+	assert.Equal(t, "Fee", sdkErr.Resource)
+	assert.Contains(t, sdkErr.Message, "ledger ID is required")
+}
+
+func TestFeesCalculateRequiresTransactionShape(t *testing.T) {
+	t.Parallel()
+
+	svc := newFeesCalcService(&mockBackend{})
+
+	tests := []struct {
+		name    string
+		input   *FeeCalculate
+		message string
+	}{
+		{
+			name:    "missing asset",
+			input:   &FeeCalculate{LedgerID: "ledger-001", Transaction: TransactionDSL{Send: TransactionDSLSend{Source: TransactionDSLSource{From: []TransactionDSLLeg{{AccountAlias: "sender"}}}, Distribute: TransactionDSLDistribute{To: []TransactionDSLLeg{{AccountAlias: "recipient"}}}}}},
+			message: "transaction send asset is required",
+		},
+		{
+			name:    "missing value",
+			input:   &FeeCalculate{LedgerID: "ledger-001", Transaction: TransactionDSL{Send: TransactionDSLSend{Asset: "BRL", Source: TransactionDSLSource{From: []TransactionDSLLeg{{AccountAlias: "sender"}}}, Distribute: TransactionDSLDistribute{To: []TransactionDSLLeg{{AccountAlias: "recipient"}}}}}},
+			message: "transaction send value is required",
+		},
+		{
+			name:    "blank string value",
+			input:   &FeeCalculate{LedgerID: "ledger-001", Transaction: TransactionDSL{Send: TransactionDSLSend{Asset: "BRL", Value: "   ", Source: TransactionDSLSource{From: []TransactionDSLLeg{{AccountAlias: "sender", Share: &TransactionDSLShare{Percentage: 100}}}}, Distribute: TransactionDSLDistribute{To: []TransactionDSLLeg{{AccountAlias: "recipient", Share: &TransactionDSLShare{Percentage: 100}}}}}}},
+			message: "transaction send value is required",
+		},
+		{
+			name:    "missing source legs",
+			input:   &FeeCalculate{LedgerID: "ledger-001", Transaction: TransactionDSL{Send: TransactionDSLSend{Asset: "BRL", Value: "100.00", Distribute: TransactionDSLDistribute{To: []TransactionDSLLeg{{AccountAlias: "recipient"}}}}}},
+			message: "transaction source legs are required",
+		},
+		{
+			name:    "missing distribute legs",
+			input:   &FeeCalculate{LedgerID: "ledger-001", Transaction: TransactionDSL{Send: TransactionDSLSend{Asset: "BRL", Value: "100.00", Source: TransactionDSLSource{From: []TransactionDSLLeg{{AccountAlias: "sender"}}}}}},
+			message: "transaction distribute legs are required",
+		},
+		{
+			name:    "missing leg identifier",
+			input:   &FeeCalculate{LedgerID: "ledger-001", Transaction: TransactionDSL{Send: TransactionDSLSend{Asset: "BRL", Value: "100.00", Source: TransactionDSLSource{From: []TransactionDSLLeg{{Amount: &TransactionDSLAmount{Value: "100.00"}}}}, Distribute: TransactionDSLDistribute{To: []TransactionDSLLeg{{AccountAlias: "recipient", Share: &TransactionDSLShare{Percentage: 100}}}}}}},
+			message: "transaction source leg identifier is required at index 0",
+		},
+		{
+			name:    "missing amount and share",
+			input:   &FeeCalculate{LedgerID: "ledger-001", Transaction: TransactionDSL{Send: TransactionDSLSend{Asset: "BRL", Value: "100.00", Source: TransactionDSLSource{From: []TransactionDSLLeg{{AccountAlias: "sender"}}}, Distribute: TransactionDSLDistribute{To: []TransactionDSLLeg{{AccountAlias: "recipient", Share: &TransactionDSLShare{Percentage: 100}}}}}}},
+			message: "transaction source leg amount or share is required at index 0",
+		},
+		{
+			name:    "blank amount value",
+			input:   &FeeCalculate{LedgerID: "ledger-001", Transaction: TransactionDSL{Send: TransactionDSLSend{Asset: "BRL", Value: "100.00", Source: TransactionDSLSource{From: []TransactionDSLLeg{{AccountAlias: "sender", Amount: &TransactionDSLAmount{Value: " "}}}}, Distribute: TransactionDSLDistribute{To: []TransactionDSLLeg{{AccountAlias: "recipient", Share: &TransactionDSLShare{Percentage: 100}}}}}}},
+			message: "transaction source leg amount value is required at index 0",
+		},
+		{
+			name:    "zero share",
+			input:   &FeeCalculate{LedgerID: "ledger-001", Transaction: TransactionDSL{Send: TransactionDSLSend{Asset: "BRL", Value: "100.00", Source: TransactionDSLSource{From: []TransactionDSLLeg{{AccountAlias: "sender", Share: &TransactionDSLShare{Percentage: 0}}}}, Distribute: TransactionDSLDistribute{To: []TransactionDSLLeg{{AccountAlias: "recipient", Share: &TransactionDSLShare{Percentage: 100}}}}}}},
+			message: "transaction source leg share must be greater than zero at index 0",
+		},
+		{
+			name:    "distribute leg missing identifier",
+			input:   &FeeCalculate{LedgerID: "ledger-001", Transaction: TransactionDSL{Send: TransactionDSLSend{Asset: "BRL", Value: "100.00", Source: TransactionDSLSource{From: []TransactionDSLLeg{{AccountAlias: "sender", Share: &TransactionDSLShare{Percentage: 100}}}}, Distribute: TransactionDSLDistribute{To: []TransactionDSLLeg{{Amount: &TransactionDSLAmount{Value: "100.00"}}}}}}},
+			message: "transaction distribute leg identifier is required at index 0",
+		},
+		{
+			name:    "distribute leg missing amount and share",
+			input:   &FeeCalculate{LedgerID: "ledger-001", Transaction: TransactionDSL{Send: TransactionDSLSend{Asset: "BRL", Value: "100.00", Source: TransactionDSLSource{From: []TransactionDSLLeg{{AccountAlias: "sender", Share: &TransactionDSLShare{Percentage: 100}}}}, Distribute: TransactionDSLDistribute{To: []TransactionDSLLeg{{AccountAlias: "recipient"}}}}}},
+			message: "transaction distribute leg amount or share is required at index 0",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			resp, err := svc.Calculate(context.Background(), tt.input)
+			require.Error(t, err)
+			assert.Nil(t, resp)
+			assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
+			assert.Contains(t, err.Error(), tt.message)
+		})
+	}
+}
+
+func TestFeesCalculateAcceptsBalanceKeyAndPercentageOfPercentage(t *testing.T) {
+	t.Parallel()
+
+	backend := &mockBackend{
+		callFn: func(_ context.Context, _, _ string, _, result any) error {
+			return jsonInto(testFeeCalculateResponse, result)
+		},
+	}
+
+	svc := newFeesCalcService(backend)
+	resp, err := svc.Calculate(context.Background(), &FeeCalculate{
+		LedgerID: "ledger-001",
+		Transaction: TransactionDSL{Send: TransactionDSLSend{
+			Asset: "BRL",
+			Value: "100.00",
+			Source: TransactionDSLSource{From: []TransactionDSLLeg{{
+				BalanceKey: "available",
+				Share:      &TransactionDSLShare{PercentageOfPercentage: 100},
+			}}},
+			Distribute: TransactionDSLDistribute{To: []TransactionDSLLeg{{
+				AccountAlias: "recipient",
+				Share:        &TransactionDSLShare{Percentage: 100},
+			}}},
+		}},
+	})
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+}
+
+func TestFeesCalculateRejectsTypedNilSendValue(t *testing.T) {
+	t.Parallel()
+
+	svc := newFeesCalcService(&mockBackend{})
+
+	var typedNil *nilStringer
+
+	resp, err := svc.Calculate(context.Background(), &FeeCalculate{
+		LedgerID: "ledger-001",
+		Transaction: TransactionDSL{Send: TransactionDSLSend{
+			Asset:      "BRL",
+			Value:      typedNil,
+			Source:     TransactionDSLSource{From: []TransactionDSLLeg{{AccountAlias: "sender"}}},
+			Distribute: TransactionDSLDistribute{To: []TransactionDSLLeg{{AccountAlias: "recipient"}}},
+		}},
+	})
+	require.Error(t, err)
+	assert.Nil(t, resp)
+	assert.Contains(t, err.Error(), "transaction send value is required")
+}
+
+// ---------------------------------------------------------------------------
+// feesServiceAPI.Calculate — backend error propagation
 // ---------------------------------------------------------------------------
 
 func TestFeesCalculateBackendError(t *testing.T) {
+	t.Parallel()
+
 	backend := &mockBackend{
 		callFn: func(_ context.Context, _, _ string, _, _ any) error {
 			return fmt.Errorf("internal server error")
@@ -160,43 +326,42 @@ func TestFeesCalculateBackendError(t *testing.T) {
 	}
 
 	svc := newFeesCalcService(backend)
-	input := &CalculateFeeInput{
-		PackageID: "pkg-001",
-		Amount:    10000,
-		Scale:     2,
-		Currency:  "USD",
+	input := &FeeCalculate{
+		LedgerID:    "ledger-001",
+		Transaction: testTransactionDSL(),
 	}
 
-	fee, err := svc.Calculate(context.Background(), input)
+	resp, err := svc.Calculate(context.Background(), input)
 	require.Error(t, err)
-	assert.Nil(t, fee)
+	assert.Nil(t, resp)
 	assert.Contains(t, err.Error(), "internal server error")
 }
 
 // ---------------------------------------------------------------------------
-// FeesService.Calculate — verifies input body is forwarded
+// feesServiceAPI.Calculate — verifies input body is forwarded
 // ---------------------------------------------------------------------------
 
 func TestFeesCalculateInputForwarded(t *testing.T) {
+	t.Parallel()
+
 	backend := &mockBackend{
 		callFn: func(_ context.Context, _, _ string, body, result any) error {
-			input, ok := body.(*CalculateFeeInput)
-			require.True(t, ok, "body should be *CalculateFeeInput")
-			assert.Equal(t, "pkg-003", input.PackageID)
-			assert.Equal(t, int64(25000), input.Amount)
-			assert.Equal(t, "BRL", input.Currency)
-			assert.Nil(t, input.TransactionID)
+			input, ok := body.(*FeeCalculate)
+			require.True(t, ok, "body should be *FeeCalculate")
+			assert.Equal(t, "ledger-002", input.LedgerID)
+			assert.NotNil(t, input.SegmentID)
+			assert.Equal(t, "seg-premium", *input.SegmentID)
+			assert.Equal(t, "BRL", input.Transaction.Send.Asset)
 
-			return jsonInto(testFee, result)
+			return jsonInto(testFeeCalculateResponse, result)
 		},
 	}
 
 	svc := newFeesCalcService(backend)
-	input := &CalculateFeeInput{
-		PackageID: "pkg-003",
-		Amount:    25000,
-		Scale:     2,
-		Currency:  "BRL",
+	input := &FeeCalculate{
+		SegmentID:   strPtr("seg-premium"),
+		LedgerID:    "ledger-002",
+		Transaction: testTransactionDSL(),
 	}
 
 	_, err := svc.Calculate(context.Background(), input)
@@ -204,220 +369,38 @@ func TestFeesCalculateInputForwarded(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// FeesService.Calculate — without TransactionID
+// feesServiceAPI.Calculate — without SegmentID
 // ---------------------------------------------------------------------------
 
-func TestFeesCalculateWithoutTransactionID(t *testing.T) {
-	feeNoTxn := Fee{
-		ID:            "fee-002",
-		PackageID:     "pkg-001",
-		TransactionID: nil,
-		Amount:        5000,
-		Scale:         2,
-		Currency:      "USD",
-		FeeResults:    []FeeResult{},
-		TotalFee:      50,
-		TotalFeeScale: 2,
-		Status:        "calculated",
-		CreatedAt:     time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+func TestFeesCalculateWithoutSegmentID(t *testing.T) {
+	t.Parallel()
+
+	resp := FeeCalculate{
+		LedgerID:    "ledger-001",
+		Transaction: testTransactionDSL(),
 	}
 
 	backend := &mockBackend{
 		callFn: func(_ context.Context, _, _ string, _, result any) error {
-			return jsonInto(feeNoTxn, result)
+			return jsonInto(resp, result)
 		},
 	}
 
 	svc := newFeesCalcService(backend)
-	input := &CalculateFeeInput{
-		PackageID: "pkg-001",
-		Amount:    5000,
-		Scale:     2,
-		Currency:  "USD",
+	input := &FeeCalculate{
+		LedgerID:    "ledger-001",
+		Transaction: testTransactionDSL(),
 	}
 
-	fee, err := svc.Calculate(context.Background(), input)
+	got, err := svc.Calculate(context.Background(), input)
 	require.NoError(t, err)
-	require.NotNil(t, fee)
-	assert.Nil(t, fee.TransactionID)
-	assert.Equal(t, "fee-002", fee.ID)
-}
-
-func TestFeesTransformTransaction(t *testing.T) {
-	t.Parallel()
-
-	expected := transformedTransactionDSL()
-	backend := &mockBackend{
-		callFn: func(_ context.Context, method, path string, body, result any) error {
-			assert.Equal(t, "POST", method)
-			assert.Equal(t, "/fees", path)
-
-			input, ok := body.(*TransformTransactionInput)
-			require.True(t, ok)
-			assert.Equal(t, "ledger-001", input.LedgerID)
-			assert.Equal(t, testTransactionDSL(), input.Transaction)
-
-			return jsonInto(transformResponse{Transaction: &expected}, result)
-		},
-	}
-
-	svc := newFeesCalcService(backend)
-	output, err := svc.TransformTransaction(context.Background(), &TransformTransactionInput{
-		LedgerID:    "ledger-001",
-		Transaction: testTransactionDSL(),
-	})
-	require.NoError(t, err)
-	require.NotNil(t, output)
-	assert.Equal(t, expected, output.Transaction)
-}
-
-func TestFeesTransformTransactionNilInput(t *testing.T) {
-	t.Parallel()
-
-	svc := newFeesCalcService(&mockBackend{})
-
-	output, err := svc.TransformTransaction(context.Background(), nil)
-	require.Error(t, err)
-	assert.Nil(t, output)
-	assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
-
-	var sdkErr *sdkerrors.Error
-	require.True(t, errors.As(err, &sdkErr))
-	assert.Equal(t, "Fees.TransformTransaction", sdkErr.Operation)
-	assert.Equal(t, "Fee", sdkErr.Resource)
-	assert.Contains(t, sdkErr.Message, "input is required")
-}
-
-func TestFeesTransformTransactionEmptyLedgerID(t *testing.T) {
-	t.Parallel()
-
-	svc := newFeesCalcService(&mockBackend{})
-
-	output, err := svc.TransformTransaction(context.Background(), &TransformTransactionInput{
-		Transaction: testTransactionDSL(),
-	})
-	require.Error(t, err)
-	assert.Nil(t, output)
-	assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
-
-	var sdkErr *sdkerrors.Error
-	require.True(t, errors.As(err, &sdkErr))
-	assert.Equal(t, "Fees.TransformTransaction", sdkErr.Operation)
-	assert.Equal(t, "Fee", sdkErr.Resource)
-	assert.Contains(t, sdkErr.Message, "ledger ID is required")
-}
-
-func TestFeesTransformTransactionDataEnvelopeFallback(t *testing.T) {
-	t.Parallel()
-
-	expected := transformedTransactionDSL()
-	backend := &mockBackend{
-		callFn: func(_ context.Context, method, path string, body, result any) error {
-			assert.Equal(t, "POST", method)
-			assert.Equal(t, "/fees", path)
-			assert.NotNil(t, body)
-
-			return jsonInto(transformResponse{
-				Data: &struct {
-					Transaction *TransactionDSL `json:"transaction,omitempty"`
-				}{Transaction: &expected},
-			}, result)
-		},
-	}
-
-	svc := newFeesCalcService(backend)
-	output, err := svc.TransformTransaction(context.Background(), &TransformTransactionInput{
-		LedgerID:    "ledger-001",
-		Transaction: testTransactionDSL(),
-	})
-	require.NoError(t, err)
-	require.NotNil(t, output)
-	assert.Equal(t, expected, output.Transaction)
-}
-
-func TestFeesTransformTransactionMissingTransactionInResponse(t *testing.T) {
-	t.Parallel()
-
-	backend := &mockBackend{
-		callFn: func(_ context.Context, method, path string, body, result any) error {
-			assert.Equal(t, "POST", method)
-			assert.Equal(t, "/fees", path)
-			assert.NotNil(t, body)
-
-			return jsonInto(transformResponse{}, result)
-		},
-	}
-
-	svc := newFeesCalcService(backend)
-	output, err := svc.TransformTransaction(context.Background(), &TransformTransactionInput{
-		LedgerID:    "ledger-001",
-		Transaction: testTransactionDSL(),
-	})
-	require.Error(t, err)
-	assert.Nil(t, output)
-	assert.True(t, errors.Is(err, sdkerrors.ErrInternal))
-
-	var sdkErr *sdkerrors.Error
-	require.True(t, errors.As(err, &sdkErr))
-	assert.Equal(t, "Fees.TransformTransaction", sdkErr.Operation)
-	assert.Equal(t, sdkerrors.CategoryInternal, sdkErr.Category)
-	assert.Contains(t, sdkErr.Message, "response contained no transaction data")
-}
-
-func TestFeesTransformTransactionMissingNestedTransactionInResponse(t *testing.T) {
-	t.Parallel()
-
-	backend := &mockBackend{
-		callFn: func(_ context.Context, method, path string, body, result any) error {
-			assert.Equal(t, "POST", method)
-			assert.Equal(t, "/fees", path)
-			assert.NotNil(t, body)
-
-			return jsonInto(transformResponse{
-				Data: &struct {
-					Transaction *TransactionDSL `json:"transaction,omitempty"`
-				}{},
-			}, result)
-		},
-	}
-
-	svc := newFeesCalcService(backend)
-	output, err := svc.TransformTransaction(context.Background(), &TransformTransactionInput{
-		LedgerID:    "ledger-001",
-		Transaction: testTransactionDSL(),
-	})
-	require.Error(t, err)
-	assert.Nil(t, output)
-	assert.True(t, errors.Is(err, sdkerrors.ErrInternal))
-
-	var sdkErr *sdkerrors.Error
-	require.True(t, errors.As(err, &sdkErr))
-	assert.Equal(t, "Fees.TransformTransaction", sdkErr.Operation)
-	assert.Equal(t, sdkerrors.CategoryInternal, sdkErr.Category)
-	assert.Contains(t, sdkErr.Message, "response contained no transaction data")
-}
-
-func TestFeesTransformTransactionBackendError(t *testing.T) {
-	t.Parallel()
-
-	backend := &mockBackend{
-		callFn: func(_ context.Context, _, _ string, _, _ any) error {
-			return fmt.Errorf("fees backend unavailable")
-		},
-	}
-
-	svc := newFeesCalcService(backend)
-	output, err := svc.TransformTransaction(context.Background(), &TransformTransactionInput{
-		LedgerID:    "ledger-001",
-		Transaction: testTransactionDSL(),
-	})
-	require.Error(t, err)
-	assert.Nil(t, output)
-	assert.Contains(t, err.Error(), "fees backend unavailable")
+	require.NotNil(t, got)
+	assert.Nil(t, got.SegmentID)
+	assert.Equal(t, "ledger-001", got.LedgerID)
 }
 
 // ---------------------------------------------------------------------------
 // Compile-time interface assertion
 // ---------------------------------------------------------------------------
 
-var _ FeesService = (*feesCalcService)(nil)
+var _ feesServiceAPI = (*feesCalcService)(nil)
