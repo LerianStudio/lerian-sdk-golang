@@ -1,4 +1,4 @@
-// exceptions.go implements the ExceptionsService for managing reconciliation
+// exceptions.go implements the exceptionsServiceAPI for managing reconciliation
 // exceptions in the Matcher service. Exceptions represent anomalies or
 // discrepancies detected during reconciliation that require human review,
 // and support approval/rejection workflows, reassignment, and bulk operations.
@@ -14,9 +14,9 @@ import (
 	"github.com/LerianStudio/lerian-sdk-golang/pkg/pagination"
 )
 
-// ExceptionsService provides CRUD, approval, rejection, reassignment,
+// exceptionsServiceAPI provides CRUD, approval, rejection, reassignment,
 // bulk operations, and analytics for reconciliation exceptions.
-type ExceptionsService interface {
+type exceptionsServiceAPI interface {
 	// Create creates a new reconciliation exception from the given input.
 	Create(ctx context.Context, input *CreateExceptionInput) (*Exception, error)
 
@@ -24,7 +24,7 @@ type ExceptionsService interface {
 	Get(ctx context.Context, id string) (*Exception, error)
 
 	// List returns a paginated iterator over reconciliation exceptions.
-	List(ctx context.Context, opts *models.ListOptions) *pagination.Iterator[Exception]
+	List(ctx context.Context, opts *models.CursorListOptions) *pagination.Iterator[Exception]
 
 	// Update partially updates an existing reconciliation exception.
 	Update(ctx context.Context, id string, input *UpdateExceptionInput) (*Exception, error)
@@ -52,28 +52,28 @@ type ExceptionsService interface {
 
 	// ListByContext returns a paginated iterator over exceptions within
 	// a specific reconciliation context.
-	ListByContext(ctx context.Context, contextID string, opts *models.ListOptions) *pagination.Iterator[Exception]
+	ListByContext(ctx context.Context, contextID string, opts *models.CursorListOptions) *pagination.Iterator[Exception]
 
 	// GetStatistics retrieves aggregate statistics about exceptions.
 	GetStatistics(ctx context.Context) (*ExceptionStatistics, error)
 }
 
-// exceptionsService is the concrete implementation of [ExceptionsService].
+// exceptionsService is the concrete implementation of [exceptionsServiceAPI].
 // It embeds [core.BaseService] to inherit the HTTP transport layer.
 type exceptionsService struct {
 	core.BaseService
 }
 
-// newExceptionsService creates a new [ExceptionsService] backed by the given
+// newExceptionsService creates a new [exceptionsServiceAPI] backed by the given
 // Matcher [core.Backend].
-func newExceptionsService(backend core.Backend) ExceptionsService {
+func newExceptionsService(backend core.Backend) exceptionsServiceAPI {
 	return &exceptionsService{
 		BaseService: core.BaseService{Backend: backend},
 	}
 }
 
 // Compile-time interface compliance check.
-var _ ExceptionsService = (*exceptionsService)(nil)
+var _ exceptionsServiceAPI = (*exceptionsService)(nil)
 
 // Create creates a new reconciliation exception from the given input.
 func (s *exceptionsService) Create(ctx context.Context, input *CreateExceptionInput) (*Exception, error) {
@@ -98,7 +98,7 @@ func (s *exceptionsService) Get(ctx context.Context, id string) (*Exception, err
 }
 
 // List returns a paginated iterator over reconciliation exceptions.
-func (s *exceptionsService) List(ctx context.Context, opts *models.ListOptions) *pagination.Iterator[Exception] {
+func (s *exceptionsService) List(ctx context.Context, opts *models.CursorListOptions) *pagination.Iterator[Exception] {
 	return core.List[Exception](ctx, &s.BaseService, "/exceptions", opts)
 }
 
@@ -204,7 +204,7 @@ func (s *exceptionsService) BulkReassign(ctx context.Context, input *BulkReassig
 
 // ListByContext returns a paginated iterator over exceptions within
 // a specific reconciliation context.
-func (s *exceptionsService) ListByContext(ctx context.Context, contextID string, opts *models.ListOptions) *pagination.Iterator[Exception] {
+func (s *exceptionsService) ListByContext(ctx context.Context, contextID string, opts *models.CursorListOptions) *pagination.Iterator[Exception] {
 	if contextID == "" {
 		return pagination.NewIterator[Exception](func(_ context.Context, _ string) ([]Exception, string, error) {
 			return nil, "", sdkerrors.NewValidation("Exceptions.ListByContext", "Exception", "context ID is required")

@@ -10,12 +10,11 @@
 //
 // Access Matcher services through the umbrella client:
 //
-//	client, _ := lerian.New(
-//	    lerian.WithMatcher(
-//	        matcher.WithBaseURL("http://localhost:3002/v1"),
-//	    ),
-//	)
-//	// Optional OAuth2 credentials can be loaded from the matching LERIAN_MATCHER_* env vars.
+//	client, _ := lerian.New(lerian.Config{
+//	    Matcher: &matcher.Config{
+//	        BaseURL: "http://localhost:3002/v1",
+//	    },
+//	})
 //
 //	ctx, err := client.Matcher.Contexts.Create(ctx, &matcher.CreateContextInput{
 //	    Name: "Monthly Bank Reconciliation",

@@ -7,13 +7,14 @@ import (
 	"testing"
 
 	"github.com/LerianStudio/lerian-sdk-golang/models"
+	"github.com/LerianStudio/lerian-sdk-golang/pkg/core"
 	sdkerrors "github.com/LerianStudio/lerian-sdk-golang/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 // ---------------------------------------------------------------------------
-// ExportJobsService.Create
+// exportJobsServiceAPI.Create
 // ---------------------------------------------------------------------------
 
 func TestExportJobsCreate(t *testing.T) {
@@ -58,7 +59,7 @@ func TestExportJobsCreate(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// ExportJobsService.Get
+// exportJobsServiceAPI.Get
 // ---------------------------------------------------------------------------
 
 func TestExportJobsGet(t *testing.T) {
@@ -92,7 +93,7 @@ func TestExportJobsGet(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// ExportJobsService.List
+// exportJobsServiceAPI.List
 // ---------------------------------------------------------------------------
 
 func TestExportJobsList(t *testing.T) {
@@ -141,7 +142,7 @@ func TestExportJobsListWithOptions(t *testing.T) {
 	}}
 
 	svc := newExportJobsService(mb)
-	opts := &models.ListOptions{Limit: 50, SortBy: "createdAt"}
+	opts := &models.CursorListOptions{Limit: 50, SortBy: "createdAt"}
 	iter := svc.List(context.Background(), opts)
 
 	require.True(t, iter.Next(context.Background()))
@@ -150,7 +151,7 @@ func TestExportJobsListWithOptions(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// ExportJobsService.Cancel
+// exportJobsServiceAPI.Cancel
 // ---------------------------------------------------------------------------
 
 func TestExportJobsCancel(t *testing.T) {
@@ -184,7 +185,7 @@ func TestExportJobsCancel(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// ExportJobsService.Download — uses CallRaw
+// exportJobsServiceAPI.Download — returns raw bytes
 // ---------------------------------------------------------------------------
 
 func TestExportJobsDownload(t *testing.T) {
@@ -238,6 +239,28 @@ func TestExportJobsDownload(t *testing.T) {
 		require.Error(t, err)
 		assert.Nil(t, data)
 		assert.Equal(t, expectedErr, err)
+	})
+
+	t.Run("nil backend uses core error", func(t *testing.T) {
+		t.Parallel()
+
+		svc := newExportJobsService(nil)
+		data, err := svc.Download(context.Background(), "exp-1")
+		require.Error(t, err)
+		assert.Nil(t, data)
+		assert.ErrorIs(t, err, core.ErrNilBackend)
+	})
+
+	t.Run("typed nil backend uses core error", func(t *testing.T) {
+		t.Parallel()
+
+		var mb *mockBackend
+
+		svc := newExportJobsService(mb)
+		data, err := svc.Download(context.Background(), "exp-1")
+		require.Error(t, err)
+		assert.Nil(t, data)
+		assert.ErrorIs(t, err, core.ErrNilBackend)
 	})
 }
 

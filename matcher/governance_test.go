@@ -63,7 +63,7 @@ func TestGovernanceListArchivesWithOptions(t *testing.T) {
 	}}
 
 	svc := newGovernanceService(mb)
-	opts := &models.ListOptions{Limit: 5, SortBy: "createdAt"}
+	opts := &models.CursorListOptions{Limit: 5, SortBy: "createdAt"}
 	iter := svc.ListArchives(context.Background(), opts)
 
 	require.True(t, iter.Next(context.Background()))
@@ -263,4 +263,4 @@ func TestGovernanceListAuditLogsBackendError(t *testing.T) {
 // Compile-time interface assertion
 // ---------------------------------------------------------------------------
 
-var _ GovernanceService = (*governanceService)(nil)
+var _ governanceServiceAPI = (*governanceService)(nil)

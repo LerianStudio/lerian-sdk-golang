@@ -1,4 +1,4 @@
-// matching.go implements the MatchingService for RPC-style reconciliation
+// matching.go implements the matchingServiceAPI for RPC-style reconciliation
 // operations including automated matching runs, manual matching, and
 // monetary adjustments.
 package matcher
@@ -10,9 +10,9 @@ import (
 	sdkerrors "github.com/LerianStudio/lerian-sdk-golang/pkg/errors"
 )
 
-// MatchingService provides manual matching and adjustment operations
+// matchingServiceAPI provides manual matching and adjustment operations
 // for reconciliation contexts. All methods are RPC-style POST endpoints.
-type MatchingService interface {
+type matchingServiceAPI interface {
 	// Run triggers an automated reconciliation run for the given context.
 	Run(ctx context.Context, contextID string) (*MatchResult, error)
 
@@ -31,21 +31,21 @@ type matchRunInput struct {
 	ContextID string `json:"contextId"`
 }
 
-// matchingService is the concrete implementation of [MatchingService].
+// matchingService is the concrete implementation of [matchingServiceAPI].
 type matchingService struct {
 	core.BaseService
 }
 
-// newMatchingService creates a new [MatchingService] backed by the given
+// newMatchingService creates a new [matchingServiceAPI] backed by the given
 // [core.Backend].
-func newMatchingService(backend core.Backend) MatchingService {
+func newMatchingService(backend core.Backend) matchingServiceAPI {
 	return &matchingService{
 		BaseService: core.BaseService{Backend: backend},
 	}
 }
 
 // Compile-time interface compliance check.
-var _ MatchingService = (*matchingService)(nil)
+var _ matchingServiceAPI = (*matchingService)(nil)
 
 // Run triggers an automated reconciliation run for the given context.
 func (s *matchingService) Run(ctx context.Context, contextID string) (*MatchResult, error) {

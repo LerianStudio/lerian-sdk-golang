@@ -1,4 +1,4 @@
-// export_jobs.go implements the ExportJobsService for managing data export
+// export_jobs.go implements the exportJobsServiceAPI for managing data export
 // jobs in the Matcher service. Export jobs produce downloadable files in
 // various formats (CSV, XLSX, etc.) containing reconciliation data.
 package matcher
@@ -13,9 +13,9 @@ import (
 	"github.com/LerianStudio/lerian-sdk-golang/pkg/pagination"
 )
 
-// ExportJobsService provides operations for creating, monitoring, cancelling,
+// exportJobsServiceAPI provides operations for creating, monitoring, cancelling,
 // and downloading data export jobs.
-type ExportJobsService interface {
+type exportJobsServiceAPI interface {
 	// Create creates a new data export job from the given input.
 	Create(ctx context.Context, input *CreateExportJobInput) (*ExportJob, error)
 
@@ -23,7 +23,7 @@ type ExportJobsService interface {
 	Get(ctx context.Context, id string) (*ExportJob, error)
 
 	// List returns a paginated iterator over data export jobs.
-	List(ctx context.Context, opts *models.ListOptions) *pagination.Iterator[ExportJob]
+	List(ctx context.Context, opts *models.CursorListOptions) *pagination.Iterator[ExportJob]
 
 	// Cancel cancels a pending or in-progress export job.
 	Cancel(ctx context.Context, id string) (*ExportJob, error)
@@ -35,22 +35,22 @@ type ExportJobsService interface {
 	Download(ctx context.Context, id string) ([]byte, error)
 }
 
-// exportJobsService is the concrete implementation of [ExportJobsService].
+// exportJobsService is the concrete implementation of [exportJobsServiceAPI].
 // It embeds [core.BaseService] to inherit the HTTP transport layer.
 type exportJobsService struct {
 	core.BaseService
 }
 
-// newExportJobsService creates a new [ExportJobsService] backed by the given
+// newExportJobsService creates a new [exportJobsServiceAPI] backed by the given
 // Matcher [core.Backend].
-func newExportJobsService(backend core.Backend) ExportJobsService {
+func newExportJobsService(backend core.Backend) exportJobsServiceAPI {
 	return &exportJobsService{
 		BaseService: core.BaseService{Backend: backend},
 	}
 }
 
 // Compile-time interface compliance check.
-var _ ExportJobsService = (*exportJobsService)(nil)
+var _ exportJobsServiceAPI = (*exportJobsService)(nil)
 
 // Create creates a new data export job from the given input.
 func (s *exportJobsService) Create(ctx context.Context, input *CreateExportJobInput) (*ExportJob, error) {
@@ -75,7 +75,7 @@ func (s *exportJobsService) Get(ctx context.Context, id string) (*ExportJob, err
 }
 
 // List returns a paginated iterator over data export jobs.
-func (s *exportJobsService) List(ctx context.Context, opts *models.ListOptions) *pagination.Iterator[ExportJob] {
+func (s *exportJobsService) List(ctx context.Context, opts *models.CursorListOptions) *pagination.Iterator[ExportJob] {
 	return core.List[ExportJob](ctx, &s.BaseService, "/export-jobs", opts)
 }
 
@@ -101,5 +101,15 @@ func (s *exportJobsService) Download(ctx context.Context, id string) ([]byte, er
 		return nil, sdkerrors.NewValidation(operation, "ExportJob", "id is required")
 	}
 
-	return s.Backend.CallRaw(ctx, "GET", "/export-jobs/"+url.PathEscape(id)+"/download", nil)
+	backend, err := core.ResolveBackend(&s.BaseService)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := backend.Do(ctx, core.Request{Method: "GET", Path: "/export-jobs/" + url.PathEscape(id) + "/download"})
+	if err != nil {
+		return nil, err
+	}
+
+	return res.Body, nil
 }

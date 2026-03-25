@@ -1,4 +1,4 @@
-// contexts.go implements the ContextsService for managing reconciliation
+// contexts.go implements the contextsServiceAPI for managing reconciliation
 // contexts in the Matcher service. Contexts are the top-level scope for all
 // reconciliation operations, rules, sources, and related configuration.
 package matcher
@@ -13,9 +13,9 @@ import (
 	"github.com/LerianStudio/lerian-sdk-golang/pkg/pagination"
 )
 
-// ContextsService provides CRUD operations and cloning for reconciliation
+// contextsServiceAPI provides CRUD operations and cloning for reconciliation
 // contexts.
-type ContextsService interface {
+type contextsServiceAPI interface {
 	// Create creates a new reconciliation context from the given input.
 	Create(ctx context.Context, input *CreateContextInput) (*Context, error)
 
@@ -23,7 +23,7 @@ type ContextsService interface {
 	Get(ctx context.Context, id string) (*Context, error)
 
 	// List returns a paginated iterator over reconciliation contexts.
-	List(ctx context.Context, opts *models.ListOptions) *pagination.Iterator[Context]
+	List(ctx context.Context, opts *models.CursorListOptions) *pagination.Iterator[Context]
 
 	// Update partially updates an existing reconciliation context.
 	Update(ctx context.Context, id string, input *UpdateContextInput) (*Context, error)
@@ -36,22 +36,22 @@ type ContextsService interface {
 	Clone(ctx context.Context, id string) (*Context, error)
 }
 
-// contextsService is the concrete implementation of [ContextsService].
+// contextsService is the concrete implementation of [contextsServiceAPI].
 // It embeds [core.BaseService] to inherit the HTTP transport layer.
 type contextsService struct {
 	core.BaseService
 }
 
-// newContextsService creates a new [ContextsService] backed by the given
+// newContextsService creates a new [contextsServiceAPI] backed by the given
 // Matcher [core.Backend].
-func newContextsService(backend core.Backend) ContextsService {
+func newContextsService(backend core.Backend) contextsServiceAPI {
 	return &contextsService{
 		BaseService: core.BaseService{Backend: backend},
 	}
 }
 
 // Compile-time interface compliance check.
-var _ ContextsService = (*contextsService)(nil)
+var _ contextsServiceAPI = (*contextsService)(nil)
 
 // Create creates a new reconciliation context from the given input.
 func (s *contextsService) Create(ctx context.Context, input *CreateContextInput) (*Context, error) {
@@ -76,7 +76,7 @@ func (s *contextsService) Get(ctx context.Context, id string) (*Context, error) 
 }
 
 // List returns a paginated iterator over reconciliation contexts.
-func (s *contextsService) List(ctx context.Context, opts *models.ListOptions) *pagination.Iterator[Context] {
+func (s *contextsService) List(ctx context.Context, opts *models.CursorListOptions) *pagination.Iterator[Context] {
 	return core.List[Context](ctx, &s.BaseService, "/contexts", opts)
 }
 

@@ -1,4 +1,4 @@
-// sources.go implements the SourcesService for managing data sources
+// sources.go implements the sourcesServiceAPI for managing data sources
 // connected to a reconciliation context. Sources define where record data
 // comes from (e.g., bank feed, ERP system) and how it is accessed.
 package matcher
@@ -13,8 +13,8 @@ import (
 	"github.com/LerianStudio/lerian-sdk-golang/pkg/pagination"
 )
 
-// SourcesService provides CRUD operations for data sources.
-type SourcesService interface {
+// sourcesServiceAPI provides CRUD operations for data sources.
+type sourcesServiceAPI interface {
 	// Create creates a new data source from the given input.
 	Create(ctx context.Context, input *CreateSourceInput) (*Source, error)
 
@@ -22,7 +22,7 @@ type SourcesService interface {
 	Get(ctx context.Context, id string) (*Source, error)
 
 	// List returns a paginated iterator over data sources.
-	List(ctx context.Context, opts *models.ListOptions) *pagination.Iterator[Source]
+	List(ctx context.Context, opts *models.CursorListOptions) *pagination.Iterator[Source]
 
 	// Update partially updates an existing data source.
 	Update(ctx context.Context, id string, input *UpdateSourceInput) (*Source, error)
@@ -31,22 +31,22 @@ type SourcesService interface {
 	Delete(ctx context.Context, id string) error
 }
 
-// sourcesService is the concrete implementation of [SourcesService].
+// sourcesService is the concrete implementation of [sourcesServiceAPI].
 // It embeds [core.BaseService] to inherit the HTTP transport layer.
 type sourcesService struct {
 	core.BaseService
 }
 
-// newSourcesService creates a new [SourcesService] backed by the given
+// newSourcesService creates a new [sourcesServiceAPI] backed by the given
 // Matcher [core.Backend].
-func newSourcesService(backend core.Backend) SourcesService {
+func newSourcesService(backend core.Backend) sourcesServiceAPI {
 	return &sourcesService{
 		BaseService: core.BaseService{Backend: backend},
 	}
 }
 
 // Compile-time interface compliance check.
-var _ SourcesService = (*sourcesService)(nil)
+var _ sourcesServiceAPI = (*sourcesService)(nil)
 
 // Create creates a new data source from the given input.
 func (s *sourcesService) Create(ctx context.Context, input *CreateSourceInput) (*Source, error) {
@@ -71,7 +71,7 @@ func (s *sourcesService) Get(ctx context.Context, id string) (*Source, error) {
 }
 
 // List returns a paginated iterator over data sources.
-func (s *sourcesService) List(ctx context.Context, opts *models.ListOptions) *pagination.Iterator[Source] {
+func (s *sourcesService) List(ctx context.Context, opts *models.CursorListOptions) *pagination.Iterator[Source] {
 	return core.List[Source](ctx, &s.BaseService, "/sources", opts)
 }
 

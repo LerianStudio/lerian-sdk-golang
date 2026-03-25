@@ -12,7 +12,7 @@ import (
 )
 
 // ---------------------------------------------------------------------------
-// ExceptionsService.Create
+// exceptionsServiceAPI.Create
 // ---------------------------------------------------------------------------
 
 func TestExceptionsCreate(t *testing.T) {
@@ -57,7 +57,7 @@ func TestExceptionsCreate(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// ExceptionsService.Get
+// exceptionsServiceAPI.Get
 // ---------------------------------------------------------------------------
 
 func TestExceptionsGet(t *testing.T) {
@@ -90,7 +90,7 @@ func TestExceptionsGet(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// ExceptionsService.List
+// exceptionsServiceAPI.List
 // ---------------------------------------------------------------------------
 
 func TestExceptionsList(t *testing.T) {
@@ -123,7 +123,7 @@ func TestExceptionsList(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// ExceptionsService.Update
+// exceptionsServiceAPI.Update
 // ---------------------------------------------------------------------------
 
 func TestExceptionsUpdate(t *testing.T) {
@@ -171,7 +171,7 @@ func TestExceptionsUpdate(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// ExceptionsService.Delete
+// exceptionsServiceAPI.Delete
 // ---------------------------------------------------------------------------
 
 func TestExceptionsDelete(t *testing.T) {
@@ -204,7 +204,7 @@ func TestExceptionsDelete(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// ExceptionsService.Approve
+// exceptionsServiceAPI.Approve
 // ---------------------------------------------------------------------------
 
 func TestExceptionsApprove(t *testing.T) {
@@ -238,7 +238,7 @@ func TestExceptionsApprove(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// ExceptionsService.Reject
+// exceptionsServiceAPI.Reject
 // ---------------------------------------------------------------------------
 
 func TestExceptionsReject(t *testing.T) {
@@ -285,7 +285,7 @@ func TestExceptionsReject(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// ExceptionsService.Reassign
+// exceptionsServiceAPI.Reassign
 // ---------------------------------------------------------------------------
 
 func TestExceptionsReassign(t *testing.T) {
@@ -333,7 +333,7 @@ func TestExceptionsReassign(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// ExceptionsService.BulkApprove
+// exceptionsServiceAPI.BulkApprove
 // ---------------------------------------------------------------------------
 
 func TestExceptionsBulkApprove(t *testing.T) {
@@ -375,7 +375,7 @@ func TestExceptionsBulkApprove(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// ExceptionsService.BulkReject
+// exceptionsServiceAPI.BulkReject
 // ---------------------------------------------------------------------------
 
 func TestExceptionsBulkReject(t *testing.T) {
@@ -420,7 +420,7 @@ func TestExceptionsBulkReject(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// ExceptionsService.BulkReassign
+// exceptionsServiceAPI.BulkReassign
 // ---------------------------------------------------------------------------
 
 func TestExceptionsBulkReassign(t *testing.T) {
@@ -463,7 +463,7 @@ func TestExceptionsBulkReassign(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// ExceptionsService.ListByContext
+// exceptionsServiceAPI.ListByContext
 // ---------------------------------------------------------------------------
 
 func TestExceptionsListByContext(t *testing.T) {
@@ -494,7 +494,7 @@ func TestExceptionsListByContext(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// ExceptionsService.GetStatistics
+// exceptionsServiceAPI.GetStatistics
 // ---------------------------------------------------------------------------
 
 func TestExceptionsGetStatistics(t *testing.T) {

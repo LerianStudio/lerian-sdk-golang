@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/LerianStudio/lerian-sdk-golang/pkg/core"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -16,16 +17,8 @@ import (
 
 type fakeBackend struct{}
 
-func (f *fakeBackend) Call(_ context.Context, _, _ string, _, _ any) error {
-	return nil
-}
-
-func (f *fakeBackend) CallWithHeaders(_ context.Context, _, _ string, _ map[string]string, _, _ any) error {
-	return nil
-}
-
-func (f *fakeBackend) CallRaw(_ context.Context, _, _ string, _ any) ([]byte, error) {
-	return nil, nil
+func (f *fakeBackend) Do(_ context.Context, _ core.Request) (*core.Response, error) {
+	return &core.Response{}, nil
 }
 
 // ---------------------------------------------------------------------------
@@ -35,22 +28,9 @@ func (f *fakeBackend) CallRaw(_ context.Context, _, _ string, _ any) ([]byte, er
 func TestNewClient(t *testing.T) {
 	t.Parallel()
 
-	cfg := Config{
-		BaseURL:      "http://localhost:3002/v1",
-		ClientID:     "client-id",
-		ClientSecret: "client-secret",
-		TokenURL:     "https://auth.example.com/token",
-		Timeout:      30 * time.Second,
-	}
-
-	client := NewClient(&fakeBackend{}, cfg)
+	client := NewClient(&fakeBackend{}, Config{})
 
 	require.NotNil(t, client)
-	assert.Equal(t, "http://localhost:3002/v1", client.config.BaseURL)
-	assert.Equal(t, "client-id", client.config.ClientID)
-	assert.Equal(t, "client-secret", client.config.ClientSecret)
-	assert.Equal(t, "https://auth.example.com/token", client.config.TokenURL)
-	assert.Equal(t, 30*time.Second, client.config.Timeout)
 
 	// Config service accessors are wired by NewClient.
 	assert.NotNil(t, client.Contexts)

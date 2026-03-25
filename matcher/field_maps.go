@@ -1,4 +1,4 @@
-// field_maps.go implements the FieldMapsService for managing field mappings
+// field_maps.go implements the fieldMapsServiceAPI for managing field mappings
 // within a reconciliation context. Field maps control how data is aligned
 // across different sources for comparison.
 package matcher
@@ -13,9 +13,9 @@ import (
 	"github.com/LerianStudio/lerian-sdk-golang/pkg/pagination"
 )
 
-// FieldMapsService provides CRUD operations for field mappings within a
+// fieldMapsServiceAPI provides CRUD operations for field mappings within a
 // reconciliation context.
-type FieldMapsService interface {
+type fieldMapsServiceAPI interface {
 	// Create creates a new field mapping from the given input.
 	Create(ctx context.Context, input *CreateFieldMapInput) (*FieldMap, error)
 
@@ -23,7 +23,7 @@ type FieldMapsService interface {
 	Get(ctx context.Context, id string) (*FieldMap, error)
 
 	// List returns a paginated iterator over field mappings.
-	List(ctx context.Context, opts *models.ListOptions) *pagination.Iterator[FieldMap]
+	List(ctx context.Context, opts *models.CursorListOptions) *pagination.Iterator[FieldMap]
 
 	// Update partially updates an existing field mapping.
 	Update(ctx context.Context, id string, input *UpdateFieldMapInput) (*FieldMap, error)
@@ -32,22 +32,22 @@ type FieldMapsService interface {
 	Delete(ctx context.Context, id string) error
 }
 
-// fieldMapsService is the concrete implementation of [FieldMapsService].
+// fieldMapsService is the concrete implementation of [fieldMapsServiceAPI].
 // It embeds [core.BaseService] to inherit the HTTP transport layer.
 type fieldMapsService struct {
 	core.BaseService
 }
 
-// newFieldMapsService creates a new [FieldMapsService] backed by the given
+// newFieldMapsService creates a new [fieldMapsServiceAPI] backed by the given
 // Matcher [core.Backend].
-func newFieldMapsService(backend core.Backend) FieldMapsService {
+func newFieldMapsService(backend core.Backend) fieldMapsServiceAPI {
 	return &fieldMapsService{
 		BaseService: core.BaseService{Backend: backend},
 	}
 }
 
 // Compile-time interface compliance check.
-var _ FieldMapsService = (*fieldMapsService)(nil)
+var _ fieldMapsServiceAPI = (*fieldMapsService)(nil)
 
 // Create creates a new field mapping from the given input.
 func (s *fieldMapsService) Create(ctx context.Context, input *CreateFieldMapInput) (*FieldMap, error) {
@@ -72,7 +72,7 @@ func (s *fieldMapsService) Get(ctx context.Context, id string) (*FieldMap, error
 }
 
 // List returns a paginated iterator over field mappings.
-func (s *fieldMapsService) List(ctx context.Context, opts *models.ListOptions) *pagination.Iterator[FieldMap] {
+func (s *fieldMapsService) List(ctx context.Context, opts *models.CursorListOptions) *pagination.Iterator[FieldMap] {
 	return core.List[FieldMap](ctx, &s.BaseService, "/field-maps", opts)
 }
 

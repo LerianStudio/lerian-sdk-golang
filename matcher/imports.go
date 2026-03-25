@@ -1,4 +1,4 @@
-// imports.go implements the ImportsService for creating and monitoring data
+// imports.go implements the importsServiceAPI for creating and monitoring data
 // import jobs in the Matcher reconciliation service. Import jobs load records
 // from external files for reconciliation processing.
 package matcher
@@ -13,9 +13,9 @@ import (
 	"github.com/LerianStudio/lerian-sdk-golang/pkg/pagination"
 )
 
-// ImportsService provides operations for creating and monitoring data
+// importsServiceAPI provides operations for creating and monitoring data
 // import jobs.
-type ImportsService interface {
+type importsServiceAPI interface {
 	// Create initiates a new data import job.
 	Create(ctx context.Context, input *CreateImportInput) (*Import, error)
 
@@ -23,7 +23,7 @@ type ImportsService interface {
 	Get(ctx context.Context, id string) (*Import, error)
 
 	// List returns a paginated iterator over import jobs.
-	List(ctx context.Context, opts *models.ListOptions) *pagination.Iterator[Import]
+	List(ctx context.Context, opts *models.CursorListOptions) *pagination.Iterator[Import]
 
 	// Cancel requests cancellation of an in-flight import job.
 	Cancel(ctx context.Context, id string) (*Import, error)
@@ -32,21 +32,21 @@ type ImportsService interface {
 	GetStatus(ctx context.Context, id string) (*ImportStatus, error)
 }
 
-// importsService is the concrete implementation of [ImportsService].
+// importsService is the concrete implementation of [importsServiceAPI].
 type importsService struct {
 	core.BaseService
 }
 
-// newImportsService creates a new [ImportsService] backed by the given
+// newImportsService creates a new [importsServiceAPI] backed by the given
 // [core.Backend].
-func newImportsService(backend core.Backend) ImportsService {
+func newImportsService(backend core.Backend) importsServiceAPI {
 	return &importsService{
 		BaseService: core.BaseService{Backend: backend},
 	}
 }
 
 // Compile-time interface compliance check.
-var _ ImportsService = (*importsService)(nil)
+var _ importsServiceAPI = (*importsService)(nil)
 
 // Create initiates a new data import job.
 func (s *importsService) Create(ctx context.Context, input *CreateImportInput) (*Import, error) {
@@ -71,7 +71,7 @@ func (s *importsService) Get(ctx context.Context, id string) (*Import, error) {
 }
 
 // List returns a paginated iterator over import jobs.
-func (s *importsService) List(ctx context.Context, opts *models.ListOptions) *pagination.Iterator[Import] {
+func (s *importsService) List(ctx context.Context, opts *models.CursorListOptions) *pagination.Iterator[Import] {
 	return core.List[Import](ctx, &s.BaseService, "/imports", opts)
 }
 

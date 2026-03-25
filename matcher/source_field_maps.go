@@ -1,4 +1,4 @@
-// source_field_maps.go implements the SourceFieldMapsService for managing
+// source_field_maps.go implements the sourceFieldMapsServiceAPI for managing
 // source field mappings. Source field maps define how a field from a data
 // source maps to the canonical reconciliation schema, with optional
 // transforms for normalization.
@@ -14,8 +14,8 @@ import (
 	"github.com/LerianStudio/lerian-sdk-golang/pkg/pagination"
 )
 
-// SourceFieldMapsService provides CRUD operations for source field mappings.
-type SourceFieldMapsService interface {
+// sourceFieldMapsServiceAPI provides CRUD operations for source field mappings.
+type sourceFieldMapsServiceAPI interface {
 	// Create creates a new source field mapping from the given input.
 	Create(ctx context.Context, input *CreateSourceFieldMapInput) (*SourceFieldMap, error)
 
@@ -23,7 +23,7 @@ type SourceFieldMapsService interface {
 	Get(ctx context.Context, id string) (*SourceFieldMap, error)
 
 	// List returns a paginated iterator over source field mappings.
-	List(ctx context.Context, opts *models.ListOptions) *pagination.Iterator[SourceFieldMap]
+	List(ctx context.Context, opts *models.CursorListOptions) *pagination.Iterator[SourceFieldMap]
 
 	// Update partially updates an existing source field mapping.
 	Update(ctx context.Context, id string, input *UpdateSourceFieldMapInput) (*SourceFieldMap, error)
@@ -32,22 +32,22 @@ type SourceFieldMapsService interface {
 	Delete(ctx context.Context, id string) error
 }
 
-// sourceFieldMapsService is the concrete implementation of [SourceFieldMapsService].
+// sourceFieldMapsService is the concrete implementation of [sourceFieldMapsServiceAPI].
 // It embeds [core.BaseService] to inherit the HTTP transport layer.
 type sourceFieldMapsService struct {
 	core.BaseService
 }
 
-// newSourceFieldMapsService creates a new [SourceFieldMapsService] backed by
+// newSourceFieldMapsService creates a new [sourceFieldMapsServiceAPI] backed by
 // the given Matcher [core.Backend].
-func newSourceFieldMapsService(backend core.Backend) SourceFieldMapsService {
+func newSourceFieldMapsService(backend core.Backend) sourceFieldMapsServiceAPI {
 	return &sourceFieldMapsService{
 		BaseService: core.BaseService{Backend: backend},
 	}
 }
 
 // Compile-time interface compliance check.
-var _ SourceFieldMapsService = (*sourceFieldMapsService)(nil)
+var _ sourceFieldMapsServiceAPI = (*sourceFieldMapsService)(nil)
 
 // Create creates a new source field mapping from the given input.
 func (s *sourceFieldMapsService) Create(ctx context.Context, input *CreateSourceFieldMapInput) (*SourceFieldMap, error) {
@@ -72,7 +72,7 @@ func (s *sourceFieldMapsService) Get(ctx context.Context, id string) (*SourceFie
 }
 
 // List returns a paginated iterator over source field mappings.
-func (s *sourceFieldMapsService) List(ctx context.Context, opts *models.ListOptions) *pagination.Iterator[SourceFieldMap] {
+func (s *sourceFieldMapsService) List(ctx context.Context, opts *models.CursorListOptions) *pagination.Iterator[SourceFieldMap] {
 	return core.List[SourceFieldMap](ctx, &s.BaseService, "/source-field-maps", opts)
 }
 

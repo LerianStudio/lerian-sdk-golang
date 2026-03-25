@@ -5,6 +5,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/LerianStudio/lerian-sdk-golang/pkg/core"
 	sdkerrors "github.com/LerianStudio/lerian-sdk-golang/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -190,6 +191,26 @@ func TestRulesReorder(t *testing.T) {
 		err := svc.Reorder(context.Background(), "ctx-1", nil)
 		require.Error(t, err)
 		assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
+	})
+
+	t.Run("nil backend uses core error", func(t *testing.T) {
+		t.Parallel()
+
+		svc := newRulesService(nil)
+		err := svc.Reorder(context.Background(), "ctx-1", &ReorderRulesInput{RuleIDs: []string{"a"}})
+		require.Error(t, err)
+		assert.ErrorIs(t, err, core.ErrNilBackend)
+	})
+
+	t.Run("typed nil backend uses core error", func(t *testing.T) {
+		t.Parallel()
+
+		var mb *mockBackend
+
+		svc := newRulesService(mb)
+		err := svc.Reorder(context.Background(), "ctx-1", &ReorderRulesInput{RuleIDs: []string{"a"}})
+		require.Error(t, err)
+		assert.ErrorIs(t, err, core.ErrNilBackend)
 	})
 }
 

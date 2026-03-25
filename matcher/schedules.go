@@ -1,4 +1,4 @@
-// schedules.go implements the SchedulesService for managing recurring
+// schedules.go implements the schedulesServiceAPI for managing recurring
 // reconciliation schedules. Schedules use cron expressions to define when
 // automated reconciliation runs are triggered.
 package matcher
@@ -13,8 +13,8 @@ import (
 	"github.com/LerianStudio/lerian-sdk-golang/pkg/pagination"
 )
 
-// SchedulesService provides CRUD operations for reconciliation schedules.
-type SchedulesService interface {
+// schedulesServiceAPI provides CRUD operations for reconciliation schedules.
+type schedulesServiceAPI interface {
 	// Create creates a new reconciliation schedule from the given input.
 	Create(ctx context.Context, input *CreateScheduleInput) (*Schedule, error)
 
@@ -22,7 +22,7 @@ type SchedulesService interface {
 	Get(ctx context.Context, id string) (*Schedule, error)
 
 	// List returns a paginated iterator over reconciliation schedules.
-	List(ctx context.Context, opts *models.ListOptions) *pagination.Iterator[Schedule]
+	List(ctx context.Context, opts *models.CursorListOptions) *pagination.Iterator[Schedule]
 
 	// Update partially updates an existing reconciliation schedule.
 	Update(ctx context.Context, id string, input *UpdateScheduleInput) (*Schedule, error)
@@ -31,22 +31,22 @@ type SchedulesService interface {
 	Delete(ctx context.Context, id string) error
 }
 
-// schedulesService is the concrete implementation of [SchedulesService].
+// schedulesService is the concrete implementation of [schedulesServiceAPI].
 // It embeds [core.BaseService] to inherit the HTTP transport layer.
 type schedulesService struct {
 	core.BaseService
 }
 
-// newSchedulesService creates a new [SchedulesService] backed by the given
+// newSchedulesService creates a new [schedulesServiceAPI] backed by the given
 // Matcher [core.Backend].
-func newSchedulesService(backend core.Backend) SchedulesService {
+func newSchedulesService(backend core.Backend) schedulesServiceAPI {
 	return &schedulesService{
 		BaseService: core.BaseService{Backend: backend},
 	}
 }
 
 // Compile-time interface compliance check.
-var _ SchedulesService = (*schedulesService)(nil)
+var _ schedulesServiceAPI = (*schedulesService)(nil)
 
 // Create creates a new reconciliation schedule from the given input.
 func (s *schedulesService) Create(ctx context.Context, input *CreateScheduleInput) (*Schedule, error) {
@@ -71,7 +71,7 @@ func (s *schedulesService) Get(ctx context.Context, id string) (*Schedule, error
 }
 
 // List returns a paginated iterator over reconciliation schedules.
-func (s *schedulesService) List(ctx context.Context, opts *models.ListOptions) *pagination.Iterator[Schedule] {
+func (s *schedulesService) List(ctx context.Context, opts *models.CursorListOptions) *pagination.Iterator[Schedule] {
 	return core.List[Schedule](ctx, &s.BaseService, "/schedules", opts)
 }
 

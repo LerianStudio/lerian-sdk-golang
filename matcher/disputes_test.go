@@ -12,7 +12,7 @@ import (
 )
 
 // ---------------------------------------------------------------------------
-// DisputesService.Create
+// disputesServiceAPI.Create
 // ---------------------------------------------------------------------------
 
 func TestDisputesCreate(t *testing.T) {
@@ -57,7 +57,7 @@ func TestDisputesCreate(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// DisputesService.Get
+// disputesServiceAPI.Get
 // ---------------------------------------------------------------------------
 
 func TestDisputesGet(t *testing.T) {
@@ -90,7 +90,7 @@ func TestDisputesGet(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// DisputesService.List
+// disputesServiceAPI.List
 // ---------------------------------------------------------------------------
 
 func TestDisputesList(t *testing.T) {
@@ -139,7 +139,7 @@ func TestDisputesListWithOptions(t *testing.T) {
 	}}
 
 	svc := newDisputesService(mb)
-	opts := &models.ListOptions{Limit: 25, SortOrder: "desc"}
+	opts := &models.CursorListOptions{Limit: 25, SortOrder: "desc"}
 	iter := svc.List(context.Background(), opts)
 
 	require.True(t, iter.Next(context.Background()))
@@ -148,7 +148,7 @@ func TestDisputesListWithOptions(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// DisputesService.Update
+// disputesServiceAPI.Update
 // ---------------------------------------------------------------------------
 
 func TestDisputesUpdate(t *testing.T) {
@@ -196,7 +196,7 @@ func TestDisputesUpdate(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// DisputesService.Resolve
+// disputesServiceAPI.Resolve
 // ---------------------------------------------------------------------------
 
 func TestDisputesResolve(t *testing.T) {
@@ -249,7 +249,7 @@ func TestDisputesResolve(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// DisputesService.Escalate
+// disputesServiceAPI.Escalate
 // ---------------------------------------------------------------------------
 
 func TestDisputesEscalate(t *testing.T) {

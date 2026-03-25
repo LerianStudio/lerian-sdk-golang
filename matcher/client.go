@@ -102,51 +102,46 @@ func WithTimeout(d time.Duration) Option {
 // placeholders that will be populated when the corresponding service
 // implementations are built.
 
-// ExportJobsService is defined in export_jobs.go with full method signatures.
-// DisputesService is defined in disputes.go with full method signatures.
-// ExceptionsService is defined in exceptions.go with full method signatures.
-// GovernanceService is defined in governance.go with full method signatures.
-// ImportsService is defined in imports.go with full method signatures.
-// MatchingService is defined in matching.go with full method signatures.
-// ReportsService is defined in reports.go with full method signatures.
+// exportJobsServiceAPI is defined in export_jobs.go with full method signatures.
+// disputesServiceAPI is defined in disputes.go with full method signatures.
+// exceptionsServiceAPI is defined in exceptions.go with full method signatures.
+// governanceServiceAPI is defined in governance.go with full method signatures.
+// importsServiceAPI is defined in imports.go with full method signatures.
+// matchingServiceAPI is defined in matching.go with full method signatures.
+// reportsServiceAPI is defined in reports.go with full method signatures.
 
 // ---------------------------------------------------------------------------
 // Client
 // ---------------------------------------------------------------------------
 
-// Client is the Matcher product client. It is constructed by the root
-// [lerian.Client] when the WithMatcher option is supplied and provides
-// access to all Matcher service endpoints through domain-specific accessors.
+// Client is the Matcher product client. It is typically constructed by the
+// root [lerian.Client] from [lerian.Config] and provides access to all Matcher
+// service endpoints through domain-specific accessors.
 type Client struct {
-	backend core.Backend
-	config  Config
-
 	// Service accessors — nil until the corresponding service layer is wired.
-	Contexts        ContextsService
-	Rules           RulesService
-	Schedules       SchedulesService
-	Sources         SourcesService
-	SourceFieldMaps SourceFieldMapsService
-	FeeSchedules    FeeSchedulesService
-	FieldMaps       FieldMapsService
-	ExportJobs      ExportJobsService
-	Disputes        DisputesService
-	Exceptions      ExceptionsService
-	Governance      GovernanceService
-	Imports         ImportsService
-	Matching        MatchingService
-	Reports         ReportsService
+	Contexts        contextsServiceAPI
+	Rules           rulesServiceAPI
+	Schedules       schedulesServiceAPI
+	Sources         sourcesServiceAPI
+	SourceFieldMaps sourceFieldMapsServiceAPI
+	FeeSchedules    feeSchedulesServiceAPI
+	FieldMaps       fieldMapsServiceAPI
+	ExportJobs      exportJobsServiceAPI
+	Disputes        disputesServiceAPI
+	Exceptions      exceptionsServiceAPI
+	Governance      governanceServiceAPI
+	Imports         importsServiceAPI
+	Matching        matchingServiceAPI
+	Reports         reportsServiceAPI
 }
 
 // NewClient creates a Matcher product [Client] from a pre-configured backend
 // and a validated [Config].
 //
-// This function is called internally by the umbrella client during
-// [lerian.New] — SDK consumers should not call it directly.
-func NewClient(backend core.Backend, cfg Config) *Client {
+// Prefer constructing Matcher through the root [lerian.New] API unless you are
+// wiring a custom integration layer.
+func NewClient(backend core.Backend, _ Config) *Client {
 	return &Client{
-		backend:         backend,
-		config:          cfg,
 		Contexts:        newContextsService(backend),
 		Rules:           newRulesService(backend),
 		Schedules:       newSchedulesService(backend),

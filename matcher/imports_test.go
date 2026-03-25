@@ -192,7 +192,7 @@ func TestImportsListWithOptions(t *testing.T) {
 	}}
 
 	svc := newImportsService(mb)
-	opts := &models.ListOptions{Limit: 5}
+	opts := &models.CursorListOptions{Limit: 5}
 	iter := svc.List(context.Background(), opts)
 
 	require.True(t, iter.Next(context.Background()))
@@ -366,4 +366,4 @@ func TestImportsGetStatusBackendError(t *testing.T) {
 // Compile-time interface assertion
 // ---------------------------------------------------------------------------
 
-var _ ImportsService = (*importsService)(nil)
+var _ importsServiceAPI = (*importsService)(nil)

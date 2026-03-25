@@ -1,4 +1,4 @@
-// fee_schedules.go implements the FeeSchedulesService for managing fee
+// fee_schedules.go implements the feeSchedulesServiceAPI for managing fee
 // configurations within a reconciliation context. Fee schedules contain one
 // or more fee rules that define how fees are calculated for matched records.
 package matcher
@@ -13,9 +13,9 @@ import (
 	"github.com/LerianStudio/lerian-sdk-golang/pkg/pagination"
 )
 
-// FeeSchedulesService provides CRUD and simulation operations for fee
+// feeSchedulesServiceAPI provides CRUD and simulation operations for fee
 // schedules.
-type FeeSchedulesService interface {
+type feeSchedulesServiceAPI interface {
 	// Create creates a new fee schedule from the given input.
 	Create(ctx context.Context, input *CreateFeeScheduleInput) (*FeeSchedule, error)
 
@@ -23,7 +23,7 @@ type FeeSchedulesService interface {
 	Get(ctx context.Context, id string) (*FeeSchedule, error)
 
 	// List returns a paginated iterator over fee schedules.
-	List(ctx context.Context, opts *models.ListOptions) *pagination.Iterator[FeeSchedule]
+	List(ctx context.Context, opts *models.CursorListOptions) *pagination.Iterator[FeeSchedule]
 
 	// Update partially updates an existing fee schedule.
 	Update(ctx context.Context, id string, input *UpdateFeeScheduleInput) (*FeeSchedule, error)
@@ -37,22 +37,22 @@ type FeeSchedulesService interface {
 	Simulate(ctx context.Context, id string, input *SimulateFeeScheduleInput) (*FeeSimulationResult, error)
 }
 
-// feeSchedulesService is the concrete implementation of [FeeSchedulesService].
+// feeSchedulesService is the concrete implementation of [feeSchedulesServiceAPI].
 // It embeds [core.BaseService] to inherit the HTTP transport layer.
 type feeSchedulesService struct {
 	core.BaseService
 }
 
-// newFeeSchedulesService creates a new [FeeSchedulesService] backed by the
+// newFeeSchedulesService creates a new [feeSchedulesServiceAPI] backed by the
 // given Matcher [core.Backend].
-func newFeeSchedulesService(backend core.Backend) FeeSchedulesService {
+func newFeeSchedulesService(backend core.Backend) feeSchedulesServiceAPI {
 	return &feeSchedulesService{
 		BaseService: core.BaseService{Backend: backend},
 	}
 }
 
 // Compile-time interface compliance check.
-var _ FeeSchedulesService = (*feeSchedulesService)(nil)
+var _ feeSchedulesServiceAPI = (*feeSchedulesService)(nil)
 
 // Create creates a new fee schedule from the given input.
 func (s *feeSchedulesService) Create(ctx context.Context, input *CreateFeeScheduleInput) (*FeeSchedule, error) {
@@ -77,7 +77,7 @@ func (s *feeSchedulesService) Get(ctx context.Context, id string) (*FeeSchedule,
 }
 
 // List returns a paginated iterator over fee schedules.
-func (s *feeSchedulesService) List(ctx context.Context, opts *models.ListOptions) *pagination.Iterator[FeeSchedule] {
+func (s *feeSchedulesService) List(ctx context.Context, opts *models.CursorListOptions) *pagination.Iterator[FeeSchedule] {
 	return core.List[FeeSchedule](ctx, &s.BaseService, "/fee-schedules", opts)
 }
 

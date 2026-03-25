@@ -1,4 +1,4 @@
-// disputes.go implements the DisputesService for managing disputes in the
+// disputes.go implements the disputesServiceAPI for managing disputes in the
 // Matcher service. Disputes represent formal challenges raised against
 // reconciliation results or exceptions, and track the resolution workflow
 // from creation through final resolution or escalation.
@@ -14,9 +14,9 @@ import (
 	"github.com/LerianStudio/lerian-sdk-golang/pkg/pagination"
 )
 
-// DisputesService provides CRUD operations plus resolution and escalation
+// disputesServiceAPI provides CRUD operations plus resolution and escalation
 // workflows for reconciliation disputes.
-type DisputesService interface {
+type disputesServiceAPI interface {
 	// Create creates a new dispute from the given input.
 	Create(ctx context.Context, input *CreateDisputeInput) (*Dispute, error)
 
@@ -24,7 +24,7 @@ type DisputesService interface {
 	Get(ctx context.Context, id string) (*Dispute, error)
 
 	// List returns a paginated iterator over disputes.
-	List(ctx context.Context, opts *models.ListOptions) *pagination.Iterator[Dispute]
+	List(ctx context.Context, opts *models.CursorListOptions) *pagination.Iterator[Dispute]
 
 	// Update partially updates an existing dispute.
 	Update(ctx context.Context, id string, input *UpdateDisputeInput) (*Dispute, error)
@@ -36,22 +36,22 @@ type DisputesService interface {
 	Escalate(ctx context.Context, id string) (*Dispute, error)
 }
 
-// disputesService is the concrete implementation of [DisputesService].
+// disputesService is the concrete implementation of [disputesServiceAPI].
 // It embeds [core.BaseService] to inherit the HTTP transport layer.
 type disputesService struct {
 	core.BaseService
 }
 
-// newDisputesService creates a new [DisputesService] backed by the given
+// newDisputesService creates a new [disputesServiceAPI] backed by the given
 // Matcher [core.Backend].
-func newDisputesService(backend core.Backend) DisputesService {
+func newDisputesService(backend core.Backend) disputesServiceAPI {
 	return &disputesService{
 		BaseService: core.BaseService{Backend: backend},
 	}
 }
 
 // Compile-time interface compliance check.
-var _ DisputesService = (*disputesService)(nil)
+var _ disputesServiceAPI = (*disputesService)(nil)
 
 // Create creates a new dispute from the given input.
 func (s *disputesService) Create(ctx context.Context, input *CreateDisputeInput) (*Dispute, error) {
@@ -76,7 +76,7 @@ func (s *disputesService) Get(ctx context.Context, id string) (*Dispute, error) 
 }
 
 // List returns a paginated iterator over disputes.
-func (s *disputesService) List(ctx context.Context, opts *models.ListOptions) *pagination.Iterator[Dispute] {
+func (s *disputesService) List(ctx context.Context, opts *models.CursorListOptions) *pagination.Iterator[Dispute] {
 	return core.List[Dispute](ctx, &s.BaseService, "/disputes", opts)
 }
 

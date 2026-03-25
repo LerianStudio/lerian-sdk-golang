@@ -1,4 +1,4 @@
-// reports.go implements the ReportsService for accessing analytics and
+// reports.go implements the reportsServiceAPI for accessing analytics and
 // reporting endpoints within a reconciliation context. All methods are
 // read-only and scoped to a specific context ID.
 package matcher
@@ -13,10 +13,10 @@ import (
 	"github.com/LerianStudio/lerian-sdk-golang/pkg/pagination"
 )
 
-// ReportsService provides analytics and reporting endpoints for
+// reportsServiceAPI provides analytics and reporting endpoints for
 // reconciliation dashboards, match rates, exception trends, and more.
 // All methods are read-only and scoped to a reconciliation context.
-type ReportsService interface {
+type reportsServiceAPI interface {
 	// GetSummary returns a high-level reconciliation summary for the context.
 	GetSummary(ctx context.Context, contextID string) (*ReconciliationSummary, error)
 
@@ -43,7 +43,7 @@ type ReportsService interface {
 
 	// GetReconciliationHistory returns a paginated iterator over historical
 	// reconciliation runs.
-	GetReconciliationHistory(ctx context.Context, contextID string, opts *models.ListOptions) *pagination.Iterator[ReconciliationHistoryEntry]
+	GetReconciliationHistory(ctx context.Context, contextID string, opts *models.CursorListOptions) *pagination.Iterator[ReconciliationHistoryEntry]
 
 	// GetPerformanceMetrics returns latency percentiles and throughput metrics.
 	GetPerformanceMetrics(ctx context.Context, contextID string) (*PerformanceMetricsReport, error)
@@ -53,21 +53,21 @@ type ReportsService interface {
 	GetDashboard(ctx context.Context, contextID string) (*DashboardReport, error)
 }
 
-// reportsService is the concrete implementation of [ReportsService].
+// reportsService is the concrete implementation of [reportsServiceAPI].
 type reportsService struct {
 	core.BaseService
 }
 
-// newReportsService creates a new [ReportsService] backed by the given
+// newReportsService creates a new [reportsServiceAPI] backed by the given
 // [core.Backend].
-func newReportsService(backend core.Backend) ReportsService {
+func newReportsService(backend core.Backend) reportsServiceAPI {
 	return &reportsService{
 		BaseService: core.BaseService{Backend: backend},
 	}
 }
 
 // Compile-time interface compliance check.
-var _ ReportsService = (*reportsService)(nil)
+var _ reportsServiceAPI = (*reportsService)(nil)
 
 // GetSummary returns a high-level reconciliation summary for the context.
 func (s *reportsService) GetSummary(ctx context.Context, contextID string) (*ReconciliationSummary, error) {
@@ -159,7 +159,7 @@ func (s *reportsService) GetFeeAnalysis(ctx context.Context, contextID string) (
 
 // GetReconciliationHistory returns a paginated iterator over historical
 // reconciliation runs.
-func (s *reportsService) GetReconciliationHistory(ctx context.Context, contextID string, opts *models.ListOptions) *pagination.Iterator[ReconciliationHistoryEntry] {
+func (s *reportsService) GetReconciliationHistory(ctx context.Context, contextID string, opts *models.CursorListOptions) *pagination.Iterator[ReconciliationHistoryEntry] {
 	if contextID == "" {
 		return pagination.NewIterator[ReconciliationHistoryEntry](func(_ context.Context, _ string) ([]ReconciliationHistoryEntry, string, error) {
 			return nil, "", sdkerrors.NewValidation("Reports.GetReconciliationHistory", "Report", "context ID is required")

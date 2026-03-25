@@ -262,4 +262,4 @@ func TestMatchingAdjust(t *testing.T) {
 // Compile-time interface assertion
 // ---------------------------------------------------------------------------
 
-var _ MatchingService = (*matchingService)(nil)
+var _ matchingServiceAPI = (*matchingService)(nil)

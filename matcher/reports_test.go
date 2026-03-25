@@ -26,13 +26,13 @@ func TestReportsGetMethods(t *testing.T) {
 	tests := []struct {
 		name         string
 		expectedPath string
-		call         func(svc ReportsService, ctx context.Context) (any, error)
+		call         func(svc reportsServiceAPI, ctx context.Context) (any, error)
 		response     any
 	}{
 		{
 			name:         "GetSummary",
 			expectedPath: "/contexts/ctx-1/reports/summary",
-			call: func(svc ReportsService, ctx context.Context) (any, error) {
+			call: func(svc reportsServiceAPI, ctx context.Context) (any, error) {
 				return svc.GetSummary(ctx, "ctx-1")
 			},
 			response: ReconciliationSummary{Period: "2026-01", TotalRecords: 1000, MatchRate: 0.95},
@@ -40,7 +40,7 @@ func TestReportsGetMethods(t *testing.T) {
 		{
 			name:         "GetMatchRate",
 			expectedPath: "/contexts/ctx-1/reports/match-rate",
-			call: func(svc ReportsService, ctx context.Context) (any, error) {
+			call: func(svc reportsServiceAPI, ctx context.Context) (any, error) {
 				return svc.GetMatchRate(ctx, "ctx-1")
 			},
 			response: MatchRateReport{Period: "2026-01", Overall: 0.92},
@@ -48,7 +48,7 @@ func TestReportsGetMethods(t *testing.T) {
 		{
 			name:         "GetExceptionTrend",
 			expectedPath: "/contexts/ctx-1/reports/exception-trend",
-			call: func(svc ReportsService, ctx context.Context) (any, error) {
+			call: func(svc reportsServiceAPI, ctx context.Context) (any, error) {
 				return svc.GetExceptionTrend(ctx, "ctx-1")
 			},
 			response: ExceptionTrendReport{Period: "2026-01"},
@@ -56,7 +56,7 @@ func TestReportsGetMethods(t *testing.T) {
 		{
 			name:         "GetAgingAnalysis",
 			expectedPath: "/contexts/ctx-1/reports/aging-analysis",
-			call: func(svc ReportsService, ctx context.Context) (any, error) {
+			call: func(svc reportsServiceAPI, ctx context.Context) (any, error) {
 				return svc.GetAgingAnalysis(ctx, "ctx-1")
 			},
 			response: AgingAnalysisReport{Total: 42, AvgAge: 3.5},
@@ -64,7 +64,7 @@ func TestReportsGetMethods(t *testing.T) {
 		{
 			name:         "GetSourceComparison",
 			expectedPath: "/contexts/ctx-1/reports/source-comparison",
-			call: func(svc ReportsService, ctx context.Context) (any, error) {
+			call: func(svc reportsServiceAPI, ctx context.Context) (any, error) {
 				return svc.GetSourceComparison(ctx, "ctx-1")
 			},
 			response: SourceComparisonReport{Sources: []SourceMetrics{{SourceID: "s-1", Name: "Bank Feed"}}},
@@ -72,7 +72,7 @@ func TestReportsGetMethods(t *testing.T) {
 		{
 			name:         "GetVolumeAnalysis",
 			expectedPath: "/contexts/ctx-1/reports/volume-analysis",
-			call: func(svc ReportsService, ctx context.Context) (any, error) {
+			call: func(svc reportsServiceAPI, ctx context.Context) (any, error) {
 				return svc.GetVolumeAnalysis(ctx, "ctx-1")
 			},
 			response: VolumeAnalysisReport{Period: "2026-01", Total: 5000},
@@ -80,7 +80,7 @@ func TestReportsGetMethods(t *testing.T) {
 		{
 			name:         "GetDisputeMetrics",
 			expectedPath: "/contexts/ctx-1/reports/dispute-metrics",
-			call: func(svc ReportsService, ctx context.Context) (any, error) {
+			call: func(svc reportsServiceAPI, ctx context.Context) (any, error) {
 				return svc.GetDisputeMetrics(ctx, "ctx-1")
 			},
 			response: DisputeMetricsReport{Total: 7, AvgResolutionTime: 24.5},
@@ -88,7 +88,7 @@ func TestReportsGetMethods(t *testing.T) {
 		{
 			name:         "GetFeeAnalysis",
 			expectedPath: "/contexts/ctx-1/reports/fee-analysis",
-			call: func(svc ReportsService, ctx context.Context) (any, error) {
+			call: func(svc reportsServiceAPI, ctx context.Context) (any, error) {
 				return svc.GetFeeAnalysis(ctx, "ctx-1")
 			},
 			response: FeeAnalysisReport{TotalFees: 150000, Scale: 2, Currency: "USD"},
@@ -96,7 +96,7 @@ func TestReportsGetMethods(t *testing.T) {
 		{
 			name:         "GetPerformanceMetrics",
 			expectedPath: "/contexts/ctx-1/reports/performance-metrics",
-			call: func(svc ReportsService, ctx context.Context) (any, error) {
+			call: func(svc reportsServiceAPI, ctx context.Context) (any, error) {
 				return svc.GetPerformanceMetrics(ctx, "ctx-1")
 			},
 			response: PerformanceMetricsReport{TotalRuns: 100, SuccessRate: 0.99},
@@ -104,7 +104,7 @@ func TestReportsGetMethods(t *testing.T) {
 		{
 			name:         "GetDashboard",
 			expectedPath: "/contexts/ctx-1/reports/dashboard",
-			call: func(svc ReportsService, ctx context.Context) (any, error) {
+			call: func(svc reportsServiceAPI, ctx context.Context) (any, error) {
 				return svc.GetDashboard(ctx, "ctx-1")
 			},
 			response: DashboardReport{MatchRate: 0.95},
@@ -223,7 +223,7 @@ func TestReportsGetReconciliationHistoryWithOptions(t *testing.T) {
 	}}
 
 	svc := newReportsService(mb)
-	opts := &models.ListOptions{Limit: 5}
+	opts := &models.CursorListOptions{Limit: 5}
 	iter := svc.GetReconciliationHistory(context.Background(), "ctx-1", opts)
 
 	require.True(t, iter.Next(context.Background()))
@@ -414,4 +414,4 @@ func TestReportsGetReconciliationHistoryBackendError(t *testing.T) {
 // Compile-time interface assertion
 // ---------------------------------------------------------------------------
 
-var _ ReportsService = (*reportsService)(nil)
+var _ reportsServiceAPI = (*reportsService)(nil)

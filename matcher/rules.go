@@ -1,4 +1,4 @@
-// rules.go implements the RulesService for managing matching rules within
+// rules.go implements the rulesServiceAPI for managing matching rules within
 // a reconciliation context. Rules define expressions that are evaluated
 // against record pairs to determine whether they match, ordered by priority.
 package matcher
@@ -13,8 +13,8 @@ import (
 	"github.com/LerianStudio/lerian-sdk-golang/pkg/pagination"
 )
 
-// RulesService provides CRUD and reorder operations for matching rules.
-type RulesService interface {
+// rulesServiceAPI provides CRUD and reorder operations for matching rules.
+type rulesServiceAPI interface {
 	// Create creates a new matching rule from the given input.
 	Create(ctx context.Context, input *CreateRuleInput) (*Rule, error)
 
@@ -22,7 +22,7 @@ type RulesService interface {
 	Get(ctx context.Context, id string) (*Rule, error)
 
 	// List returns a paginated iterator over matching rules.
-	List(ctx context.Context, opts *models.ListOptions) *pagination.Iterator[Rule]
+	List(ctx context.Context, opts *models.CursorListOptions) *pagination.Iterator[Rule]
 
 	// Update partially updates an existing matching rule.
 	Update(ctx context.Context, id string, input *UpdateRuleInput) (*Rule, error)
@@ -35,22 +35,22 @@ type RulesService interface {
 	Reorder(ctx context.Context, contextID string, input *ReorderRulesInput) error
 }
 
-// rulesService is the concrete implementation of [RulesService].
+// rulesService is the concrete implementation of [rulesServiceAPI].
 // It embeds [core.BaseService] to inherit the HTTP transport layer.
 type rulesService struct {
 	core.BaseService
 }
 
-// newRulesService creates a new [RulesService] backed by the given
+// newRulesService creates a new [rulesServiceAPI] backed by the given
 // Matcher [core.Backend].
-func newRulesService(backend core.Backend) RulesService {
+func newRulesService(backend core.Backend) rulesServiceAPI {
 	return &rulesService{
 		BaseService: core.BaseService{Backend: backend},
 	}
 }
 
 // Compile-time interface compliance check.
-var _ RulesService = (*rulesService)(nil)
+var _ rulesServiceAPI = (*rulesService)(nil)
 
 // Create creates a new matching rule from the given input.
 func (s *rulesService) Create(ctx context.Context, input *CreateRuleInput) (*Rule, error) {
@@ -75,7 +75,7 @@ func (s *rulesService) Get(ctx context.Context, id string) (*Rule, error) {
 }
 
 // List returns a paginated iterator over matching rules.
-func (s *rulesService) List(ctx context.Context, opts *models.ListOptions) *pagination.Iterator[Rule] {
+func (s *rulesService) List(ctx context.Context, opts *models.CursorListOptions) *pagination.Iterator[Rule] {
 	return core.List[Rule](ctx, &s.BaseService, "/rules", opts)
 }
 
@@ -118,5 +118,12 @@ func (s *rulesService) Reorder(ctx context.Context, contextID string, input *Reo
 		return sdkerrors.NewValidation(operation, "Rule", "input is required")
 	}
 
-	return s.Backend.Call(ctx, "POST", "/contexts/"+url.PathEscape(contextID)+"/rules/reorder", input, nil)
+	backend, err := core.ResolveBackend(&s.BaseService)
+	if err != nil {
+		return err
+	}
+
+	_, err = backend.Do(ctx, core.Request{Method: "POST", Path: "/contexts/" + url.PathEscape(contextID) + "/rules/reorder", Body: input, ExpectNoResponse: true})
+
+	return err
 }
