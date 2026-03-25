@@ -8,6 +8,13 @@
 * **midaz:** add CRM services for holders and aliases ([85af54c](https://github.com/LerianStudio/lerian-sdk-golang/commit/85af54c55b3cb668dab99e4d92ef098ec41b07e9))
 * **pkg/pagination:** add numbered-page iterator adapter for CRM pagination ([2e1b79c](https://github.com/LerianStudio/lerian-sdk-golang/commit/2e1b79ce6c30596e81984f4cfff6b518f526fd39))
 
+## [0.3.0](https://github.com/LerianStudio/lerian-sdk-golang/compare/v0.2.0...v0.3.0) (2026-03-25)
+
+
+### Bug Fixes
+
+* **midaz:** expose parentTransactionId in JSON and remove unused balance model fields ([79af275](https://github.com/LerianStudio/lerian-sdk-golang/commit/79af275970c526aba08406c9029aef15773dd4ec))
+
 ## [0.2.0](https://github.com/LerianStudio/lerian-sdk-golang/compare/v0.1.0...v0.2.0) (2026-03-25)
 
 
