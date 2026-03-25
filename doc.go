@@ -7,32 +7,30 @@
 //
 // # Quick Start
 //
-// Create a client and configure one or more products:
+// Create a client and configure one or more products explicitly:
 //
-//	client, err := lerian.New(
-//	    lerian.WithMidaz(
-//	        midaz.WithOnboardingURL("http://localhost:3000/v1"),
-//	        midaz.WithTransactionURL("http://localhost:3001/v1"),
-//	    ),
-//	)
-//	// Optional OAuth2 credentials can be loaded from:
-//	// LERIAN_MIDAZ_CLIENT_ID, LERIAN_MIDAZ_CLIENT_SECRET, LERIAN_MIDAZ_TOKEN_URL
+//	client, err := lerian.New(lerian.Config{
+//	    Midaz: &midaz.Config{
+//	        OnboardingURL: "http://localhost:3000/v1",
+//	        TransactionURL: "http://localhost:3001/v1",
+//	    },
+//	})
 //	if err != nil {
 //	    log.Fatal(err)
 //	}
 //	defer client.Shutdown(context.Background())
 //
 //	// Use product APIs
-//	org, err := client.Midaz.Organizations.Create(ctx, &midaz.CreateOrganizationInput{...})
+//	org, err := client.Midaz.Onboarding.Organizations.Create(ctx, &midaz.CreateOrganizationInput{...})
 //
 // # Multi-Product Configuration
 //
 // Multiple products can be configured in a single client:
 //
-//	client, err := lerian.New(
-//	    lerian.WithMidaz(midaz.WithOnboardingURL("..."), midaz.WithTransactionURL("..."), midaz.WithClientCredentials("...", "...", "...")),
-//	    lerian.WithMatcher(matcher.WithBaseURL("..."), matcher.WithClientCredentials("...", "...", "...")),
-//	)
+//	client, err := lerian.New(lerian.Config{
+//	    Midaz: &midaz.Config{OnboardingURL: "...", TransactionURL: "...", ClientID: "...", ClientSecret: "...", TokenURL: "..."},
+//	    Matcher: &matcher.Config{BaseURL: "...", ClientID: "...", ClientSecret: "...", TokenURL: "..."},
+//	})
 //
 // # Error Handling
 //
@@ -52,10 +50,8 @@
 //
 // # Environment Variables
 //
-// Configuration can be provided via LERIAN_* environment variables as
-// fallback when explicit options are not set. The precedence order is:
-//
-//	explicit option > environment variable > empty (fails validation if required)
+// Configuration can be provided explicitly via [Config] or loaded from
+// `LERIAN_*` environment variables with [LoadConfigFromEnv].
 //
 // See the .env.example file for the full list of supported variables.
 //

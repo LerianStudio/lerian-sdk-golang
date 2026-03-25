@@ -65,15 +65,15 @@ func TestREADMEOAuthExamplesMatchCurrentAPI(t *testing.T) {
 	for _, expected := range []string{
 		"defer client.Shutdown(ctx)",
 		"&midaz.CreateOrganizationInput{",
-		"midaz.WithOnboardingURL(\"http://localhost:3000/v1\")",
-		"midaz.WithTransactionURL(\"http://localhost:3001/v1\")",
-		"matcher.WithBaseURL(\"http://localhost:3002/v1\")",
-		"tracer.WithBaseURL(\"http://localhost:3003/v1\")",
-		"reporter.WithBaseURL(\"http://localhost:3004/v1\")",
-		"fees.WithBaseURL(\"http://localhost:3005/v1\")",
-		"lerian.WithRetry(3, 500*time.Millisecond)",
-		"lerian.WithObservability(true, true, false)",
-		"lerian.WithCollectorEndpoint(\"http://localhost:4318\")",
+		"OnboardingURL:  \"http://localhost:3000/v1\"",
+		"TransactionURL: \"http://localhost:3001/v1\"",
+		"Matcher: &matcher.Config{BaseURL: \"http://localhost:3002/v1\"}",
+		"Tracer:  &tracer.Config{BaseURL: \"http://localhost:3003/v1\"}",
+		"BaseURL:        \"http://localhost:3004/v1\"",
+		"BaseURL:        \"http://localhost:3005/v1\"",
+		"retryCfg.MaxRetries = 3",
+		"ObservabilityConfig{",
+		"LoadConfigFromEnv()",
 		"LERIAN_*_CLIENT_ID",
 	} {
 		assert.Contains(t, text, expected)
@@ -84,6 +84,7 @@ func TestREADMEOAuthExamplesMatchCurrentAPI(t *testing.T) {
 		"models.CreateOrganizationInput{",
 		"WithRetryConfig(",
 		"WithObservability(observability.Config{",
+		"lerian.WithMidaz(",
 	} {
 		assert.NotContains(t, text, unexpected)
 	}

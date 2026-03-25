@@ -1,18 +1,22 @@
 package lerian
 
-import "os"
+import (
+	"os"
+
+	"github.com/LerianStudio/lerian-sdk-golang/fees"
+	"github.com/LerianStudio/lerian-sdk-golang/matcher"
+	"github.com/LerianStudio/lerian-sdk-golang/midaz"
+	"github.com/LerianStudio/lerian-sdk-golang/reporter"
+	"github.com/LerianStudio/lerian-sdk-golang/tracer"
+)
 
 // ---------------------------------------------------------------------------
 // Environment variable constants
 // ---------------------------------------------------------------------------
 
-// LERIAN_* environment variables provide fallback configuration when explicit
-// options are not supplied. The precedence order is:
-//
-//	explicit option > environment variable > empty (fails validation if required)
-//
-// Only the LERIAN_* prefix is recognized; legacy MIDAZ_* variables from v2
-// are deliberately ignored to enforce a clean break.
+// LERIAN_* environment variables are used by [LoadConfigFromEnv] to build a
+// root [Config]. Only the LERIAN_* prefix is recognized; legacy MIDAZ_* vars
+// from v2 are deliberately ignored to enforce a clean break.
 const (
 	// Debug
 	envDebug = "LERIAN_DEBUG"
@@ -20,6 +24,7 @@ const (
 	// Midaz
 	envMidazOnboardingURL   = "LERIAN_MIDAZ_ONBOARDING_URL"
 	envMidazTransactionURL  = "LERIAN_MIDAZ_TRANSACTION_URL"
+	envMidazCRMURL          = "LERIAN_MIDAZ_CRM_URL"
 	envMidazClientID        = "LERIAN_MIDAZ_CLIENT_ID"
 	envMidazClientSecret    = "LERIAN_MIDAZ_CLIENT_SECRET"
 	envMidazTokenURL        = "LERIAN_MIDAZ_TOKEN_URL"
@@ -75,4 +80,117 @@ func envOrDefault(key, defaultValue string) string {
 func envBool(key string) bool {
 	v := os.Getenv(key)
 	return v == "true" || v == "1"
+}
+
+func anyEnvSet(keys ...string) bool {
+	for _, key := range keys {
+		if os.Getenv(key) != "" {
+			return true
+		}
+	}
+
+	return false
+}
+
+func loadMidazConfigFromEnv() *midaz.Config {
+	if !anyEnvSet(
+		envMidazOnboardingURL,
+		envMidazTransactionURL,
+		envMidazCRMURL,
+		envMidazClientID,
+		envMidazClientSecret,
+		envMidazTokenURL,
+		envMidazLegacyAuthToken,
+	) {
+		return nil
+	}
+
+	return &midaz.Config{
+		OnboardingURL:  envOrDefault(envMidazOnboardingURL, ""),
+		TransactionURL: envOrDefault(envMidazTransactionURL, ""),
+		CRMURL:         envOrDefault(envMidazCRMURL, ""),
+		ClientID:       envOrDefault(envMidazClientID, ""),
+		ClientSecret:   envOrDefault(envMidazClientSecret, ""),
+		TokenURL:       envOrDefault(envMidazTokenURL, ""),
+	}
+}
+
+func loadMatcherConfigFromEnv() *matcher.Config {
+	if !anyEnvSet(
+		envMatcherURL,
+		envMatcherClientID,
+		envMatcherClientSecret,
+		envMatcherTokenURL,
+		envMatcherLegacyAPIKey,
+	) {
+		return nil
+	}
+
+	return &matcher.Config{
+		BaseURL:      envOrDefault(envMatcherURL, ""),
+		ClientID:     envOrDefault(envMatcherClientID, ""),
+		ClientSecret: envOrDefault(envMatcherClientSecret, ""),
+		TokenURL:     envOrDefault(envMatcherTokenURL, ""),
+	}
+}
+
+func loadTracerConfigFromEnv() *tracer.Config {
+	if !anyEnvSet(
+		envTracerURL,
+		envTracerClientID,
+		envTracerClientSecret,
+		envTracerTokenURL,
+		envTracerLegacyAPIKey,
+	) {
+		return nil
+	}
+
+	return &tracer.Config{
+		BaseURL:      envOrDefault(envTracerURL, ""),
+		ClientID:     envOrDefault(envTracerClientID, ""),
+		ClientSecret: envOrDefault(envTracerClientSecret, ""),
+		TokenURL:     envOrDefault(envTracerTokenURL, ""),
+	}
+}
+
+func loadReporterConfigFromEnv() *reporter.Config {
+	if !anyEnvSet(
+		envReporterURL,
+		envReporterOrgID,
+		envReporterClientID,
+		envReporterClientSecret,
+		envReporterTokenURL,
+		envReporterLegacyAuthToken,
+	) {
+		return nil
+	}
+
+	return &reporter.Config{
+		BaseURL:        envOrDefault(envReporterURL, ""),
+		OrganizationID: envOrDefault(envReporterOrgID, ""),
+		ClientID:       envOrDefault(envReporterClientID, ""),
+		ClientSecret:   envOrDefault(envReporterClientSecret, ""),
+		TokenURL:       envOrDefault(envReporterTokenURL, ""),
+	}
+}
+
+func loadFeesConfigFromEnv() *fees.Config {
+	if !anyEnvSet(
+		envFeesURL,
+		envFeesOrgID,
+		envFeesClientID,
+		envFeesClientSecret,
+		envFeesTokenURL,
+		envFeesLegacyAuthToken,
+	) {
+		return nil
+	}
+
+	return &fees.Config{
+		BaseURL:        envOrDefault(envFeesURL, ""),
+		OrganizationID: envOrDefault(envFeesOrgID, ""),
+		ClientID:       envOrDefault(envFeesClientID, ""),
+		ClientSecret:   envOrDefault(envFeesClientSecret, ""),
+		TokenURL:       envOrDefault(envFeesTokenURL, ""),
+	}
 }
