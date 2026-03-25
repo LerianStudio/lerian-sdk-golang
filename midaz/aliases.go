@@ -135,8 +135,13 @@ func (s *aliasesService) List(ctx context.Context, orgID string, opts *AliasList
 		return pagination.NewErrorIterator[Alias](err)
 	}
 
-	return core.ListPageWithHeaders[Alias](ctx, &s.BaseService, crmHeaders(orgID), initialCRMAliasPage(opts), func(page int) string {
-		return buildCRMAliasListPath("/aliases", opts, page)
+	normalizedOpts, err := normalizeAliasListOptions(operation, aliasResource, opts)
+	if err != nil {
+		return pagination.NewErrorIterator[Alias](err)
+	}
+
+	return core.ListPageWithHeaders[Alias](ctx, &s.BaseService, crmHeaders(orgID), initialCRMAliasPage(normalizedOpts), func(page int) string {
+		return buildCRMAliasListPath("/aliases", normalizedOpts, page)
 	})
 }
 

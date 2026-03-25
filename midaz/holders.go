@@ -118,8 +118,13 @@ func (s *holdersService) List(ctx context.Context, orgID string, opts *CRMListOp
 		return pagination.NewErrorIterator[Holder](err)
 	}
 
-	return core.ListPageWithHeaders[Holder](ctx, &s.BaseService, crmHeaders(orgID), initialCRMPage(opts), func(page int) string {
-		return buildCRMListPath(holdersBasePath(), opts, page)
+	normalizedOpts, err := normalizeCRMListOptions(operation, holderResource, opts)
+	if err != nil {
+		return pagination.NewErrorIterator[Holder](err)
+	}
+
+	return core.ListPageWithHeaders[Holder](ctx, &s.BaseService, crmHeaders(orgID), initialCRMPage(normalizedOpts), func(page int) string {
+		return buildCRMListPath(holdersBasePath(), normalizedOpts, page)
 	})
 }
 
