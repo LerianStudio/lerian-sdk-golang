@@ -218,7 +218,7 @@ List operations return an `Iterator[T]` that supports lazy, memory-efficient pag
 
 ```go
 // Iterate lazily over all accounts (fetches pages on demand)
-for account, err := range client.Midaz.Onboarding.Accounts.List(ctx, orgID, ledgerID).All() {
+for account, err := range client.Midaz.Onboarding.Accounts.List(ctx, orgID, ledgerID, nil).All() {
     if err != nil {
         log.Fatal(err)
     }
@@ -226,13 +226,13 @@ for account, err := range client.Midaz.Onboarding.Accounts.List(ctx, orgID, ledg
 }
 
 // Collect all results into a slice
-accounts, err := client.Midaz.Onboarding.Accounts.List(ctx, orgID, ledgerID).Collect()
+accounts, err := client.Midaz.Onboarding.Accounts.List(ctx, orgID, ledgerID, nil).Collect()
 
 // Collect up to N results
-first10, err := client.Midaz.Onboarding.Accounts.List(ctx, orgID, ledgerID).CollectN(10)
+first10, err := client.Midaz.Onboarding.Accounts.List(ctx, orgID, ledgerID, nil).CollectN(10)
 
 // Process concurrently with bounded parallelism
-it := client.Midaz.Onboarding.Accounts.List(ctx, orgID, ledgerID)
+it := client.Midaz.Onboarding.Accounts.List(ctx, orgID, ledgerID, nil)
 errs := pagination.ForEachConcurrent(ctx, it, 8,
     func(ctx context.Context, account models.Account) error {
         return processAccount(ctx, account)
