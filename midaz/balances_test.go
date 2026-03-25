@@ -405,7 +405,7 @@ func TestBalancesDeleteEmptyOrgID(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// Balances — GetByAlias
+// Balances — ListByAlias
 // ---------------------------------------------------------------------------
 
 func TestBalancesListByAlias(t *testing.T) {
@@ -425,6 +425,23 @@ func TestBalancesListByAlias(t *testing.T) {
 	require.Len(t, items, 2)
 	assert.Equal(t, "bal-1", items[0].ID)
 	assert.Equal(t, "bal-2", items[1].ID)
+}
+
+func TestBalancesListByAliasNilItemsReturnsEmptySlice(t *testing.T) {
+	t.Parallel()
+
+	mock := &mockBackend{
+		callFn: func(_ context.Context, _, path string, _, result any) error {
+			assert.Equal(t, "/organizations/org-1/ledgers/led-1/accounts/alias/primary-checking/balances", path)
+			return unmarshalInto(balancesLookupResponse{}, result)
+		},
+	}
+
+	svc := newBalancesService(mock)
+	items, err := svc.ListByAlias(context.Background(), testOrgID, testLedgerID, "primary-checking")
+
+	require.NoError(t, err)
+	assert.Empty(t, items)
 }
 
 func TestBalancesListByAliasEmptyAlias(t *testing.T) {
@@ -450,7 +467,7 @@ func TestBalancesListByAliasEmptyOrgID(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// Balances — GetByExternalCode
+// Balances — ListByExternalCode
 // ---------------------------------------------------------------------------
 
 func TestBalancesListByExternalCode(t *testing.T) {
@@ -495,7 +512,7 @@ func TestBalancesListByExternalCodeEmptyLedgerID(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// Balances — GetByAccountID
+// Balances — ListByAccountID
 // ---------------------------------------------------------------------------
 
 func TestBalancesListByAccountID(t *testing.T) {

@@ -202,6 +202,69 @@ func TestTransactionsCreateWithoutSend(t *testing.T) {
 	assert.Contains(t, err.Error(), "send is required")
 }
 
+func TestTransactionsCreateRejectsInvalidSendShape(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		input   *CreateTransactionInput
+		message string
+	}{
+		{
+			name:    "missing asset",
+			input:   &CreateTransactionInput{Send: &TransactionSend{Value: "1.00"}},
+			message: "send asset is required",
+		},
+		{
+			name:    "missing value",
+			input:   &CreateTransactionInput{Send: &TransactionSend{Asset: "BRL"}},
+			message: "send value is required",
+		},
+		{
+			name: "missing source legs",
+			input: &CreateTransactionInput{Send: &TransactionSend{
+				Asset:      "BRL",
+				Value:      "1.00",
+				Distribute: TransactionSendDistribution{To: []TransactionOperationLeg{{AccountAlias: "acc-2"}}},
+			}},
+			message: "source legs are required",
+		},
+		{
+			name: "missing distribute legs",
+			input: &CreateTransactionInput{Send: &TransactionSend{
+				Asset:  "BRL",
+				Value:  "1.00",
+				Source: TransactionSendSource{From: []TransactionOperationLeg{{AccountAlias: "acc-1"}}},
+			}},
+			message: "distribute legs are required",
+		},
+		{
+			name: "source leg missing identifier",
+			input: &CreateTransactionInput{Send: &TransactionSend{
+				Asset:      "BRL",
+				Value:      "1.00",
+				Source:     TransactionSendSource{From: []TransactionOperationLeg{{}}},
+				Distribute: TransactionSendDistribution{To: []TransactionOperationLeg{{AccountAlias: "acc-2"}}},
+			}},
+			message: "source leg identifier is required",
+		},
+	}
+
+	svc := newTransactionsService(&mockBackend{})
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			txn, err := svc.Create(context.Background(), testOrgID, testLedgerID, tc.input)
+			require.Error(t, err)
+			assert.Nil(t, txn)
+			assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
+			assert.Contains(t, err.Error(), tc.message)
+		})
+	}
+}
+
 // ---------------------------------------------------------------------------
 // Transactions — Get
 // ---------------------------------------------------------------------------
@@ -324,10 +387,11 @@ func TestTransactionsListWithOptions(t *testing.T) {
 	}
 
 	svc := newTransactionsService(mock)
-	opts := &models.CursorListOptions{Limit: 25, SortBy: "createdAt", SortOrder: "desc"}
+	opts := &models.CursorListOptions{Limit: 25, Cursor: "cursor-1", SortBy: "createdAt", SortOrder: "desc"}
 	iter := svc.List(context.Background(), "org-1", "led-1", opts)
 
 	require.True(t, iter.Next(context.Background()))
+	assert.Contains(t, receivedPath, "cursor=cursor-1")
 	assert.Contains(t, receivedPath, "limit=25")
 	assert.Contains(t, receivedPath, "sortBy=createdAt")
 	assert.Contains(t, receivedPath, "sortOrder=desc")
@@ -483,6 +547,24 @@ func TestTransactionsCommitBackendError(t *testing.T) {
 
 	svc := newTransactionsService(mock)
 	txn, err := svc.Commit(context.Background(), "org-1", "led-1", "txn-1")
+
+	require.Error(t, err)
+	assert.Nil(t, txn)
+	assert.Equal(t, expectedErr, err)
+}
+
+func TestTransactionsCancelBackendError(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errors.New("backend error: forbidden")
+	mock := &mockBackend{
+		callFn: func(_ context.Context, _, _ string, _, _ any) error {
+			return expectedErr
+		},
+	}
+
+	svc := newTransactionsService(mock)
+	txn, err := svc.Cancel(context.Background(), testOrgID, testLedgerID, "txn-1")
 
 	require.Error(t, err)
 	assert.Nil(t, txn)

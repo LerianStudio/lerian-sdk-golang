@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/LerianStudio/lerian-sdk-golang/models"
+	"github.com/LerianStudio/lerian-sdk-golang/pkg/core"
 	sdkerrors "github.com/LerianStudio/lerian-sdk-golang/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -45,6 +46,48 @@ func TestTransactionsCreateAnnotation(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, txn)
 	assert.Equal(t, "txn-annotation", txn.ID)
+}
+
+func TestTransactionsCreateAnnotationValidation(t *testing.T) {
+	t.Parallel()
+
+	svc := newTransactionsService(&mockBackend{})
+	txn, err := svc.CreateAnnotation(context.Background(), testOrgID, testLedgerID, &CreateTransactionInput{
+		Send: &TransactionSend{
+			Asset:      "BRL",
+			Value:      "1.00",
+			Source:     TransactionSendSource{From: []TransactionOperationLeg{{AccountAlias: "acc-1"}}},
+			Distribute: TransactionSendDistribution{},
+		},
+	})
+
+	require.Error(t, err)
+	assert.Nil(t, txn)
+	assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
+	assert.Contains(t, err.Error(), "distribute legs are required")
+}
+
+func TestTransactionsCreateAnnotationBackendError(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errors.New("backend error")
+	mock := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
+		return expectedErr
+	}}
+
+	svc := newTransactionsService(mock)
+	txn, err := svc.CreateAnnotation(context.Background(), testOrgID, testLedgerID, &CreateTransactionInput{
+		Send: &TransactionSend{
+			Asset:      "BRL",
+			Value:      "1.00",
+			Source:     TransactionSendSource{From: []TransactionOperationLeg{{AccountAlias: "acc-1"}}},
+			Distribute: TransactionSendDistribution{To: []TransactionOperationLeg{{AccountAlias: "acc-2"}}},
+		},
+	})
+
+	require.Error(t, err)
+	assert.Nil(t, txn)
+	assert.Equal(t, expectedErr, err)
 }
 
 func TestTransactionsCreateDSL(t *testing.T) {
@@ -107,6 +150,34 @@ func TestTransactionsCreateDSLTooLargeInput(t *testing.T) {
 	assert.Nil(t, txn)
 	assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
 	assert.Contains(t, err.Error(), "exceeds maximum allowed size")
+}
+
+func TestTransactionsCreateDSLBackendError(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errors.New("backend error")
+	mock := &mockBackend{callWithHdrsFn: func(_ context.Context, _, _ string, _ map[string]string, _, _ any) error {
+		return expectedErr
+	}}
+
+	svc := newTransactionsService(mock)
+	txn, err := svc.CreateDSL(context.Background(), testOrgID, testLedgerID, []byte("SEND 100 BRL"))
+
+	require.Error(t, err)
+	assert.Nil(t, txn)
+	assert.Equal(t, expectedErr, err)
+}
+
+func TestTransactionsCreateDSLInvalidResponse(t *testing.T) {
+	t.Parallel()
+
+	backend := invalidDSLResponseBackend{}
+	svc := newTransactionsService(backend)
+	txn, err := svc.CreateDSL(context.Background(), testOrgID, testLedgerID, []byte("SEND 100 BRL"))
+
+	require.Error(t, err)
+	assert.Nil(t, txn)
+	assert.Contains(t, err.Error(), "failed to unmarshal response body")
 }
 
 func TestTransactionsCreateInflowValidatesSendShape(t *testing.T) {
@@ -210,6 +281,28 @@ func TestTransactionsCreateInflow(t *testing.T) {
 	assert.Equal(t, "txn-inflow", txn.ID)
 }
 
+func TestTransactionsCreateInflowBackendError(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errors.New("backend error")
+	mock := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
+		return expectedErr
+	}}
+
+	svc := newTransactionsService(mock)
+	txn, err := svc.CreateInflow(context.Background(), testOrgID, testLedgerID, &CreateTransactionInflowInput{
+		Send: TransactionInflowSend{
+			Asset:      "BRL",
+			Value:      "100.00",
+			Distribute: TransactionInflowDistribution{To: []TransactionOperationLeg{{AccountAlias: "@customer"}}},
+		},
+	})
+
+	require.Error(t, err)
+	assert.Nil(t, txn)
+	assert.Equal(t, expectedErr, err)
+}
+
 func TestTransactionsCreateOutflow(t *testing.T) {
 	t.Parallel()
 
@@ -253,30 +346,30 @@ func TestTransactionsCreateOutflow(t *testing.T) {
 	assert.Equal(t, "txn-outflow", txn.ID)
 }
 
-func TestOperationsUpdate(t *testing.T) {
+func TestTransactionsCreateOutflowBackendError(t *testing.T) {
 	t.Parallel()
 
-	description := "updated operation"
-	mock := &mockBackend{
-		callFn: func(_ context.Context, method, path string, body, result any) error {
-			assert.Equal(t, "PATCH", method)
-			assert.Equal(t, "/organizations/org-1/ledgers/led-1/transactions/txn-1/operations/op-1", path)
+	expectedErr := errors.New("backend error")
+	mock := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
+		return expectedErr
+	}}
 
-			input, ok := body.(*UpdateOperationInput)
-			require.True(t, ok)
-			require.NotNil(t, input.Description)
-			assert.Equal(t, description, *input.Description)
-
-			return unmarshalInto(Operation{ID: "op-1", TransactionID: "txn-1", Description: &description}, result)
+	svc := newTransactionsService(mock)
+	txn, err := svc.CreateOutflow(context.Background(), testOrgID, testLedgerID, &CreateTransactionOutflowInput{
+		Send: TransactionOutflowSend{
+			Asset:  "BRL",
+			Value:  "100.00",
+			Source: TransactionOutflowSource{From: []TransactionOperationLeg{{AccountAlias: "@origin"}}},
 		},
-	}
+	})
 
-	svc := newOperationsService(mock)
-	op, err := svc.Update(context.Background(), testOrgID, testLedgerID, "txn-1", "op-1", &UpdateOperationInput{Description: &description})
+	require.Error(t, err)
+	assert.Nil(t, txn)
+	assert.Equal(t, expectedErr, err)
+}
 
-	require.NoError(t, err)
-	require.NotNil(t, op)
-	assert.Equal(t, "op-1", op.ID)
-	require.NotNil(t, op.Description)
-	assert.Equal(t, description, *op.Description)
+type invalidDSLResponseBackend struct{}
+
+func (invalidDSLResponseBackend) Do(_ context.Context, req core.Request) (*core.Response, error) {
+	return &core.Response{Body: []byte("not-json")}, nil
 }

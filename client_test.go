@@ -197,7 +197,9 @@ func TestNewWithMidaz(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.NotNil(t, client.Midaz)
-	assert.Nil(t, client.Midaz.CRM)
+	assert.NotNil(t, client.Midaz.CRM)
+	assert.NotNil(t, client.Midaz.CRM.Holders)
+	assert.NotNil(t, client.Midaz.CRM.Aliases)
 	assert.Nil(t, client.Matcher)
 }
 

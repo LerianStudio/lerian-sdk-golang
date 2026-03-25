@@ -241,6 +241,7 @@ func TestSegmentsListWithOptions(t *testing.T) {
 	svc := newSegmentsService(mock)
 	opts := &models.CursorListOptions{
 		Limit:     25,
+		Cursor:    "cursor-1",
 		SortBy:    "name",
 		SortOrder: "asc",
 	}
@@ -250,6 +251,7 @@ func TestSegmentsListWithOptions(t *testing.T) {
 	ctx := context.Background()
 	require.True(t, iter.Next(ctx))
 
+	assert.Contains(t, receivedPath, "cursor=cursor-1")
 	assert.Contains(t, receivedPath, "limit=25")
 	assert.Contains(t, receivedPath, "sortBy=name")
 	assert.Contains(t, receivedPath, "sortOrder=asc")

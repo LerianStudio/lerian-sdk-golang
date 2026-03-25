@@ -397,7 +397,7 @@ func TestAccountsGetByExternalCode(t *testing.T) {
 	assert.Equal(t, "EXT-001", *acc.ExternalCode)
 }
 
-func TestAccountsGetByExternalCodeDoesNotFallbackOnNonCompatibilityErrors(t *testing.T) {
+func TestAccountsGetByExternalCodePropagatesBackendErrors(t *testing.T) {
 	t.Parallel()
 
 	requestCount := 0

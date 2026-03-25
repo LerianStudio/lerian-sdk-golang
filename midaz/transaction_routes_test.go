@@ -223,10 +223,11 @@ func TestTransactionRoutesListWithOptions(t *testing.T) {
 	}
 
 	svc := newTransactionRoutesService(mock)
-	opts := &models.CursorListOptions{Limit: 50, SortBy: "transactionType"}
+	opts := &models.CursorListOptions{Limit: 50, Cursor: "cursor-1", SortBy: "transactionType"}
 	iter := svc.List(context.Background(), "org-1", "led-1", opts)
 
 	require.True(t, iter.Next(context.Background()))
+	assert.Contains(t, receivedPath, "cursor=cursor-1")
 	assert.Contains(t, receivedPath, "limit=50")
 	assert.Contains(t, receivedPath, "sortBy=transactionType")
 }
