@@ -185,6 +185,7 @@ linters:
           allow:
             - $gostd
             - github.com/LerianStudio
+            - github.com/shopspring/decimal
             - github.com/stretchr/testify
             - go.opentelemetry.io
           deny:

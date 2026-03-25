@@ -3,6 +3,7 @@ module github.com/LerianStudio/lerian-sdk-golang
 go 1.24.0
 
 require (
+	github.com/shopspring/decimal v1.4.0
 	github.com/stretchr/testify v1.11.1
 	go.opentelemetry.io/otel v1.40.0
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp v1.40.0
