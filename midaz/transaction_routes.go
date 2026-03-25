@@ -67,6 +67,10 @@ const transactionRouteResource = "TransactionRoute"
 func (s *transactionRoutesService) Create(ctx context.Context, orgID, ledgerID string, input *CreateTransactionRouteInput) (*TransactionRoute, error) {
 	const operation = "TransactionRoutes.Create"
 
+	if err := ensureService(s); err != nil {
+		return nil, err
+	}
+
 	if orgID == "" {
 		return nil, sdkerrors.NewValidation(operation, transactionRouteResource, "organization id is required")
 	}
@@ -86,6 +90,10 @@ func (s *transactionRoutesService) Create(ctx context.Context, orgID, ledgerID s
 func (s *transactionRoutesService) Get(ctx context.Context, orgID, ledgerID, id string) (*TransactionRoute, error) {
 	const operation = "TransactionRoutes.Get"
 
+	if err := ensureService(s); err != nil {
+		return nil, err
+	}
+
 	if orgID == "" {
 		return nil, sdkerrors.NewValidation(operation, transactionRouteResource, "organization id is required")
 	}
@@ -103,10 +111,12 @@ func (s *transactionRoutesService) Get(ctx context.Context, orgID, ledgerID, id 
 
 // List returns a paginated iterator over transaction routes in a ledger.
 func (s *transactionRoutesService) List(ctx context.Context, orgID, ledgerID string, opts *models.CursorListOptions) *pagination.Iterator[TransactionRoute] {
+	if err := ensureService(s); err != nil {
+		return newErrorIterator[TransactionRoute](err)
+	}
+
 	if orgID == "" || ledgerID == "" {
-		return pagination.NewIterator[TransactionRoute](func(_ context.Context, _ string) ([]TransactionRoute, string, error) {
-			return nil, "", sdkerrors.NewValidation("TransactionRoutes.List", transactionRouteResource, "organization ID and ledger ID are required")
-		})
+		return newErrorIterator[TransactionRoute](sdkerrors.NewValidation("TransactionRoutes.List", transactionRouteResource, "organization ID and ledger ID are required"))
 	}
 
 	return core.List[TransactionRoute](ctx, &s.BaseService, transactionRoutesBasePath(orgID, ledgerID), opts)
@@ -115,6 +125,10 @@ func (s *transactionRoutesService) List(ctx context.Context, orgID, ledgerID str
 // Update partially updates an existing transaction route.
 func (s *transactionRoutesService) Update(ctx context.Context, orgID, ledgerID, id string, input *UpdateTransactionRouteInput) (*TransactionRoute, error) {
 	const operation = "TransactionRoutes.Update"
+
+	if err := ensureService(s); err != nil {
+		return nil, err
+	}
 
 	if orgID == "" {
 		return nil, sdkerrors.NewValidation(operation, transactionRouteResource, "organization id is required")
@@ -138,6 +152,10 @@ func (s *transactionRoutesService) Update(ctx context.Context, orgID, ledgerID, 
 // Delete removes a transaction route by its unique identifier.
 func (s *transactionRoutesService) Delete(ctx context.Context, orgID, ledgerID, id string) error {
 	const operation = "TransactionRoutes.Delete"
+
+	if err := ensureService(s); err != nil {
+		return err
+	}
 
 	if orgID == "" {
 		return sdkerrors.NewValidation(operation, transactionRouteResource, "organization id is required")

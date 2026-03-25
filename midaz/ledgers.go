@@ -67,6 +67,10 @@ const ledgerResource = "Ledger"
 func (s *ledgersService) Create(ctx context.Context, orgID string, input *CreateLedgerInput) (*Ledger, error) {
 	const operation = "Ledgers.Create"
 
+	if err := ensureService(s); err != nil {
+		return nil, err
+	}
+
 	if orgID == "" {
 		return nil, sdkerrors.NewValidation(operation, ledgerResource, "organization id is required")
 	}
@@ -82,6 +86,10 @@ func (s *ledgersService) Create(ctx context.Context, orgID string, input *Create
 func (s *ledgersService) Get(ctx context.Context, orgID, ledgerID string) (*Ledger, error) {
 	const operation = "Ledgers.Get"
 
+	if err := ensureService(s); err != nil {
+		return nil, err
+	}
+
 	if orgID == "" {
 		return nil, sdkerrors.NewValidation(operation, ledgerResource, "organization id is required")
 	}
@@ -95,10 +103,12 @@ func (s *ledgersService) Get(ctx context.Context, orgID, ledgerID string) (*Ledg
 
 // List returns a paginated iterator over ledgers in an organization.
 func (s *ledgersService) List(ctx context.Context, orgID string, opts *models.CursorListOptions) *pagination.Iterator[Ledger] {
+	if err := ensureService(s); err != nil {
+		return newErrorIterator[Ledger](err)
+	}
+
 	if orgID == "" {
-		return pagination.NewIterator[Ledger](func(_ context.Context, _ string) ([]Ledger, string, error) {
-			return nil, "", sdkerrors.NewValidation("Ledgers.List", ledgerResource, "organization ID is required")
-		})
+		return newErrorIterator[Ledger](sdkerrors.NewValidation("Ledgers.List", ledgerResource, "organization ID is required"))
 	}
 
 	return core.List[Ledger](ctx, &s.BaseService, ledgersBasePath(orgID), opts)
@@ -107,6 +117,10 @@ func (s *ledgersService) List(ctx context.Context, orgID string, opts *models.Cu
 // Update partially updates an existing ledger within an organization.
 func (s *ledgersService) Update(ctx context.Context, orgID, ledgerID string, input *UpdateLedgerInput) (*Ledger, error) {
 	const operation = "Ledgers.Update"
+
+	if err := ensureService(s); err != nil {
+		return nil, err
+	}
 
 	if orgID == "" {
 		return nil, sdkerrors.NewValidation(operation, ledgerResource, "organization id is required")
@@ -126,6 +140,10 @@ func (s *ledgersService) Update(ctx context.Context, orgID, ledgerID string, inp
 // Delete removes a ledger by its unique identifier within an organization.
 func (s *ledgersService) Delete(ctx context.Context, orgID, ledgerID string) error {
 	const operation = "Ledgers.Delete"
+
+	if err := ensureService(s); err != nil {
+		return err
+	}
 
 	if orgID == "" {
 		return sdkerrors.NewValidation(operation, ledgerResource, "organization id is required")

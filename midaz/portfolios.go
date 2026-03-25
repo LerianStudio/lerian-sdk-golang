@@ -81,6 +81,10 @@ const portfolioResource = "Portfolio"
 func (s *portfoliosService) Create(ctx context.Context, orgID, ledgerID string, input *CreatePortfolioInput) (*Portfolio, error) {
 	const operation = "Portfolios.Create"
 
+	if err := ensureService(s); err != nil {
+		return nil, err
+	}
+
 	if orgID == "" {
 		return nil, sdkerrors.NewValidation(operation, portfolioResource, "organization ID is required")
 	}
@@ -100,6 +104,10 @@ func (s *portfoliosService) Create(ctx context.Context, orgID, ledgerID string, 
 func (s *portfoliosService) Get(ctx context.Context, orgID, ledgerID, id string) (*Portfolio, error) {
 	const operation = "Portfolios.Get"
 
+	if err := ensureService(s); err != nil {
+		return nil, err
+	}
+
 	if orgID == "" {
 		return nil, sdkerrors.NewValidation(operation, portfolioResource, "organization ID is required")
 	}
@@ -117,10 +125,12 @@ func (s *portfoliosService) Get(ctx context.Context, orgID, ledgerID, id string)
 
 // List returns a paginated iterator over portfolios.
 func (s *portfoliosService) List(ctx context.Context, orgID, ledgerID string, opts *models.CursorListOptions) *pagination.Iterator[Portfolio] {
+	if err := ensureService(s); err != nil {
+		return newErrorIterator[Portfolio](err)
+	}
+
 	if orgID == "" || ledgerID == "" {
-		return pagination.NewIterator[Portfolio](func(_ context.Context, _ string) ([]Portfolio, string, error) {
-			return nil, "", sdkerrors.NewValidation("Portfolios.List", portfolioResource, "organization ID and ledger ID are required")
-		})
+		return newErrorIterator[Portfolio](sdkerrors.NewValidation("Portfolios.List", portfolioResource, "organization ID and ledger ID are required"))
 	}
 
 	return core.List[Portfolio](ctx, &s.BaseService, portfoliosBasePath(orgID, ledgerID), opts)
@@ -129,6 +139,10 @@ func (s *portfoliosService) List(ctx context.Context, orgID, ledgerID string, op
 // Update modifies an existing portfolio.
 func (s *portfoliosService) Update(ctx context.Context, orgID, ledgerID, id string, input *UpdatePortfolioInput) (*Portfolio, error) {
 	const operation = "Portfolios.Update"
+
+	if err := ensureService(s); err != nil {
+		return nil, err
+	}
 
 	if orgID == "" {
 		return nil, sdkerrors.NewValidation(operation, portfolioResource, "organization ID is required")
@@ -152,6 +166,10 @@ func (s *portfoliosService) Update(ctx context.Context, orgID, ledgerID, id stri
 // Delete removes a portfolio by ID.
 func (s *portfoliosService) Delete(ctx context.Context, orgID, ledgerID, id string) error {
 	const operation = "Portfolios.Delete"
+
+	if err := ensureService(s); err != nil {
+		return err
+	}
 
 	if orgID == "" {
 		return sdkerrors.NewValidation(operation, portfolioResource, "organization ID is required")

@@ -92,6 +92,10 @@ func (s *assetRatesService) Create(ctx context.Context, orgID, ledgerID string, 
 func (s *assetRatesService) Get(ctx context.Context, orgID, ledgerID, id string) (*AssetRate, error) {
 	const operation = "AssetRates.Get"
 
+	if err := ensureService(s); err != nil {
+		return nil, err
+	}
+
 	if orgID == "" {
 		return nil, sdkerrors.NewValidation(operation, assetRateResource, "organization id is required")
 	}
@@ -109,10 +113,12 @@ func (s *assetRatesService) Get(ctx context.Context, orgID, ledgerID, id string)
 
 // List returns a paginated iterator over asset rates in a ledger.
 func (s *assetRatesService) List(ctx context.Context, orgID, ledgerID string, opts *models.CursorListOptions) *pagination.Iterator[AssetRate] {
+	if err := ensureService(s); err != nil {
+		return newErrorIterator[AssetRate](err)
+	}
+
 	if orgID == "" || ledgerID == "" {
-		return pagination.NewIterator[AssetRate](func(_ context.Context, _ string) ([]AssetRate, string, error) {
-			return nil, "", sdkerrors.NewValidation("AssetRates.List", assetRateResource, "organization ID and ledger ID are required")
-		})
+		return newErrorIterator[AssetRate](sdkerrors.NewValidation("AssetRates.List", assetRateResource, "organization ID and ledger ID are required"))
 	}
 
 	return core.List[AssetRate](ctx, &s.BaseService, assetRatesBasePath(orgID, ledgerID), opts)
@@ -121,6 +127,10 @@ func (s *assetRatesService) List(ctx context.Context, orgID, ledgerID string, op
 // Update partially updates an existing asset rate.
 func (s *assetRatesService) Update(ctx context.Context, orgID, ledgerID, id string, input *UpdateAssetRateInput) (*AssetRate, error) {
 	const operation = "AssetRates.Update"
+
+	if err := ensureService(s); err != nil {
+		return nil, err
+	}
 
 	if orgID == "" {
 		return nil, sdkerrors.NewValidation(operation, assetRateResource, "organization id is required")
@@ -144,6 +154,10 @@ func (s *assetRatesService) Update(ctx context.Context, orgID, ledgerID, id stri
 // Delete removes an asset rate by its unique identifier.
 func (s *assetRatesService) Delete(ctx context.Context, orgID, ledgerID, id string) error {
 	const operation = "AssetRates.Delete"
+
+	if err := ensureService(s); err != nil {
+		return err
+	}
 
 	if orgID == "" {
 		return sdkerrors.NewValidation(operation, assetRateResource, "organization id is required")

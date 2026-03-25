@@ -84,6 +84,10 @@ const operationResource = "Operation"
 func (s *operationsService) Get(ctx context.Context, orgID, ledgerID, id string) (*Operation, error) {
 	const operation = "Operations.Get"
 
+	if err := ensureService(s); err != nil {
+		return nil, err
+	}
+
 	if orgID == "" {
 		return nil, sdkerrors.NewValidation(operation, operationResource, "organization id is required")
 	}
@@ -101,10 +105,12 @@ func (s *operationsService) Get(ctx context.Context, orgID, ledgerID, id string)
 
 // List returns a paginated iterator over all operations in a ledger.
 func (s *operationsService) List(ctx context.Context, orgID, ledgerID string, opts *models.CursorListOptions) *pagination.Iterator[Operation] {
+	if err := ensureService(s); err != nil {
+		return newErrorIterator[Operation](err)
+	}
+
 	if orgID == "" || ledgerID == "" {
-		return pagination.NewIterator[Operation](func(_ context.Context, _ string) ([]Operation, string, error) {
-			return nil, "", sdkerrors.NewValidation("Operations.List", operationResource, "organization ID and ledger ID are required")
-		})
+		return newErrorIterator[Operation](sdkerrors.NewValidation("Operations.List", operationResource, "organization ID and ledger ID are required"))
 	}
 
 	return core.List[Operation](ctx, &s.BaseService, operationsBasePath(orgID, ledgerID), opts)
@@ -113,10 +119,12 @@ func (s *operationsService) List(ctx context.Context, orgID, ledgerID string, op
 // ListByTransaction returns a paginated iterator over operations
 // belonging to a specific transaction.
 func (s *operationsService) ListByTransaction(ctx context.Context, orgID, ledgerID, transactionID string, opts *models.CursorListOptions) *pagination.Iterator[Operation] {
+	if err := ensureService(s); err != nil {
+		return newErrorIterator[Operation](err)
+	}
+
 	if orgID == "" || ledgerID == "" || transactionID == "" {
-		return pagination.NewIterator[Operation](func(_ context.Context, _ string) ([]Operation, string, error) {
-			return nil, "", sdkerrors.NewValidation("Operations.ListByTransaction", operationResource, "organization ID, ledger ID, and transaction ID are required")
-		})
+		return newErrorIterator[Operation](sdkerrors.NewValidation("Operations.ListByTransaction", operationResource, "organization ID, ledger ID, and transaction ID are required"))
 	}
 
 	return core.List[Operation](ctx, &s.BaseService, operationsByTransactionPath(orgID, ledgerID, transactionID), opts)
@@ -125,10 +133,12 @@ func (s *operationsService) ListByTransaction(ctx context.Context, orgID, ledger
 // ListByAccount returns a paginated iterator over operations
 // affecting a specific account.
 func (s *operationsService) ListByAccount(ctx context.Context, orgID, ledgerID, accountID string, opts *models.CursorListOptions) *pagination.Iterator[Operation] {
+	if err := ensureService(s); err != nil {
+		return newErrorIterator[Operation](err)
+	}
+
 	if orgID == "" || ledgerID == "" || accountID == "" {
-		return pagination.NewIterator[Operation](func(_ context.Context, _ string) ([]Operation, string, error) {
-			return nil, "", sdkerrors.NewValidation("Operations.ListByAccount", operationResource, "organization ID, ledger ID, and account ID are required")
-		})
+		return newErrorIterator[Operation](sdkerrors.NewValidation("Operations.ListByAccount", operationResource, "organization ID, ledger ID, and account ID are required"))
 	}
 
 	return core.List[Operation](ctx, &s.BaseService, operationsByAccountPath(orgID, ledgerID, accountID), opts)

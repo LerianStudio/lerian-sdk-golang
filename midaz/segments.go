@@ -81,6 +81,10 @@ const segmentResource = "Segment"
 func (s *segmentsService) Create(ctx context.Context, orgID, ledgerID string, input *CreateSegmentInput) (*Segment, error) {
 	const operation = "Segments.Create"
 
+	if err := ensureService(s); err != nil {
+		return nil, err
+	}
+
 	if orgID == "" {
 		return nil, sdkerrors.NewValidation(operation, segmentResource, "organization ID is required")
 	}
@@ -100,6 +104,10 @@ func (s *segmentsService) Create(ctx context.Context, orgID, ledgerID string, in
 func (s *segmentsService) Get(ctx context.Context, orgID, ledgerID, id string) (*Segment, error) {
 	const operation = "Segments.Get"
 
+	if err := ensureService(s); err != nil {
+		return nil, err
+	}
+
 	if orgID == "" {
 		return nil, sdkerrors.NewValidation(operation, segmentResource, "organization ID is required")
 	}
@@ -117,10 +125,12 @@ func (s *segmentsService) Get(ctx context.Context, orgID, ledgerID, id string) (
 
 // List returns a paginated iterator over segments.
 func (s *segmentsService) List(ctx context.Context, orgID, ledgerID string, opts *models.CursorListOptions) *pagination.Iterator[Segment] {
+	if err := ensureService(s); err != nil {
+		return newErrorIterator[Segment](err)
+	}
+
 	if orgID == "" || ledgerID == "" {
-		return pagination.NewIterator[Segment](func(_ context.Context, _ string) ([]Segment, string, error) {
-			return nil, "", sdkerrors.NewValidation("Segments.List", segmentResource, "organization ID and ledger ID are required")
-		})
+		return newErrorIterator[Segment](sdkerrors.NewValidation("Segments.List", segmentResource, "organization ID and ledger ID are required"))
 	}
 
 	return core.List[Segment](ctx, &s.BaseService, segmentsBasePath(orgID, ledgerID), opts)
@@ -129,6 +139,10 @@ func (s *segmentsService) List(ctx context.Context, orgID, ledgerID string, opts
 // Update modifies an existing segment.
 func (s *segmentsService) Update(ctx context.Context, orgID, ledgerID, id string, input *UpdateSegmentInput) (*Segment, error) {
 	const operation = "Segments.Update"
+
+	if err := ensureService(s); err != nil {
+		return nil, err
+	}
 
 	if orgID == "" {
 		return nil, sdkerrors.NewValidation(operation, segmentResource, "organization ID is required")
@@ -152,6 +166,10 @@ func (s *segmentsService) Update(ctx context.Context, orgID, ledgerID, id string
 // Delete removes a segment by ID.
 func (s *segmentsService) Delete(ctx context.Context, orgID, ledgerID, id string) error {
 	const operation = "Segments.Delete"
+
+	if err := ensureService(s); err != nil {
+		return err
+	}
 
 	if orgID == "" {
 		return sdkerrors.NewValidation(operation, segmentResource, "organization ID is required")

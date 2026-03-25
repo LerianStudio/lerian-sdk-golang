@@ -73,6 +73,10 @@ const accountResource = "Account"
 func (s *accountsService) Create(ctx context.Context, orgID, ledgerID string, input *CreateAccountInput) (*Account, error) {
 	const operation = "Accounts.Create"
 
+	if err := ensureService(s); err != nil {
+		return nil, err
+	}
+
 	if orgID == "" {
 		return nil, sdkerrors.NewValidation(operation, accountResource, "organization id is required")
 	}
@@ -92,6 +96,10 @@ func (s *accountsService) Create(ctx context.Context, orgID, ledgerID string, in
 func (s *accountsService) Get(ctx context.Context, orgID, ledgerID, id string) (*Account, error) {
 	const operation = "Accounts.Get"
 
+	if err := ensureService(s); err != nil {
+		return nil, err
+	}
+
 	if orgID == "" {
 		return nil, sdkerrors.NewValidation(operation, accountResource, "organization id is required")
 	}
@@ -109,10 +117,12 @@ func (s *accountsService) Get(ctx context.Context, orgID, ledgerID, id string) (
 
 // List returns a paginated iterator over accounts in a ledger.
 func (s *accountsService) List(ctx context.Context, orgID, ledgerID string, opts *models.CursorListOptions) *pagination.Iterator[Account] {
+	if err := ensureService(s); err != nil {
+		return newErrorIterator[Account](err)
+	}
+
 	if orgID == "" || ledgerID == "" {
-		return pagination.NewIterator[Account](func(_ context.Context, _ string) ([]Account, string, error) {
-			return nil, "", sdkerrors.NewValidation("Accounts.List", accountResource, "organization ID and ledger ID are required")
-		})
+		return newErrorIterator[Account](sdkerrors.NewValidation("Accounts.List", accountResource, "organization ID and ledger ID are required"))
 	}
 
 	return core.List[Account](ctx, &s.BaseService, accountsBasePath(orgID, ledgerID), opts)
@@ -121,6 +131,10 @@ func (s *accountsService) List(ctx context.Context, orgID, ledgerID string, opts
 // Update partially updates an existing account.
 func (s *accountsService) Update(ctx context.Context, orgID, ledgerID, id string, input *UpdateAccountInput) (*Account, error) {
 	const operation = "Accounts.Update"
+
+	if err := ensureService(s); err != nil {
+		return nil, err
+	}
 
 	if orgID == "" {
 		return nil, sdkerrors.NewValidation(operation, accountResource, "organization id is required")
@@ -145,6 +159,10 @@ func (s *accountsService) Update(ctx context.Context, orgID, ledgerID, id string
 func (s *accountsService) Delete(ctx context.Context, orgID, ledgerID, id string) error {
 	const operation = "Accounts.Delete"
 
+	if err := ensureService(s); err != nil {
+		return err
+	}
+
 	if orgID == "" {
 		return sdkerrors.NewValidation(operation, accountResource, "organization id is required")
 	}
@@ -163,6 +181,10 @@ func (s *accountsService) Delete(ctx context.Context, orgID, ledgerID, id string
 // GetByAlias retrieves an account by its unique alias.
 func (s *accountsService) GetByAlias(ctx context.Context, orgID, ledgerID, alias string) (*Account, error) {
 	const operation = "Accounts.GetByAlias"
+
+	if err := ensureService(s); err != nil {
+		return nil, err
+	}
 
 	if orgID == "" {
 		return nil, sdkerrors.NewValidation(operation, accountResource, "organization id is required")
