@@ -19,14 +19,13 @@
 // Retry configuration is typically set via functional options on the
 // umbrella client:
 //
-//	client, _ := lerian.New(
-//	    lerian.WithRetry(retry.Config{
-//	        MaxRetries:     5,
-//	        InitialBackoff: time.Second,
-//	        MaxBackoff:     time.Minute,
-//	    }),
-//	    lerian.WithMidaz(...),
-//	)
+//	retryCfg := retry.DefaultConfig()
+//	retryCfg.MaxRetries = 5
+//	retryCfg.BaseDelay = time.Second
+//	retryCfg.MaxDelay = time.Minute
+//	client, _ := lerian.New(lerian.Config{
+//	    RetryConfig: &retryCfg,
+//	})
 //
 // The retry logic is applied transparently by [core.Backend] and does not
 // require any action from individual service callers.

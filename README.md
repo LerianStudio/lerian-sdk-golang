@@ -34,20 +34,19 @@ func main() {
     ctx := context.Background()
 
     // Create a client with the Midaz product enabled.
-    // OAuth2 credentials can come from the matching LERIAN_MIDAZ_* env vars.
-    client, err := lerian.New(
-        lerian.WithMidaz(
-            midaz.WithOnboardingURL("http://localhost:3000/v1"),
-            midaz.WithTransactionURL("http://localhost:3001/v1"),
-        ),
-    )
+    client, err := lerian.New(lerian.Config{
+        Midaz: &midaz.Config{
+            OnboardingURL:  "http://localhost:3000/v1",
+            TransactionURL: "http://localhost:3001/v1",
+        },
+    })
     if err != nil {
         log.Fatal(err)
     }
     defer client.Shutdown(ctx)
 
     // Create an organization
-    org, err := client.Midaz.Organizations.Create(ctx, &midaz.CreateOrganizationInput{
+    org, err := client.Midaz.Onboarding.Organizations.Create(ctx, &midaz.CreateOrganizationInput{
         LegalName:     "Acme Corp",
         LegalDocument: "12345678000100",
         Status:        &models.Status{Code: "ACTIVE"},
@@ -78,36 +77,32 @@ The SDK provides access to the full suite of Lerian products through a single cl
 Enable only the products you need:
 
 ```go
-client, err := lerian.New(
-    lerian.WithMidaz(
-        midaz.WithOnboardingURL("http://localhost:3000/v1"),
-        midaz.WithTransactionURL("http://localhost:3001/v1"),
-    ),
-    lerian.WithMatcher(
-        matcher.WithBaseURL("http://localhost:3002/v1"),
-    ),
-    lerian.WithTracer(
-        tracer.WithBaseURL("http://localhost:3003/v1"),
-    ),
-    lerian.WithReporter(
-        reporter.WithBaseURL("http://localhost:3004/v1"),
-        reporter.WithOrganizationID("org-uuid"),
-    ),
-    lerian.WithFees(
-        fees.WithBaseURL("http://localhost:3005/v1"),
-        fees.WithOrganizationID("org-uuid"),
-    ),
-)
+client, err := lerian.New(lerian.Config{
+    Midaz: &midaz.Config{
+        OnboardingURL:  "http://localhost:3000/v1",
+        TransactionURL: "http://localhost:3001/v1",
+    },
+    Matcher: &matcher.Config{BaseURL: "http://localhost:3002/v1"},
+    Tracer:  &tracer.Config{BaseURL: "http://localhost:3003/v1"},
+    Reporter: &reporter.Config{
+        BaseURL:        "http://localhost:3004/v1",
+        OrganizationID: "org-uuid",
+    },
+    Fees: &fees.Config{
+        BaseURL:        "http://localhost:3005/v1",
+        OrganizationID: "org-uuid",
+    },
+})
 ```
 
-Products not enabled via `With<Product>()` will be `nil` on the client. This keeps resource usage minimal -- only backends you configure are initialized.
-When authentication is required, load each product's OAuth2 credentials via the matching `LERIAN_*_CLIENT_ID`, `LERIAN_*_CLIENT_SECRET`, and `LERIAN_*_TOKEN_URL` environment variables.
+Products with nil config remain nil on the client. This keeps resource usage minimal -- only backends you configure are initialized.
+When authentication is required, populate each product config explicitly or load it from the matching `LERIAN_*_CLIENT_ID`, `LERIAN_*_CLIENT_SECRET`, and `LERIAN_*_TOKEN_URL` environment variables.
 
 ## Configuration
 
 ### Environment Variables
 
-The SDK supports `LERIAN_*` environment variables as a configuration layer. Explicit options passed to `New()` always take precedence over environment variables, which in turn take precedence over defaults.
+The SDK supports `LERIAN_*` environment variables through `lerian.LoadConfigFromEnv()`. Build the config from env, then pass that config into `New()`.
 
 ```bash
 # Global
@@ -147,24 +142,35 @@ LERIAN_FEES_CLIENT_SECRET=my-client-secret
 LERIAN_FEES_TOKEN_URL=https://auth.example.com/token
 ```
 
-### Functional Options
+### Explicit Root Config
 
-Every aspect of the client is configurable through the functional options pattern:
+Every aspect of the root client is configured through `lerian.Config`:
 
 ```go
-client, err := lerian.New(
-    // Shared infrastructure options
-    lerian.WithHTTPClient(customHTTPClient),
-    lerian.WithRetry(3, 500*time.Millisecond),
-    lerian.WithObservability(true, true, false),
-    lerian.WithCollectorEndpoint("http://localhost:4318"),
+retryCfg := retry.DefaultConfig()
+retryCfg.MaxRetries = 3
+retryCfg.BaseDelay = 500 * time.Millisecond
 
-    // Product-specific options
-    lerian.WithMidaz(
-        midaz.WithOnboardingURL("http://localhost:3000/v1"),
-        midaz.WithTransactionURL("http://localhost:3001/v1"),
-    ),
-)
+client, err := lerian.New(lerian.Config{
+    HTTPClient:  customHTTPClient,
+    RetryConfig: &retryCfg,
+    Observability: lerian.ObservabilityConfig{
+        Traces:            true,
+        Metrics:           true,
+        CollectorEndpoint: "http://localhost:4318",
+    },
+    Midaz: &midaz.Config{
+        OnboardingURL:  "http://localhost:3000/v1",
+        TransactionURL: "http://localhost:3001/v1",
+    },
+})
+```
+
+Or load from env first:
+
+```go
+cfg := lerian.LoadConfigFromEnv()
+client, err := lerian.New(cfg)
 ```
 
 ## Error Handling
@@ -174,7 +180,7 @@ The SDK uses a hierarchical error system. Use `errors.Is()` to match errors by c
 ```go
 import "errors"
 
-_, err := client.Midaz.Accounts.Get(ctx, orgID, ledgerID, accountID)
+_, err := client.Midaz.Onboarding.Accounts.Get(ctx, orgID, ledgerID, accountID)
 if err != nil {
     switch {
     case errors.Is(err, lerian.ErrNotFound):
@@ -212,7 +218,7 @@ List operations return an `Iterator[T]` that supports lazy, memory-efficient pag
 
 ```go
 // Iterate lazily over all accounts (fetches pages on demand)
-for account, err := range client.Midaz.Accounts.List(ctx, orgID, ledgerID).All() {
+for account, err := range client.Midaz.Onboarding.Accounts.List(ctx, orgID, ledgerID).All() {
     if err != nil {
         log.Fatal(err)
     }
@@ -220,13 +226,13 @@ for account, err := range client.Midaz.Accounts.List(ctx, orgID, ledgerID).All()
 }
 
 // Collect all results into a slice
-accounts, err := client.Midaz.Accounts.List(ctx, orgID, ledgerID).Collect()
+accounts, err := client.Midaz.Onboarding.Accounts.List(ctx, orgID, ledgerID).Collect()
 
 // Collect up to N results
-first10, err := client.Midaz.Accounts.List(ctx, orgID, ledgerID).CollectN(10)
+first10, err := client.Midaz.Onboarding.Accounts.List(ctx, orgID, ledgerID).CollectN(10)
 
 // Process concurrently with bounded parallelism
-it := client.Midaz.Accounts.List(ctx, orgID, ledgerID)
+it := client.Midaz.Onboarding.Accounts.List(ctx, orgID, ledgerID)
 errs := pagination.ForEachConcurrent(ctx, it, 8,
     func(ctx context.Context, account models.Account) error {
         return processAccount(ctx, account)

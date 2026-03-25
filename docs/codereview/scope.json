@@ -1,0 +1,17 @@
+{
+  "base_ref": "f963d9646a9ed996b84c094729312058189c0970",
+  "head_ref": "HEAD",
+  "language": "unknown",
+  "languages": [],
+  "files": {
+    "modified": [],
+    "added": [],
+    "deleted": []
+  },
+  "stats": {
+    "total_files": 0,
+    "total_additions": 0,
+    "total_deletions": 0
+  },
+  "packages_affected": []
+}

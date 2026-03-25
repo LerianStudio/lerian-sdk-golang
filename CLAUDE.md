@@ -57,7 +57,7 @@
 - **Iterator[T]**: Lazy pagination with `All()` (iter.Seq2), `Collect`, `CollectN`, `ForEachConcurrent`.
 - **Hierarchical errors**: `errors.Is()` matching on sentinel chains (Category + optional product Code).
 - **Env precedence**: explicit Option > `LERIAN_*` env var > default.
-- **RawBody sentinel**: Non-JSON multipart payloads bypass the JSON serializer.
+- **Raw byte payloads**: Non-JSON multipart payloads are sent through raw request bytes with an explicit content type.
 
 ## Testing Guidelines
 

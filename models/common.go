@@ -2,16 +2,25 @@ package models
 
 import "time"
 
-// ListOptions configures pagination and filtering for List operations.
-type ListOptions struct {
+// CursorListOptions configures cursor-based pagination and filtering for list
+// operations.
+type CursorListOptions struct {
 	Limit     int               `json:"limit,omitempty"`
-	Page      int               `json:"page,omitempty"`
 	Cursor    string            `json:"cursor,omitempty"`
 	SortBy    string            `json:"sortBy,omitempty"`
 	SortOrder string            `json:"sortOrder,omitempty"`
 	StartDate *time.Time        `json:"startDate,omitempty"`
 	EndDate   *time.Time        `json:"endDate,omitempty"`
 	Filters   map[string]string `json:"filters,omitempty"`
+}
+
+// PageListOptions configures page-based pagination and filtering for list
+// operations that do not support cursor semantics.
+type PageListOptions struct {
+	PageNumber int               `json:"pageNumber,omitempty"`
+	PageSize   int               `json:"pageSize,omitempty"`
+	SortOrder  string            `json:"sortOrder,omitempty"`
+	Filters    map[string]string `json:"filters,omitempty"`
 }
 
 // ListResponse is the generic paginated response envelope.

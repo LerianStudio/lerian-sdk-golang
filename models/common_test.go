@@ -12,15 +12,14 @@ import (
 // ptr returns a pointer to the given value — handy for optional fields in tests.
 func ptr[T any](v T) *T { return &v }
 
-func TestListOptionsJSON(t *testing.T) {
+func TestCursorListOptionsJSON(t *testing.T) {
 	t.Parallel()
 
 	start := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
 	end := time.Date(2025, 12, 31, 23, 59, 59, 0, time.UTC)
 
-	opts := ListOptions{
+	opts := CursorListOptions{
 		Limit:     25,
-		Page:      2,
 		Cursor:    "abc123",
 		SortBy:    "createdAt",
 		SortOrder: "desc",
@@ -36,15 +35,14 @@ func TestListOptionsJSON(t *testing.T) {
 	require.NoError(t, json.Unmarshal(data, &raw))
 
 	// Verify camelCase keys are present.
-	for _, key := range []string{"limit", "page", "cursor", "sortBy", "sortOrder", "startDate", "endDate", "filters"} {
+	for _, key := range []string{"limit", "cursor", "sortBy", "sortOrder", "startDate", "endDate", "filters"} {
 		assert.Contains(t, raw, key, "expected camelCase key %q in JSON output", key)
 	}
 
 	// Round-trip back.
-	var decoded ListOptions
+	var decoded CursorListOptions
 	require.NoError(t, json.Unmarshal(data, &decoded))
 	assert.Equal(t, opts.Limit, decoded.Limit)
-	assert.Equal(t, opts.Page, decoded.Page)
 	assert.Equal(t, opts.Cursor, decoded.Cursor)
 	assert.Equal(t, opts.SortBy, decoded.SortBy)
 	assert.Equal(t, opts.SortOrder, decoded.SortOrder)
@@ -53,12 +51,33 @@ func TestListOptionsJSON(t *testing.T) {
 	assert.Equal(t, opts.Filters, decoded.Filters)
 }
 
-func TestListOptionsOmitempty(t *testing.T) {
+func TestCursorListOptionsOmitempty(t *testing.T) {
 	t.Parallel()
 
-	data, err := json.Marshal(ListOptions{})
+	data, err := json.Marshal(CursorListOptions{})
 	require.NoError(t, err)
 	assert.JSONEq(t, `{}`, string(data))
+}
+
+func TestPageListOptionsJSON(t *testing.T) {
+	t.Parallel()
+
+	opts := PageListOptions{
+		PageNumber: 2,
+		PageSize:   25,
+		SortOrder:  "desc",
+		Filters:    map[string]string{"include_deleted": "true"},
+	}
+
+	data, err := json.Marshal(opts)
+	require.NoError(t, err)
+
+	var decoded PageListOptions
+	require.NoError(t, json.Unmarshal(data, &decoded))
+	assert.Equal(t, opts.PageNumber, decoded.PageNumber)
+	assert.Equal(t, opts.PageSize, decoded.PageSize)
+	assert.Equal(t, opts.SortOrder, decoded.SortOrder)
+	assert.Equal(t, opts.Filters, decoded.Filters)
 }
 
 func TestListResponseGeneric(t *testing.T) {

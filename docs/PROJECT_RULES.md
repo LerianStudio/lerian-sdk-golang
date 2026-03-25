@@ -46,16 +46,16 @@
 
 **Status:** Accepted
 **Date:** 2025-01
-**Context:** Product options (like OAuth2 credentials) depend on infrastructure being initialized first (backends, observability), but users configure everything in a single `New()` call.
+**Context:** Historically, product options (like OAuth2 credentials) depended on infrastructure being initialized first (backends, observability), while users configured everything in a single `New()` call.
 
-**Decision:** Options are collected during `New()` but applied *after* all backends and infrastructure initialize. This makes configuration order-independent.
+**Decision:** This repository now uses explicit root config plus env loading before construction. The earlier deferred-options model is retained here only as historical context for why older code looked the way it did.
 
-**Key files:** `client.go`, `options.go`
+**Key files:** `client.go`, `config.go`, `env.go`
 
 **Consequences:**
-- Users can pass `WithMidaz()` and `WithObservability()` in any order
-- Environment variables work as fallbacks even when product options are explicit
-- Validation happens after full initialization
+- Product enablement is explicit through `lerian.Config`
+- Environment loading happens before client construction via `LoadConfigFromEnv()`
+- Validation happens against resolved config during initialization
 
 ---
 
