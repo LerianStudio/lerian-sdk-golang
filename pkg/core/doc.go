@@ -21,11 +21,11 @@
 // than duplicate. Each helper builds the URL, delegates to the Backend,
 // and returns the typed response:
 //
-//	type OrganizationsService struct {
+//	type organizationsServiceAPI struct {
 //	    backend core.Backend
 //	}
 //
-//	func (s *OrganizationsService) Get(ctx context.Context, id string) (*Organization, error) {
+//	func (s *organizationsServiceAPI) Get(ctx context.Context, id string) (*Organization, error) {
 //	    return core.Get[Organization](ctx, s.backend, "/organizations/"+id)
 //	}
 package core

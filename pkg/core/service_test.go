@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"testing"
 	"time"
 
@@ -44,35 +45,84 @@ type mockBackend struct {
 	callFn         func(ctx context.Context, method, path string, body, result any) error
 	callWithHdrsFn func(ctx context.Context, method, path string, headers map[string]string, body, result any) error
 	callRawFn      func(ctx context.Context, method, path string, body any) ([]byte, error)
+	callHeadFn     func(ctx context.Context, path string) (map[string][]string, error)
 }
 
-func (m *mockBackend) Call(ctx context.Context, method, path string, body, result any) error {
-	if m.callFn != nil {
-		return m.callFn(ctx, method, path, body, result)
+func (m *mockBackend) Do(ctx context.Context, req Request) (*Response, error) {
+	switch req.Method {
+	case http.MethodHead:
+		if m.callHeadFn == nil {
+			return nil, fmt.Errorf("mockBackend.head not configured")
+		}
+
+		headers, err := m.callHeadFn(ctx, req.Path)
+		if err != nil {
+			return nil, err
+		}
+
+		return &Response{Headers: headers}, nil
+	default:
+		if len(req.Headers) > 0 {
+			if m.callWithHdrsFn != nil {
+				var result any
+
+				resultArg := any(&result)
+				if req.ExpectNoResponse {
+					resultArg = nil
+				}
+
+				if err := m.callWithHdrsFn(ctx, req.Method, req.Path, req.Headers, coalesceTestBody(req), resultArg); err != nil {
+					return nil, err
+				}
+
+				if req.ExpectNoResponse {
+					return &Response{}, nil
+				}
+
+				return marshalTestResponse(result)
+			}
+		}
+
+		if m.callFn != nil {
+			var result any
+
+			resultArg := any(&result)
+			if req.ExpectNoResponse {
+				resultArg = nil
+			}
+
+			if err := m.callFn(ctx, req.Method, req.Path, coalesceTestBody(req), resultArg); err != nil {
+				return nil, err
+			}
+
+			if req.ExpectNoResponse {
+				return &Response{}, nil
+			}
+
+			return marshalTestResponse(result)
+		}
+
+		if m.callRawFn != nil {
+			body, err := m.callRawFn(ctx, req.Method, req.Path, coalesceTestBody(req))
+			if err != nil {
+				return nil, err
+			}
+
+			return &Response{Body: body}, nil
+		}
 	}
 
-	return fmt.Errorf("mockBackend.Call not configured")
-}
-
-func (m *mockBackend) CallWithHeaders(ctx context.Context, method, path string,
-	headers map[string]string, body, result any) error {
-	if m.callWithHdrsFn != nil {
-		return m.callWithHdrsFn(ctx, method, path, headers, body, result)
-	}
-
-	return fmt.Errorf("mockBackend.CallWithHeaders not configured")
-}
-
-func (m *mockBackend) CallRaw(ctx context.Context, method, path string, body any) ([]byte, error) {
-	if m.callRawFn != nil {
-		return m.callRawFn(ctx, method, path, body)
-	}
-
-	return nil, fmt.Errorf("mockBackend.CallRaw not configured")
+	return nil, fmt.Errorf("mockBackend.Do not configured")
 }
 
 // Compile-time interface compliance check.
 var _ Backend = (*mockBackend)(nil)
+
+type backendOnly struct{}
+
+func (backendOnly) Do(context.Context, Request) (*Response, error) {
+	return nil, fmt.Errorf("backendOnly.do not configured")
+}
 
 // ---------------------------------------------------------------------------
 // Helper: unmarshalInto uses JSON round-trip to populate the result pointer
@@ -86,6 +136,27 @@ func unmarshalInto(src any, dst any) error {
 	}
 
 	return json.Unmarshal(data, dst)
+}
+
+func marshalTestResponse(result any) (*Response, error) {
+	if result == nil {
+		return &Response{}, nil
+	}
+
+	data, err := json.Marshal(result)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Response{Body: data}, nil
+}
+
+func coalesceTestBody(req Request) any {
+	if len(req.BodyBytes) > 0 {
+		return req.BodyBytes
+	}
+
+	return req.Body
 }
 
 // ---------------------------------------------------------------------------
@@ -227,6 +298,51 @@ func TestUpdateError(t *testing.T) {
 	svc := &BaseService{Backend: mock}
 	input := &testUpdateInput{Name: "Conflict"}
 	org, err := Update[testOrg, testUpdateInput](context.Background(), svc, "/organizations/org-1", input)
+
+	require.Error(t, err)
+	assert.Nil(t, org)
+	assert.Equal(t, expectedErr, err)
+}
+
+func TestUpsert(t *testing.T) {
+	t.Parallel()
+
+	mock := &mockBackend{
+		callFn: func(_ context.Context, method, path string, body, result any) error {
+			assert.Equal(t, "PUT", method)
+			assert.Equal(t, "/organizations/org-1", path)
+			assert.NotNil(t, body)
+
+			input, ok := body.(*testUpdateInput)
+			require.True(t, ok)
+			assert.Equal(t, "Upserted Org", input.Name)
+
+			return unmarshalInto(testOrg{ID: "org-1", Name: "Upserted Org"}, result)
+		},
+	}
+
+	svc := &BaseService{Backend: mock}
+	input := &testUpdateInput{Name: "Upserted Org"}
+	org, err := Upsert[testOrg, testUpdateInput](context.Background(), svc, "/organizations/org-1", input)
+
+	require.NoError(t, err)
+	require.NotNil(t, org)
+	assert.Equal(t, "org-1", org.ID)
+	assert.Equal(t, "Upserted Org", org.Name)
+}
+
+func TestUpsertError(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errors.New("backend error: upsert failed")
+	mock := &mockBackend{
+		callFn: func(_ context.Context, _, _ string, _, _ any) error {
+			return expectedErr
+		},
+	}
+
+	svc := &BaseService{Backend: mock}
+	org, err := Upsert[testOrg, testUpdateInput](context.Background(), svc, "/organizations/org-1", &testUpdateInput{Name: "Broken"})
 
 	require.Error(t, err)
 	assert.Nil(t, org)
@@ -446,7 +562,7 @@ func TestListWithOptions(t *testing.T) {
 	}
 
 	svc := &BaseService{Backend: mock}
-	opts := &models.ListOptions{
+	opts := &models.CursorListOptions{
 		Limit:     25,
 		SortBy:    "name",
 		SortOrder: "asc",
@@ -584,7 +700,7 @@ func TestBuildListPathEmptyOpts(t *testing.T) {
 	t.Parallel()
 
 	// Empty ListOptions struct (all zero values) -- path should be unchanged.
-	opts := &models.ListOptions{}
+	opts := &models.CursorListOptions{}
 	result := buildListPath("/organizations", opts, "")
 	assert.Equal(t, "/organizations", result)
 }
@@ -600,23 +716,15 @@ func TestBuildListPathWithCursorOnly(t *testing.T) {
 func TestBuildListPathWithLimit(t *testing.T) {
 	t.Parallel()
 
-	opts := &models.ListOptions{Limit: 50}
+	opts := &models.CursorListOptions{Limit: 50}
 	result := buildListPath("/organizations", opts, "")
 	assert.Contains(t, result, "limit=50")
-}
-
-func TestBuildListPathWithPage(t *testing.T) {
-	t.Parallel()
-
-	opts := &models.ListOptions{Page: 3}
-	result := buildListPath("/organizations", opts, "")
-	assert.Contains(t, result, "page=3")
 }
 
 func TestBuildListPathWithSorting(t *testing.T) {
 	t.Parallel()
 
-	opts := &models.ListOptions{
+	opts := &models.CursorListOptions{
 		SortBy:    "created_at",
 		SortOrder: "desc",
 	}
@@ -631,7 +739,7 @@ func TestBuildListPathWithDates(t *testing.T) {
 	startDate := time.Date(2025, 1, 15, 10, 30, 0, 0, time.UTC)
 	endDate := time.Date(2025, 6, 30, 23, 59, 59, 0, time.UTC)
 
-	opts := &models.ListOptions{
+	opts := &models.CursorListOptions{
 		StartDate: &startDate,
 		EndDate:   &endDate,
 	}
@@ -644,7 +752,7 @@ func TestBuildListPathWithDates(t *testing.T) {
 func TestBuildListPathWithFilters(t *testing.T) {
 	t.Parallel()
 
-	opts := &models.ListOptions{
+	opts := &models.CursorListOptions{
 		Filters: map[string]string{
 			"status": "active",
 		},
@@ -658,7 +766,7 @@ func TestBuildListPathCursorPrecedence(t *testing.T) {
 
 	// When both cursor arg and opts.Cursor are present, the cursor arg wins
 	// because it comes from pagination (the next page cursor).
-	opts := &models.ListOptions{
+	opts := &models.CursorListOptions{
 		Cursor: "initial-cursor",
 	}
 	result := buildListPath("/organizations", opts, "pagination-cursor")
@@ -671,7 +779,7 @@ func TestBuildListPathInitialCursor(t *testing.T) {
 	t.Parallel()
 
 	// When cursor arg is empty, opts.Cursor should be used (initial page).
-	opts := &models.ListOptions{
+	opts := &models.CursorListOptions{
 		Cursor: "start-here",
 	}
 	result := buildListPath("/organizations", opts, "")
@@ -684,9 +792,8 @@ func TestBuildListPathAllOptions(t *testing.T) {
 	startDate := time.Date(2025, 3, 1, 0, 0, 0, 0, time.UTC)
 	endDate := time.Date(2025, 3, 31, 23, 59, 59, 0, time.UTC)
 
-	opts := &models.ListOptions{
+	opts := &models.CursorListOptions{
 		Limit:     20,
-		Page:      2,
 		Cursor:    "initial",
 		SortBy:    "name",
 		SortOrder: "asc",
@@ -700,7 +807,6 @@ func TestBuildListPathAllOptions(t *testing.T) {
 	result := buildListPath("/accounts", opts, "")
 
 	assert.Contains(t, result, "limit=20")
-	assert.Contains(t, result, "page=2")
 	assert.Contains(t, result, "cursor=initial")
 	assert.Contains(t, result, "sortBy=name")
 	assert.Contains(t, result, "sortOrder=asc")
@@ -856,6 +962,167 @@ func TestUpdate_NilBackend(t *testing.T) {
 		require.Error(t, err)
 		assert.Nil(t, org)
 		assert.ErrorIs(t, err, ErrNilBackend)
+	})
+}
+
+func TestCount(t *testing.T) {
+	t.Parallel()
+
+	mock := &mockBackend{callHeadFn: func(_ context.Context, path string) (map[string][]string, error) {
+		assert.Equal(t, "/organizations/metrics/count", path)
+		return map[string][]string{"X-Total-Count": {"42"}}, nil
+	}}
+
+	svc := &BaseService{Backend: mock}
+	count, err := Count(context.Background(), svc, "/organizations/metrics/count")
+
+	require.NoError(t, err)
+	assert.Equal(t, 42, count)
+}
+
+func TestCountAcceptsCaseInsensitiveHeaderKeys(t *testing.T) {
+	t.Parallel()
+
+	svc := &BaseService{Backend: &mockBackend{callHeadFn: func(_ context.Context, _ string) (map[string][]string, error) {
+		return map[string][]string{"x-total-count": {" 42 "}}, nil
+	}}}
+
+	count, err := Count(context.Background(), svc, "/organizations/metrics/count")
+	require.NoError(t, err)
+	assert.Equal(t, 42, count)
+}
+
+func TestCountErrors(t *testing.T) {
+	t.Parallel()
+
+	t.Run("missing header", func(t *testing.T) {
+		t.Parallel()
+
+		svc := &BaseService{Backend: &mockBackend{callHeadFn: func(_ context.Context, _ string) (map[string][]string, error) {
+			return map[string][]string{}, nil
+		}}}
+
+		count, err := Count(context.Background(), svc, "/organizations/metrics/count")
+		require.Error(t, err)
+		assert.Equal(t, 0, count)
+	})
+
+	t.Run("invalid header", func(t *testing.T) {
+		t.Parallel()
+
+		svc := &BaseService{Backend: &mockBackend{callHeadFn: func(_ context.Context, _ string) (map[string][]string, error) {
+			return map[string][]string{"X-Total-Count": {"nope"}}, nil
+		}}}
+
+		count, err := Count(context.Background(), svc, "/organizations/metrics/count")
+		require.Error(t, err)
+		assert.Equal(t, 0, count)
+		assert.Contains(t, err.Error(), `invalid X-Total-Count header value: "nope"`)
+	})
+
+	t.Run("multiple headers", func(t *testing.T) {
+		t.Parallel()
+
+		svc := &BaseService{Backend: &mockBackend{callHeadFn: func(_ context.Context, _ string) (map[string][]string, error) {
+			return map[string][]string{"X-Total-Count": {"1", "2"}}, nil
+		}}}
+
+		count, err := Count(context.Background(), svc, "/organizations/metrics/count")
+		require.Error(t, err)
+		assert.Equal(t, 0, count)
+		assert.Contains(t, err.Error(), "multiple X-Total-Count header values")
+	})
+
+	t.Run("negative header", func(t *testing.T) {
+		t.Parallel()
+
+		svc := &BaseService{Backend: &mockBackend{callHeadFn: func(_ context.Context, _ string) (map[string][]string, error) {
+			return map[string][]string{"X-Total-Count": {" -1 "}}, nil
+		}}}
+
+		count, err := Count(context.Background(), svc, "/organizations/metrics/count")
+		require.Error(t, err)
+		assert.Equal(t, 0, count)
+		assert.Contains(t, err.Error(), `invalid X-Total-Count header value: " -1 "`)
+	})
+
+	t.Run("head error propagation", func(t *testing.T) {
+		t.Parallel()
+
+		svc := &BaseService{Backend: backendOnly{}}
+		count, err := Count(context.Background(), svc, "/organizations/metrics/count")
+		require.Error(t, err)
+		assert.Equal(t, 0, count)
+		assert.Contains(t, err.Error(), "backendOnly.do not configured")
+	})
+
+	t.Run("typed nil backend", func(t *testing.T) {
+		t.Parallel()
+
+		var typedNil *mockBackend
+
+		svc := &BaseService{Backend: typedNil}
+		count, err := Count(context.Background(), svc, "/organizations/metrics/count")
+		require.Error(t, err)
+		assert.Equal(t, 0, count)
+		assert.ErrorIs(t, err, ErrNilBackend)
+	})
+}
+
+func TestActionWithHeaders(t *testing.T) {
+	t.Parallel()
+
+	mock := &mockBackend{callWithHdrsFn: func(_ context.Context, method, path string, headers map[string]string, body, result any) error {
+		assert.Equal(t, "POST", method)
+		assert.Equal(t, "/transactions/dsl", path)
+		assert.Equal(t, "multipart/form-data; boundary=test", headers["Content-Type"])
+		assert.Equal(t, []byte("payload"), body)
+
+		return unmarshalInto(testOrg{ID: "txn-dsl", Name: "ok"}, result)
+	}}
+
+	svc := &BaseService{Backend: mock}
+	result, err := ActionWithHeaders[testOrg](context.Background(), svc, "/transactions/dsl", map[string]string{"Content-Type": "multipart/form-data; boundary=test"}, []byte("payload"))
+
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.Equal(t, "txn-dsl", result.ID)
+}
+
+func TestActionWithHeadersErrors(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil service", func(t *testing.T) {
+		t.Parallel()
+
+		result, err := ActionWithHeaders[testOrg](context.Background(), nil, "/transactions/dsl", map[string]string{"Content-Type": "multipart/form-data"}, []byte("payload"))
+		require.Error(t, err)
+		assert.Nil(t, result)
+		assert.ErrorIs(t, err, ErrNilService)
+	})
+
+	t.Run("nil backend", func(t *testing.T) {
+		t.Parallel()
+
+		svc := &BaseService{Backend: nil}
+		result, err := ActionWithHeaders[testOrg](context.Background(), svc, "/transactions/dsl", map[string]string{"Content-Type": "multipart/form-data"}, []byte("payload"))
+		require.Error(t, err)
+		assert.Nil(t, result)
+		assert.ErrorIs(t, err, ErrNilBackend)
+	})
+
+	t.Run("backend error", func(t *testing.T) {
+		t.Parallel()
+
+		expectedErr := errors.New("boom")
+		svc := &BaseService{Backend: &mockBackend{callWithHdrsFn: func(_ context.Context, _, _ string, _ map[string]string, _, _ any) error {
+			return expectedErr
+		}}}
+
+		result, err := ActionWithHeaders[testOrg](context.Background(), svc, "/transactions/dsl", map[string]string{"Content-Type": "multipart/form-data"}, []byte("payload"))
+		require.Error(t, err)
+		assert.Nil(t, result)
+		assert.ErrorIs(t, err, expectedErr)
 	})
 }
 
