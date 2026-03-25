@@ -10,6 +10,11 @@ import (
 	sdkerrors "github.com/LerianStudio/lerian-sdk-golang/pkg/errors"
 )
 
+const (
+	fakeFeesSortOrderAsc  = "asc"
+	fakeFeesSortOrderDesc = "desc"
+)
+
 // newFakeFeesClient constructs a [fees.Client] with all service fields
 // backed by in-memory fakes.
 func newFakeFeesClient(cfg *fakeConfig) *fees.Client {
@@ -313,7 +318,7 @@ func sortFakePackages(all []fees.Package, opts *fees.PackageListOptions) []fees.
 		return ordered
 	}
 
-	sortOrder := "desc"
+	sortOrder := fakeFeesSortOrderDesc
 	if opts != nil && opts.SortOrder != "" {
 		sortOrder = strings.ToLower(opts.SortOrder)
 	}
@@ -322,7 +327,7 @@ func sortFakePackages(all []fees.Package, opts *fees.PackageListOptions) []fees.
 		left := ordered[i].CreatedAt
 		right := ordered[j].CreatedAt
 
-		if sortOrder == "asc" {
+		if sortOrder == fakeFeesSortOrderAsc {
 			return left.Before(right)
 		}
 

@@ -76,7 +76,7 @@ func optsSortOrder(opts *midaz.CRMListOptions) string {
 	if opts == nil {
 		return ""
 	}
-	return opts.SortOrder
+	return strings.ToLower(strings.TrimSpace(opts.SortOrder))
 }
 
 func aliasOptsPageNumber(opts *midaz.AliasListOptions) int {
@@ -97,7 +97,7 @@ func aliasOptsSortOrder(opts *midaz.AliasListOptions) string {
 	if opts == nil {
 		return ""
 	}
-	return opts.SortOrder
+	return strings.ToLower(strings.TrimSpace(opts.SortOrder))
 }
 
 func aliasOptsIncludeDeleted(opts *midaz.AliasListOptions) bool {
@@ -111,7 +111,7 @@ func aliasOptsHolderID(opts *midaz.AliasListOptions) string {
 	if opts == nil {
 		return ""
 	}
-	return opts.HolderID
+	return strings.TrimSpace(opts.HolderID)
 }
 
 func validateCRMOrgIDFake(operation, resource, orgID string) (string, error) {
@@ -214,6 +214,11 @@ func (f *fakeHolders) List(_ context.Context, orgID string, opts *midaz.CRMListO
 		return pagination.NewErrorIterator[midaz.Holder](err)
 	}
 
+	sortOrder := optsSortOrder(opts)
+	if sortOrder != "" && sortOrder != "asc" && sortOrder != "desc" {
+		return pagination.NewErrorIterator[midaz.Holder](sdkerrors.NewValidation("Holders.List", "Holder", "sort order must be either asc or desc"))
+	}
+
 	includeDeleted := wantsDeletedRecords(opts)
 	holders := make([]midaz.Holder, 0, f.store.Len())
 	for _, holder := range f.store.List() {
@@ -226,13 +231,13 @@ func (f *fakeHolders) List(_ context.Context, orgID string, opts *midaz.CRMListO
 		holders = append(holders, holder)
 	}
 
-	if wantsDescendingCRMOrder(optsSortOrder(opts)) {
+	if wantsDescendingCRMOrder(sortOrder) {
 		for left, right := 0, len(holders)-1; left < right; left, right = left+1, right-1 {
 			holders[left], holders[right] = holders[right], holders[left]
 		}
 	}
 
-	return newCRMListIterator(holders, &models.PageListOptions{PageNumber: optsPageNumber(opts), PageSize: optsPageSize(opts), SortOrder: optsSortOrder(opts)})
+	return newCRMListIterator(holders, &models.PageListOptions{PageNumber: optsPageNumber(opts), PageSize: optsPageSize(opts), SortOrder: sortOrder})
 }
 
 func (f *fakeHolders) Update(_ context.Context, orgID string, id string, input *midaz.UpdateHolderInput) (*midaz.Holder, error) {
@@ -425,8 +430,16 @@ func (f *fakeAliases) List(_ context.Context, orgID string, opts *midaz.AliasLis
 		return pagination.NewErrorIterator[midaz.Alias](err)
 	}
 
+	sortOrder := aliasOptsSortOrder(opts)
+	if sortOrder != "" && sortOrder != "asc" && sortOrder != "desc" {
+		return pagination.NewErrorIterator[midaz.Alias](sdkerrors.NewValidation("Aliases.List", "Alias", "sort order must be either asc or desc"))
+	}
+
 	includeDeleted := aliasOptsIncludeDeleted(opts)
 	holderIDFilter := aliasOptsHolderID(opts)
+	if opts != nil && opts.HolderID != "" && holderIDFilter == "" {
+		return pagination.NewErrorIterator[midaz.Alias](sdkerrors.NewValidation("Aliases.List", "Alias", "holder id is required"))
+	}
 
 	aliases := make([]midaz.Alias, 0, f.store.Len())
 	for _, alias := range f.store.List() {
@@ -442,13 +455,13 @@ func (f *fakeAliases) List(_ context.Context, orgID string, opts *midaz.AliasLis
 		aliases = append(aliases, alias)
 	}
 
-	if wantsDescendingCRMOrder(aliasOptsSortOrder(opts)) {
+	if wantsDescendingCRMOrder(sortOrder) {
 		for left, right := 0, len(aliases)-1; left < right; left, right = left+1, right-1 {
 			aliases[left], aliases[right] = aliases[right], aliases[left]
 		}
 	}
 
-	return newCRMListIterator(aliases, &models.PageListOptions{PageNumber: aliasOptsPageNumber(opts), PageSize: aliasOptsPageSize(opts), SortOrder: aliasOptsSortOrder(opts)})
+	return newCRMListIterator(aliases, &models.PageListOptions{PageNumber: aliasOptsPageNumber(opts), PageSize: aliasOptsPageSize(opts), SortOrder: sortOrder})
 }
 
 func (f *fakeAliases) Update(_ context.Context, orgID, holderID string, aliasID string, input *midaz.UpdateAliasInput) (*midaz.Alias, error) {

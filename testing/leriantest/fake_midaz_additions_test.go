@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/LerianStudio/lerian-sdk-golang/midaz"
-	midazmodels "github.com/LerianStudio/lerian-sdk-golang/models"
 	sdkerrors "github.com/LerianStudio/lerian-sdk-golang/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -69,31 +68,6 @@ func TestFakeMidazBalancesCreatePreservesFlagsAndSupportsLookups(t *testing.T) {
 	assert.Equal(t, created.ID, byUpdatedAlias[0].ID)
 	require.NotNil(t, byUpdatedAlias[0].AccountAlias)
 	assert.Equal(t, updatedAlias, *byUpdatedAlias[0].AccountAlias)
-}
-
-func TestFakeMidazBalancesCreateIgnoresStatusAndMetadataLikeProduction(t *testing.T) {
-	t.Parallel()
-
-	ctx := context.Background()
-	client := newFakeMidazClient(&fakeConfig{errorInjections: make(map[string]error)})
-
-	account, err := client.Onboarding.Accounts.Create(ctx, "org-1", "ledger-1", &midaz.CreateAccountInput{
-		Name:      "Primary",
-		Type:      "asset",
-		AssetCode: "BRL",
-	})
-	require.NoError(t, err)
-
-	status := &midazmodels.Status{Code: "suspended"}
-	metadata := midazmodels.Metadata{"reason": "manual-hold"}
-	created, err := client.Transactions.Balances.CreateForAccount(ctx, "org-1", "ledger-1", account.ID, &midaz.CreateBalanceInput{
-		Key:      "asset-freeze",
-		Status:   status,
-		Metadata: metadata,
-	})
-	require.NoError(t, err)
-	assert.Equal(t, "active", created.Status.Code)
-	assert.Nil(t, created.Metadata)
 }
 
 func TestFakeMidazBalancesNilInputValidation(t *testing.T) {

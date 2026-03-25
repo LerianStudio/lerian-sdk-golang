@@ -605,7 +605,7 @@ func TestFakeMidazSegmentsListMultiple(t *testing.T) {
 }
 
 // ===========================================================================
-// 6. Balances -- full CRUD + GetByAlias + GetByExternalCode + GetByAccountID
+// 6. Balances -- full CRUD + ListByAlias + ListByExternalCode + ListByAccountID
 // ===========================================================================
 
 func TestFakeMidazBalancesCRUD(t *testing.T) {
