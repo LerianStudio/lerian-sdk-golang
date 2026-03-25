@@ -1,3 +1,11 @@
+## [0.2.0](https://github.com/LerianStudio/lerian-sdk-golang/compare/v0.1.0...v0.2.0) (2026-03-25)
+
+
+### Features
+
+* **midaz:** add CRM services for holders and aliases ([85af54c](https://github.com/LerianStudio/lerian-sdk-golang/commit/85af54c55b3cb668dab99e4d92ef098ec41b07e9))
+* **pkg/pagination:** add numbered-page iterator adapter for CRM pagination ([2e1b79c](https://github.com/LerianStudio/lerian-sdk-golang/commit/2e1b79ce6c30596e81984f4cfff6b518f526fd39))
+
 ## [0.1.0](https://github.com/LerianStudio/lerian-sdk-golang/compare/v0.0.1...v0.1.0) (2026-03-24)
 
 
