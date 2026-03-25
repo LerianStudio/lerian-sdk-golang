@@ -3,6 +3,8 @@ package fees
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
+	"strings"
 	"time"
 
 	"github.com/LerianStudio/lerian-sdk-golang/pkg/core"
@@ -43,7 +45,7 @@ type Config struct {
 func (c Config) String() string {
 	return fmt.Sprintf(
 		"FeesConfig{BaseURL: %q, ClientID: %q, ClientSecret: [REDACTED], TokenURL: %q, OrganizationID: %q, Timeout: %s}",
-		c.BaseURL, c.ClientID, c.TokenURL, c.OrganizationID, c.Timeout,
+		redactURL(c.BaseURL), c.ClientID, redactURL(c.TokenURL), c.OrganizationID, c.Timeout,
 	)
 }
 
@@ -52,13 +54,62 @@ func (c Config) String() string {
 func (c Config) MarshalJSON() ([]byte, error) {
 	type Alias Config
 
+	redacted := Alias(c)
+	redacted.BaseURL = redactURL(c.BaseURL)
+	redacted.TokenURL = redactURL(c.TokenURL)
+
 	return json.Marshal(&struct {
 		Alias
 		ClientSecret string `json:"ClientSecret"`
 	}{
-		Alias:        Alias(c),
+		Alias:        redacted,
 		ClientSecret: "[REDACTED]",
 	})
+}
+
+func redactURL(raw string) string {
+	if raw == "" {
+		return ""
+	}
+
+	parsed, err := url.Parse(raw)
+	if err != nil {
+		return "[REDACTED_INVALID_URL]"
+	}
+
+	if parsed.User != nil {
+		username := parsed.User.Username()
+		if username != "" {
+			parsed.User = url.User(username)
+		} else {
+			parsed.User = nil
+		}
+	}
+
+	query := parsed.Query()
+	for key := range query {
+		if isSensitiveURLQueryKey(key) {
+			query.Set(key, "[REDACTED]")
+		}
+	}
+
+	parsed.RawQuery = query.Encode()
+	if parsed.Fragment != "" {
+		parsed.Fragment = "[REDACTED]"
+	}
+
+	return parsed.String()
+}
+
+func isSensitiveURLQueryKey(key string) bool {
+	normalized := strings.ToLower(key)
+	for _, token := range []string{"token", "secret", "password", "signature", "sig", "key", "auth"} {
+		if strings.Contains(normalized, token) {
+			return true
+		}
+	}
+
+	return false
 }
 
 // Option configures a Fees [Config]. Options are applied in order; later
@@ -66,9 +117,9 @@ func (c Config) MarshalJSON() ([]byte, error) {
 type Option func(*Config) error
 
 // WithBaseURL sets the base URL for the Fees API.
-func WithBaseURL(url string) Option {
+func WithBaseURL(baseURL string) Option {
 	return func(c *Config) error {
-		c.BaseURL = url
+		c.BaseURL = baseURL
 		return nil
 	}
 }

@@ -33,9 +33,22 @@ func newEstimatesService(backend core.Backend) estimatesServiceAPI {
 
 // Calculate performs fee estimation by POSTing to /estimates.
 func (s *estimatesService) Calculate(ctx context.Context, input *FeeEstimateInput) (*FeeEstimateResponse, error) {
+	if err := ensureService(s); err != nil {
+		return nil, err
+	}
+
 	if err := input.Validate(); err != nil {
 		return nil, err
 	}
 
-	return core.Create[FeeEstimateResponse, FeeEstimateInput](ctx, &s.BaseService, "/estimates", input)
+	resp, err := core.Create[FeeEstimateResponse, FeeEstimateInput](ctx, &s.BaseService, "/estimates", input)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := validateEstimateResponse("Estimates.Calculate", resp); err != nil {
+		return nil, err
+	}
+
+	return resp, nil
 }
