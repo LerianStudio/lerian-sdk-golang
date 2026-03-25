@@ -8,8 +8,10 @@
 //
 // # Key Types
 //
-//   - [ListOptions] -- configures pagination, sorting, and filtering for
-//     List operations across all products
+//   - [CursorListOptions] -- configures cursor-based pagination, sorting, and
+//     filtering for list operations across products
+//   - [PageListOptions] -- configures page-based pagination for APIs without
+//     cursor semantics
 //   - [ListResponse] -- generic paginated response envelope with typed items
 //   - [Pagination] -- page metadata (total count, cursors, limits)
 //   - [Status] -- entity status with optional description
