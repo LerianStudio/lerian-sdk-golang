@@ -3,6 +3,7 @@ package reporter
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -14,10 +15,10 @@ import (
 	"github.com/LerianStudio/lerian-sdk-golang/pkg/pagination"
 )
 
-// TemplatesService provides access to Reporter template endpoints.
+// templatesServiceAPI provides access to Reporter template endpoints.
 // Templates define the layout, formatting rules, and file type for generated
 // reports. Template creation requires uploading a file via multipart/form-data.
-type TemplatesService interface {
+type templatesServiceAPI interface {
 	// Create uploads a new template with metadata and file content.
 	// The file parameter provides the template file bytes (e.g. a .docx or
 	// .html template). The input provides the metadata fields (name, format,
@@ -28,23 +29,23 @@ type TemplatesService interface {
 	Get(ctx context.Context, id string) (*Template, error)
 
 	// List returns a paginated iterator over all available templates.
-	List(ctx context.Context, opts *models.ListOptions) *pagination.Iterator[Template]
+	List(ctx context.Context, opts *models.CursorListOptions) *pagination.Iterator[Template]
 
 	// Delete removes a template by ID.
 	Delete(ctx context.Context, id string) error
 }
 
-// templatesService is the concrete implementation of [TemplatesService].
+// templatesService is the concrete implementation of [templatesServiceAPI].
 type templatesService struct {
 	core.BaseService
 }
 
 // Compile-time interface compliance check.
-var _ TemplatesService = (*templatesService)(nil)
+var _ templatesServiceAPI = (*templatesService)(nil)
 
-// newTemplatesService constructs a [TemplatesService] backed by the given
+// newTemplatesService constructs a [templatesServiceAPI] backed by the given
 // [core.Backend].
-func newTemplatesService(backend core.Backend) TemplatesService {
+func newTemplatesService(backend core.Backend) templatesServiceAPI {
 	return &templatesService{
 		BaseService: core.BaseService{Backend: backend},
 	}
@@ -54,9 +55,7 @@ func newTemplatesService(backend core.Backend) TemplatesService {
 //
 // This method builds a multipart request body containing the metadata fields
 // (name, format, description) as form fields and the template file as a file
-// part. It uses [core.RawBody] to bypass JSON marshaling in the Backend,
-// allowing the pre-built multipart body to be sent verbatim with the correct
-// Content-Type header.
+// part, then sends the pre-built bytes directly through the core transport.
 func (s *templatesService) Create(ctx context.Context, input *CreateTemplateInput, file io.Reader) (*Template, error) {
 	const operation = "Templates.Create"
 
@@ -66,6 +65,11 @@ func (s *templatesService) Create(ctx context.Context, input *CreateTemplateInpu
 
 	if file == nil {
 		return nil, sdkerrors.NewValidation(operation, "Template", "file is required")
+	}
+
+	backend, err := core.ResolveBackend(&s.BaseService)
+	if err != nil {
+		return nil, err
 	}
 
 	// Build the multipart request body.
@@ -103,18 +107,19 @@ func (s *templatesService) Create(ctx context.Context, input *CreateTemplateInpu
 		return nil, fmt.Errorf("reporter: close multipart writer: %w", err)
 	}
 
-	// Send via CallWithHeaders with RawBody to bypass JSON marshaling
-	// and override Content-Type with the multipart boundary.
-	headers := map[string]string{
-		"Content-Type": writer.FormDataContentType(),
+	res, err := backend.Do(ctx, core.Request{
+		Method:      "POST",
+		Path:        "/templates",
+		BodyBytes:   buf.Bytes(),
+		ContentType: writer.FormDataContentType(),
+	})
+	if err != nil {
+		return nil, err
 	}
 
 	var result Template
-
-	err = s.Backend.CallWithHeaders(ctx, "POST", "/templates", headers,
-		core.RawBody{Data: buf.Bytes()}, &result)
-	if err != nil {
-		return nil, err
+	if err := json.Unmarshal(res.Body, &result); err != nil {
+		return nil, sdkerrors.NewInternal("reporter", operation, "failed to unmarshal response body", err)
 	}
 
 	return &result, nil
@@ -132,7 +137,7 @@ func (s *templatesService) Get(ctx context.Context, id string) (*Template, error
 }
 
 // List returns a paginated iterator over templates.
-func (s *templatesService) List(ctx context.Context, opts *models.ListOptions) *pagination.Iterator[Template] {
+func (s *templatesService) List(ctx context.Context, opts *models.CursorListOptions) *pagination.Iterator[Template] {
 	return core.List[Template](ctx, &s.BaseService, "/templates", opts)
 }
 

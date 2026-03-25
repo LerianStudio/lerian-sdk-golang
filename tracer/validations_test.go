@@ -200,7 +200,7 @@ func TestValidationsListWithOptions(t *testing.T) {
 	}
 
 	svc := newValidationsService(mock)
-	opts := &models.ListOptions{
+	opts := &models.CursorListOptions{
 		Limit:     50,
 		SortBy:    "createdAt",
 		SortOrder: "desc",

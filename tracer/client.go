@@ -94,35 +94,30 @@ func WithTimeout(d time.Duration) Option {
 // Client
 // ---------------------------------------------------------------------------
 
-// Client is the Tracer product client. It is constructed by the root
-// [lerian.Client] when the WithTracer option is supplied and provides
-// access to all Tracer service endpoints through domain-specific accessors.
+// Client is the Tracer product client. It is typically constructed by the root
+// [lerian.Client] from [lerian.Config] and provides access to all Tracer
+// service endpoints through domain-specific accessors.
 type Client struct {
-	backend core.Backend
-	config  Config
-
 	// Rules provides access to compliance rule management endpoints.
-	Rules RulesService
+	Rules rulesServiceAPI
 
 	// Limits provides access to rate/amount limit management endpoints.
-	Limits LimitsService
+	Limits limitsServiceAPI
 
 	// Validations provides access to transaction validation endpoints.
-	Validations ValidationsService
+	Validations validationsServiceAPI
 
 	// AuditEvents provides access to audit trail query and verification endpoints.
-	AuditEvents AuditEventsService
+	AuditEvents auditEventsServiceAPI
 }
 
 // NewClient creates a Tracer product [Client] from a pre-configured backend
 // and a validated [Config].
 //
-// This function is called internally by the umbrella client during
-// [lerian.New] -- SDK consumers should not call it directly.
-func NewClient(backend core.Backend, cfg Config) *Client {
+// Prefer constructing Tracer through the root [lerian.New] API unless you are
+// wiring a custom integration layer.
+func NewClient(backend core.Backend, _ Config) *Client {
 	return &Client{
-		config:      cfg,
-		backend:     backend,
 		Rules:       newRulesService(backend),
 		Limits:      newLimitsService(backend),
 		Validations: newValidationsService(backend),

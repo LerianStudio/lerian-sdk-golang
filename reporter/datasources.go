@@ -10,28 +10,28 @@ import (
 	"github.com/LerianStudio/lerian-sdk-golang/pkg/pagination"
 )
 
-// DataSourcesService provides read-only access to Reporter data-source
+// dataSourcesServiceAPI provides read-only access to Reporter data-source
 // endpoints. Data sources represent the upstream systems (databases, APIs,
 // streams) from which reports pull their data.
-type DataSourcesService interface {
+type dataSourcesServiceAPI interface {
 	// Get retrieves a single data source by its unique identifier.
 	Get(ctx context.Context, id string) (*DataSource, error)
 
 	// List returns a paginated iterator over all available data sources.
-	List(ctx context.Context, opts *models.ListOptions) *pagination.Iterator[DataSource]
+	List(ctx context.Context, opts *models.CursorListOptions) *pagination.Iterator[DataSource]
 }
 
-// dataSourcesService is the concrete implementation of [DataSourcesService].
+// dataSourcesService is the concrete implementation of [dataSourcesServiceAPI].
 type dataSourcesService struct {
 	core.BaseService
 }
 
 // Compile-time interface compliance check.
-var _ DataSourcesService = (*dataSourcesService)(nil)
+var _ dataSourcesServiceAPI = (*dataSourcesService)(nil)
 
-// newDataSourcesService constructs a [DataSourcesService] backed by the
+// newDataSourcesService constructs a [dataSourcesServiceAPI] backed by the
 // given [core.Backend].
-func newDataSourcesService(backend core.Backend) DataSourcesService {
+func newDataSourcesService(backend core.Backend) dataSourcesServiceAPI {
 	return &dataSourcesService{
 		BaseService: core.BaseService{Backend: backend},
 	}
@@ -49,6 +49,6 @@ func (s *dataSourcesService) Get(ctx context.Context, id string) (*DataSource, e
 }
 
 // List returns a paginated iterator over data sources.
-func (s *dataSourcesService) List(ctx context.Context, opts *models.ListOptions) *pagination.Iterator[DataSource] {
+func (s *dataSourcesService) List(ctx context.Context, opts *models.CursorListOptions) *pagination.Iterator[DataSource] {
 	return core.List[DataSource](ctx, &s.BaseService, "/datasources", opts)
 }

@@ -10,9 +10,9 @@ import (
 	"github.com/LerianStudio/lerian-sdk-golang/pkg/pagination"
 )
 
-// ReportsService provides full CRUD access to Reporter report endpoints,
+// reportsServiceAPI provides full CRUD access to Reporter report endpoints,
 // plus a Download method for retrieving the generated report file.
-type ReportsService interface {
+type reportsServiceAPI interface {
 	// Create generates a new report from the given input parameters.
 	Create(ctx context.Context, input *CreateReportInput) (*Report, error)
 
@@ -20,7 +20,7 @@ type ReportsService interface {
 	Get(ctx context.Context, id string) (*Report, error)
 
 	// List returns a paginated iterator over all reports.
-	List(ctx context.Context, opts *models.ListOptions) *pagination.Iterator[Report]
+	List(ctx context.Context, opts *models.CursorListOptions) *pagination.Iterator[Report]
 
 	// Update modifies an existing report's mutable fields.
 	Update(ctx context.Context, id string, input *UpdateReportInput) (*Report, error)
@@ -33,17 +33,17 @@ type ReportsService interface {
 	Download(ctx context.Context, id string) ([]byte, error)
 }
 
-// reportsService is the concrete implementation of [ReportsService].
+// reportsService is the concrete implementation of [reportsServiceAPI].
 type reportsService struct {
 	core.BaseService
 }
 
 // Compile-time interface compliance check.
-var _ ReportsService = (*reportsService)(nil)
+var _ reportsServiceAPI = (*reportsService)(nil)
 
-// newReportsService constructs a [ReportsService] backed by the given
+// newReportsService constructs a [reportsServiceAPI] backed by the given
 // [core.Backend].
-func newReportsService(backend core.Backend) ReportsService {
+func newReportsService(backend core.Backend) reportsServiceAPI {
 	return &reportsService{
 		BaseService: core.BaseService{Backend: backend},
 	}
@@ -72,7 +72,7 @@ func (s *reportsService) Get(ctx context.Context, id string) (*Report, error) {
 }
 
 // List returns a paginated iterator over reports.
-func (s *reportsService) List(ctx context.Context, opts *models.ListOptions) *pagination.Iterator[Report] {
+func (s *reportsService) List(ctx context.Context, opts *models.CursorListOptions) *pagination.Iterator[Report] {
 	return core.List[Report](ctx, &s.BaseService, "/reports", opts)
 }
 
@@ -113,5 +113,15 @@ func (s *reportsService) Download(ctx context.Context, id string) ([]byte, error
 		return nil, sdkerrors.NewValidation(operation, "Report", "id is required")
 	}
 
-	return s.Backend.CallRaw(ctx, "GET", "/reports/"+url.PathEscape(id)+"/download", nil)
+	backend, err := core.ResolveBackend(&s.BaseService)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := backend.Do(ctx, core.Request{Method: "GET", Path: "/reports/" + url.PathEscape(id) + "/download"})
+	if err != nil {
+		return nil, err
+	}
+
+	return res.Body, nil
 }

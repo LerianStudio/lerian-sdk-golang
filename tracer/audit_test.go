@@ -204,7 +204,7 @@ func TestAuditEventsListWithOptions(t *testing.T) {
 	}
 
 	svc := newAuditEventsService(mock)
-	opts := &models.ListOptions{
+	opts := &models.CursorListOptions{
 		Limit:     25,
 		SortBy:    "timestamp",
 		SortOrder: "desc",

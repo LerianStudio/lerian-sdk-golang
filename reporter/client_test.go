@@ -20,17 +20,8 @@ import (
 // that NewClient correctly assigns its fields.
 type fakeBackend struct{}
 
-func (f *fakeBackend) Call(_ context.Context, _, _ string, _, _ any) error {
-	return nil
-}
-
-func (f *fakeBackend) CallWithHeaders(_ context.Context, _, _ string,
-	_ map[string]string, _, _ any) error {
-	return nil
-}
-
-func (f *fakeBackend) CallRaw(_ context.Context, _, _ string, _ any) ([]byte, error) {
-	return nil, nil
+func (f *fakeBackend) Do(_ context.Context, _ core.Request) (*core.Response, error) {
+	return &core.Response{}, nil
 }
 
 // Compile-time check.
@@ -54,16 +45,6 @@ func TestNewClientBasic(t *testing.T) {
 	client := NewClient(&fakeBackend{}, cfg)
 	require.NotNil(t, client)
 
-	// Config is stored.
-	assert.Equal(t, "http://localhost:3004/v1", client.config.BaseURL)
-	assert.Equal(t, "client-id", client.config.ClientID)
-	assert.Equal(t, "client-secret", client.config.ClientSecret)
-	assert.Equal(t, "https://auth.example.com/token", client.config.TokenURL)
-	assert.Equal(t, "org-123", client.config.OrganizationID)
-
-	// Backend is stored.
-	assert.NotNil(t, client.backend)
-
 	// Service accessors are wired.
 	assert.NotNil(t, client.DataSources)
 	assert.NotNil(t, client.Reports)
@@ -75,13 +56,9 @@ func TestNewClientZeroConfig(t *testing.T) {
 
 	client := NewClient(&fakeBackend{}, Config{})
 	require.NotNil(t, client)
-
-	assert.Empty(t, client.config.BaseURL)
-	assert.Empty(t, client.config.ClientID)
-	assert.Empty(t, client.config.ClientSecret)
-	assert.Empty(t, client.config.TokenURL)
-	assert.Empty(t, client.config.OrganizationID)
-	assert.Zero(t, client.config.Timeout)
+	assert.NotNil(t, client.DataSources)
+	assert.NotNil(t, client.Reports)
+	assert.NotNil(t, client.Templates)
 }
 
 // ---------------------------------------------------------------------------

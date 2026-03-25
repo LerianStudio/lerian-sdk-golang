@@ -10,11 +10,11 @@ import (
 	"github.com/LerianStudio/lerian-sdk-golang/pkg/pagination"
 )
 
-// LimitsService manages rate and amount limits with a state-machine lifecycle
+// limitsServiceAPI manages rate and amount limits with a state-machine lifecycle
 // (Draft -> Active -> Inactive). Limits enforce caps on operations such as
 // maximum transaction amounts per period, daily transfer counts, and similar
 // constraints.
-type LimitsService interface {
+type limitsServiceAPI interface {
 	// Create creates a new limit in DRAFT status.
 	Create(ctx context.Context, input *CreateLimitInput) (*Limit, error)
 
@@ -22,7 +22,7 @@ type LimitsService interface {
 	Get(ctx context.Context, id string) (*Limit, error)
 
 	// List returns a paginated iterator over all limits.
-	List(ctx context.Context, opts *models.ListOptions) *pagination.Iterator[Limit]
+	List(ctx context.Context, opts *models.CursorListOptions) *pagination.Iterator[Limit]
 
 	// Update partially updates an existing limit.
 	Update(ctx context.Context, id string, input *UpdateLimitInput) (*Limit, error)
@@ -40,20 +40,20 @@ type LimitsService interface {
 	Draft(ctx context.Context, id string) (*Limit, error)
 }
 
-// limitsService is the concrete implementation of [LimitsService].
+// limitsService is the concrete implementation of [limitsServiceAPI].
 type limitsService struct {
 	core.BaseService
 }
 
-// newLimitsService creates a new [LimitsService] backed by the given [core.Backend].
-func newLimitsService(backend core.Backend) LimitsService {
+// newLimitsService creates a new [limitsServiceAPI] backed by the given [core.Backend].
+func newLimitsService(backend core.Backend) limitsServiceAPI {
 	return &limitsService{
 		BaseService: core.BaseService{Backend: backend},
 	}
 }
 
 // Compile-time interface check.
-var _ LimitsService = (*limitsService)(nil)
+var _ limitsServiceAPI = (*limitsService)(nil)
 
 func (s *limitsService) Create(ctx context.Context, input *CreateLimitInput) (*Limit, error) {
 	const operation = "Limits.Create"
@@ -75,7 +75,7 @@ func (s *limitsService) Get(ctx context.Context, id string) (*Limit, error) {
 	return core.Get[Limit](ctx, &s.BaseService, "/limits/"+url.PathEscape(id))
 }
 
-func (s *limitsService) List(ctx context.Context, opts *models.ListOptions) *pagination.Iterator[Limit] {
+func (s *limitsService) List(ctx context.Context, opts *models.CursorListOptions) *pagination.Iterator[Limit] {
 	return core.List[Limit](ctx, &s.BaseService, "/limits", opts)
 }
 

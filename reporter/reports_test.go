@@ -7,13 +7,14 @@ import (
 	"testing"
 
 	"github.com/LerianStudio/lerian-sdk-golang/models"
+	"github.com/LerianStudio/lerian-sdk-golang/pkg/core"
 	sdkerrors "github.com/LerianStudio/lerian-sdk-golang/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 // ---------------------------------------------------------------------------
-// ReportsService.Create tests
+// reportsServiceAPI.Create tests
 // ---------------------------------------------------------------------------
 
 func TestReportsCreate(t *testing.T) {
@@ -77,7 +78,7 @@ func TestReportsCreateBackendError(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// ReportsService.Get tests
+// reportsServiceAPI.Get tests
 // ---------------------------------------------------------------------------
 
 func TestReportsGet(t *testing.T) {
@@ -133,7 +134,7 @@ func TestReportsGetBackendError(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// ReportsService.List tests
+// reportsServiceAPI.List tests
 // ---------------------------------------------------------------------------
 
 func TestReportsList(t *testing.T) {
@@ -184,7 +185,7 @@ func TestReportsListWithOptions(t *testing.T) {
 	}
 
 	svc := newReportsService(mock)
-	opts := &models.ListOptions{Limit: 25, SortOrder: "desc"}
+	opts := &models.CursorListOptions{Limit: 25, SortOrder: "desc"}
 	iter := svc.List(context.Background(), opts)
 
 	require.True(t, iter.Next(context.Background()))
@@ -193,7 +194,7 @@ func TestReportsListWithOptions(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// ReportsService.Update tests
+// reportsServiceAPI.Update tests
 // ---------------------------------------------------------------------------
 
 func TestReportsUpdate(t *testing.T) {
@@ -266,7 +267,7 @@ func TestReportsUpdateBackendError(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// ReportsService.Delete tests
+// reportsServiceAPI.Delete tests
 // ---------------------------------------------------------------------------
 
 func TestReportsDelete(t *testing.T) {
@@ -317,7 +318,7 @@ func TestReportsDeleteBackendError(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// ReportsService.Download tests
+// reportsServiceAPI.Download tests
 // ---------------------------------------------------------------------------
 
 func TestReportsDownload(t *testing.T) {
@@ -369,4 +370,28 @@ func TestReportsDownloadBackendError(t *testing.T) {
 	require.Error(t, err)
 	assert.Nil(t, data)
 	assert.Equal(t, expectedErr, err)
+}
+
+func TestReportsDownloadNilBackendUsesCoreError(t *testing.T) {
+	t.Parallel()
+
+	svc := newReportsService(nil)
+	data, err := svc.Download(context.Background(), "rpt-1")
+
+	require.Error(t, err)
+	assert.Nil(t, data)
+	assert.ErrorIs(t, err, core.ErrNilBackend)
+}
+
+func TestReportsDownloadTypedNilBackendUsesCoreError(t *testing.T) {
+	t.Parallel()
+
+	var mb *mockBackend
+
+	svc := newReportsService(mb)
+	data, err := svc.Download(context.Background(), "rpt-1")
+
+	require.Error(t, err)
+	assert.Nil(t, data)
+	assert.ErrorIs(t, err, core.ErrNilBackend)
 }

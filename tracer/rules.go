@@ -10,10 +10,10 @@ import (
 	"github.com/LerianStudio/lerian-sdk-golang/pkg/pagination"
 )
 
-// RulesService manages compliance rules with a state-machine lifecycle
+// rulesServiceAPI manages compliance rules with a state-machine lifecycle
 // (Draft -> Active -> Inactive). Each rule contains conditions that are
 // evaluated against transactions and other resources.
-type RulesService interface {
+type rulesServiceAPI interface {
 	// Create creates a new compliance rule in DRAFT status.
 	Create(ctx context.Context, input *CreateRuleInput) (*Rule, error)
 
@@ -21,7 +21,7 @@ type RulesService interface {
 	Get(ctx context.Context, id string) (*Rule, error)
 
 	// List returns a paginated iterator over all rules.
-	List(ctx context.Context, opts *models.ListOptions) *pagination.Iterator[Rule]
+	List(ctx context.Context, opts *models.CursorListOptions) *pagination.Iterator[Rule]
 
 	// Update partially updates an existing rule.
 	Update(ctx context.Context, id string, input *UpdateRuleInput) (*Rule, error)
@@ -39,20 +39,20 @@ type RulesService interface {
 	Draft(ctx context.Context, id string) (*Rule, error)
 }
 
-// rulesService is the concrete implementation of [RulesService].
+// rulesService is the concrete implementation of [rulesServiceAPI].
 type rulesService struct {
 	core.BaseService
 }
 
-// newRulesService creates a new [RulesService] backed by the given [core.Backend].
-func newRulesService(backend core.Backend) RulesService {
+// newRulesService creates a new [rulesServiceAPI] backed by the given [core.Backend].
+func newRulesService(backend core.Backend) rulesServiceAPI {
 	return &rulesService{
 		BaseService: core.BaseService{Backend: backend},
 	}
 }
 
 // Compile-time interface check.
-var _ RulesService = (*rulesService)(nil)
+var _ rulesServiceAPI = (*rulesService)(nil)
 
 func (s *rulesService) Create(ctx context.Context, input *CreateRuleInput) (*Rule, error) {
 	const operation = "Rules.Create"
@@ -74,7 +74,7 @@ func (s *rulesService) Get(ctx context.Context, id string) (*Rule, error) {
 	return core.Get[Rule](ctx, &s.BaseService, "/rules/"+url.PathEscape(id))
 }
 
-func (s *rulesService) List(ctx context.Context, opts *models.ListOptions) *pagination.Iterator[Rule] {
+func (s *rulesService) List(ctx context.Context, opts *models.CursorListOptions) *pagination.Iterator[Rule] {
 	return core.List[Rule](ctx, &s.BaseService, "/rules", opts)
 }
 

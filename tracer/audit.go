@@ -10,17 +10,17 @@ import (
 	"github.com/LerianStudio/lerian-sdk-golang/pkg/pagination"
 )
 
-// AuditEventsService provides read-only access to the audit trail and
+// auditEventsServiceAPI provides read-only access to the audit trail and
 // integrity verification of audit events. Every mutation in the system
 // is tracked as an audit event with a timestamped record of who did
 // what to which resource.
-type AuditEventsService interface {
+type auditEventsServiceAPI interface {
 	// Get retrieves an audit event by its unique identifier.
 	Get(ctx context.Context, id string) (*AuditEvent, error)
 
 	// List returns a paginated iterator over audit events.
 	// The server returns cursor-based pagination for audit events.
-	List(ctx context.Context, opts *models.ListOptions) *pagination.Iterator[AuditEvent]
+	List(ctx context.Context, opts *models.CursorListOptions) *pagination.Iterator[AuditEvent]
 
 	// Verify checks the integrity of an audit event by comparing its
 	// content hash against the expected value, providing tamper-evidence
@@ -28,20 +28,20 @@ type AuditEventsService interface {
 	Verify(ctx context.Context, id string) (*AuditVerification, error)
 }
 
-// auditEventsService is the concrete implementation of [AuditEventsService].
+// auditEventsService is the concrete implementation of [auditEventsServiceAPI].
 type auditEventsService struct {
 	core.BaseService
 }
 
-// newAuditEventsService creates a new [AuditEventsService] backed by the given [core.Backend].
-func newAuditEventsService(backend core.Backend) AuditEventsService {
+// newAuditEventsService creates a new [auditEventsServiceAPI] backed by the given [core.Backend].
+func newAuditEventsService(backend core.Backend) auditEventsServiceAPI {
 	return &auditEventsService{
 		BaseService: core.BaseService{Backend: backend},
 	}
 }
 
 // Compile-time interface check.
-var _ AuditEventsService = (*auditEventsService)(nil)
+var _ auditEventsServiceAPI = (*auditEventsService)(nil)
 
 func (s *auditEventsService) Get(ctx context.Context, id string) (*AuditEvent, error) {
 	const operation = "AuditEvents.Get"
@@ -53,7 +53,7 @@ func (s *auditEventsService) Get(ctx context.Context, id string) (*AuditEvent, e
 	return core.Get[AuditEvent](ctx, &s.BaseService, "/audit-events/"+url.PathEscape(id))
 }
 
-func (s *auditEventsService) List(ctx context.Context, opts *models.ListOptions) *pagination.Iterator[AuditEvent] {
+func (s *auditEventsService) List(ctx context.Context, opts *models.CursorListOptions) *pagination.Iterator[AuditEvent] {
 	return core.List[AuditEvent](ctx, &s.BaseService, "/audit-events", opts)
 }
 

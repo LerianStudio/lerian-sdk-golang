@@ -8,13 +8,12 @@
 //
 // Access Reporter services through the umbrella client:
 //
-//	client, _ := lerian.New(
-//	    lerian.WithReporter(
-//	        reporter.WithBaseURL("http://localhost:3004/v1"),
-//	        reporter.WithOrganizationID("org-uuid"),
-//	    ),
-//	)
-//	// Optional OAuth2 credentials can be loaded from the matching LERIAN_REPORTER_* env vars.
+//	client, _ := lerian.New(lerian.Config{
+//	    Reporter: &reporter.Config{
+//	        BaseURL:        "http://localhost:3004/v1",
+//	        OrganizationID: "org-uuid",
+//	    },
+//	})
 //
 //	report, err := client.Reporter.Reports.Create(ctx, &reporter.CreateReportInput{
 //	    Name: "Monthly Summary",

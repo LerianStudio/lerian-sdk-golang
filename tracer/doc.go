@@ -10,12 +10,11 @@
 //
 // Access Tracer services through the umbrella client:
 //
-//	client, _ := lerian.New(
-//	    lerian.WithTracer(
-//	        tracer.WithBaseURL("http://localhost:3003/v1"),
-//	    ),
-//	)
-//	// Optional OAuth2 credentials can be loaded from the matching LERIAN_TRACER_* env vars.
+//	client, _ := lerian.New(lerian.Config{
+//	    Tracer: &tracer.Config{
+//	        BaseURL: "http://localhost:3003/v1",
+//	    },
+//	})
 //
 //	events, err := client.Tracer.AuditEvents.List(ctx, nil).Collect(ctx)
 //

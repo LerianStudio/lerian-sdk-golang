@@ -202,9 +202,8 @@ func TestLimitsListWithOptions(t *testing.T) {
 	}
 
 	svc := newLimitsService(mock)
-	opts := &models.ListOptions{
+	opts := &models.CursorListOptions{
 		Limit:     25,
-		Page:      1,
 		SortBy:    "name",
 		SortOrder: "desc",
 	}

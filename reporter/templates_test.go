@@ -19,7 +19,7 @@ import (
 )
 
 // ---------------------------------------------------------------------------
-// TemplatesService.Create tests (multipart/form-data)
+// templatesServiceAPI.Create tests (multipart/form-data)
 // ---------------------------------------------------------------------------
 
 func TestTemplatesCreate(t *testing.T) {
@@ -38,10 +38,9 @@ func TestTemplatesCreate(t *testing.T) {
 			require.True(t, ok, "Content-Type header must be set")
 			assert.Contains(t, contentType, "multipart/form-data")
 
-			// Verify the body is a RawBody.
-			rawBody, ok := body.(core.RawBody)
-			require.True(t, ok, "body must be core.RawBody")
-			require.NotEmpty(t, rawBody.Data)
+			rawBody, ok := body.([]byte)
+			require.True(t, ok, "body must be []byte")
+			require.NotEmpty(t, rawBody)
 
 			// Parse the multipart body to verify fields and file content.
 			_, params, err := mime.ParseMediaType(contentType)
@@ -50,7 +49,7 @@ func TestTemplatesCreate(t *testing.T) {
 			boundary := params["boundary"]
 			require.NotEmpty(t, boundary)
 
-			reader := multipart.NewReader(bytes.NewReader(rawBody.Data), boundary)
+			reader := multipart.NewReader(bytes.NewReader(rawBody), boundary)
 
 			fields := make(map[string]string)
 
@@ -124,10 +123,10 @@ func TestTemplatesCreateWithoutDescription(t *testing.T) {
 			_, params, err := mime.ParseMediaType(contentType)
 			require.NoError(t, err)
 
-			reader := multipart.NewReader(
-				bytes.NewReader(body.(core.RawBody).Data),
-				params["boundary"],
-			)
+			payload, ok := body.([]byte)
+			require.True(t, ok, "body must be []byte")
+
+			reader := multipart.NewReader(bytes.NewReader(payload), params["boundary"])
 
 			fields := make(map[string]string)
 
@@ -161,6 +160,30 @@ func TestTemplatesCreateWithoutDescription(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, tpl)
 	assert.Equal(t, "tpl-2", tpl.ID)
+}
+
+func TestTemplatesCreateNilBackendUsesCoreError(t *testing.T) {
+	t.Parallel()
+
+	svc := newTemplatesService(nil)
+	tpl, err := svc.Create(context.Background(), &CreateTemplateInput{Name: "Sales Report", Format: "html"}, strings.NewReader("<html></html>"))
+
+	require.Error(t, err)
+	assert.Nil(t, tpl)
+	assert.ErrorIs(t, err, core.ErrNilBackend)
+}
+
+func TestTemplatesCreateTypedNilBackendUsesCoreError(t *testing.T) {
+	t.Parallel()
+
+	var mb *mockBackend
+
+	svc := newTemplatesService(mb)
+	tpl, err := svc.Create(context.Background(), &CreateTemplateInput{Name: "Sales Report", Format: "html"}, strings.NewReader("<html></html>"))
+
+	require.Error(t, err)
+	assert.Nil(t, tpl)
+	assert.ErrorIs(t, err, core.ErrNilBackend)
 }
 
 func TestTemplatesCreateNilInput(t *testing.T) {
@@ -214,7 +237,7 @@ func TestTemplatesCreateBackendError(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// TemplatesService.Get tests
+// templatesServiceAPI.Get tests
 // ---------------------------------------------------------------------------
 
 func TestTemplatesGet(t *testing.T) {
@@ -276,7 +299,7 @@ func TestTemplatesGetBackendError(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// TemplatesService.List tests
+// templatesServiceAPI.List tests
 // ---------------------------------------------------------------------------
 
 func TestTemplatesList(t *testing.T) {
@@ -327,7 +350,7 @@ func TestTemplatesListWithOptions(t *testing.T) {
 	}
 
 	svc := newTemplatesService(mock)
-	opts := &models.ListOptions{Limit: 50, SortBy: "createdAt", SortOrder: "desc"}
+	opts := &models.CursorListOptions{Limit: 50, SortBy: "createdAt", SortOrder: "desc"}
 	iter := svc.List(context.Background(), opts)
 
 	require.True(t, iter.Next(context.Background()))
@@ -354,7 +377,7 @@ func TestTemplatesListError(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// TemplatesService.Delete tests
+// templatesServiceAPI.Delete tests
 // ---------------------------------------------------------------------------
 
 func TestTemplatesDelete(t *testing.T) {

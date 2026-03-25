@@ -25,29 +25,55 @@ type mockBackend struct {
 	callRawFn      func(ctx context.Context, method, path string, body any) ([]byte, error)
 }
 
-func (m *mockBackend) Call(ctx context.Context, method, path string, body, result any) error {
+func (m *mockBackend) Do(ctx context.Context, req core.Request) (*core.Response, error) {
+	if len(req.Headers) > 0 && m.callWithHdrsFn != nil {
+		var result any
+
+		resultArg := any(&result)
+		if req.ExpectNoResponse {
+			resultArg = nil
+		}
+
+		if err := m.callWithHdrsFn(ctx, req.Method, req.Path, req.Headers, reqBody(req), resultArg); err != nil {
+			return nil, err
+		}
+
+		if req.ExpectNoResponse {
+			return &core.Response{}, nil
+		}
+
+		return jsonResponse(result)
+	}
+
 	if m.callFn != nil {
-		return m.callFn(ctx, method, path, body, result)
+		var result any
+
+		resultArg := any(&result)
+		if req.ExpectNoResponse {
+			resultArg = nil
+		}
+
+		if err := m.callFn(ctx, req.Method, req.Path, reqBody(req), resultArg); err != nil {
+			return nil, err
+		}
+
+		if req.ExpectNoResponse {
+			return &core.Response{}, nil
+		}
+
+		return jsonResponse(result)
 	}
 
-	return fmt.Errorf("mockBackend.Call not configured")
-}
-
-func (m *mockBackend) CallWithHeaders(ctx context.Context, method, path string,
-	headers map[string]string, body, result any) error {
-	if m.callWithHdrsFn != nil {
-		return m.callWithHdrsFn(ctx, method, path, headers, body, result)
-	}
-
-	return fmt.Errorf("mockBackend.CallWithHeaders not configured")
-}
-
-func (m *mockBackend) CallRaw(ctx context.Context, method, path string, body any) ([]byte, error) {
 	if m.callRawFn != nil {
-		return m.callRawFn(ctx, method, path, body)
+		body, err := m.callRawFn(ctx, req.Method, req.Path, reqBody(req))
+		if err != nil {
+			return nil, err
+		}
+
+		return &core.Response{Body: body}, nil
 	}
 
-	return nil, fmt.Errorf("mockBackend.CallRaw not configured")
+	return nil, fmt.Errorf("mockBackend.Do not configured")
 }
 
 var _ core.Backend = (*mockBackend)(nil)
@@ -60,6 +86,27 @@ func unmarshalInto(src any, dst any) error {
 	}
 
 	return json.Unmarshal(data, dst)
+}
+
+func jsonResponse(result any) (*core.Response, error) {
+	if result == nil {
+		return &core.Response{}, nil
+	}
+
+	data, err := json.Marshal(result)
+	if err != nil {
+		return nil, err
+	}
+
+	return &core.Response{Body: data}, nil
+}
+
+func reqBody(req core.Request) any {
+	if len(req.BodyBytes) > 0 {
+		return req.BodyBytes
+	}
+
+	return req.Body
 }
 
 // sampleRule returns a test Rule with sensible defaults.
@@ -255,9 +302,9 @@ func TestRulesListWithOptions(t *testing.T) {
 	}
 
 	svc := newRulesService(mock)
-	opts := &models.ListOptions{
+	opts := &models.CursorListOptions{
 		Limit:     25,
-		Page:      2,
+		Cursor:    "cursor-2",
 		SortBy:    "name",
 		SortOrder: "asc",
 	}
@@ -268,7 +315,7 @@ func TestRulesListWithOptions(t *testing.T) {
 	require.True(t, iter.Next(ctx))
 
 	assert.Contains(t, receivedPath, "limit=25")
-	assert.Contains(t, receivedPath, "page=2")
+	assert.Contains(t, receivedPath, "cursor=cursor-2")
 	assert.Contains(t, receivedPath, "sortBy=name")
 	assert.Contains(t, receivedPath, "sortOrder=asc")
 }

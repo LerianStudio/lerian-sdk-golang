@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/LerianStudio/lerian-sdk-golang/pkg/core"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -19,26 +20,11 @@ type fakeBackend struct {
 	lastPath   string
 }
 
-func (f *fakeBackend) Call(_ context.Context, method, path string, _, _ any) error {
-	f.lastMethod = method
-	f.lastPath = path
+func (f *fakeBackend) Do(_ context.Context, req core.Request) (*core.Response, error) {
+	f.lastMethod = req.Method
+	f.lastPath = req.Path
 
-	return nil
-}
-
-func (f *fakeBackend) CallWithHeaders(_ context.Context, method, path string,
-	_ map[string]string, _, _ any) error {
-	f.lastMethod = method
-	f.lastPath = path
-
-	return nil
-}
-
-func (f *fakeBackend) CallRaw(_ context.Context, method, path string, _ any) ([]byte, error) {
-	f.lastMethod = method
-	f.lastPath = path
-
-	return nil, nil
+	return &core.Response{}, nil
 }
 
 // ---------------------------------------------------------------------------
@@ -65,32 +51,8 @@ func TestNewClientStoresConfig(t *testing.T) {
 	t.Parallel()
 
 	backend := &fakeBackend{}
-	cfg := Config{
-		BaseURL:      "http://localhost:3003/v1",
-		ClientID:     "client-id",
-		ClientSecret: "client-secret",
-		TokenURL:     "https://auth.example.com/token",
-		Timeout:      15 * time.Second,
-	}
-
-	client := NewClient(backend, cfg)
-
-	assert.Equal(t, "http://localhost:3003/v1", client.config.BaseURL)
-	assert.Equal(t, "client-id", client.config.ClientID)
-	assert.Equal(t, "client-secret", client.config.ClientSecret)
-	assert.Equal(t, "https://auth.example.com/token", client.config.TokenURL)
-	assert.Equal(t, 15*time.Second, client.config.Timeout)
-}
-
-func TestNewClientStoresBackend(t *testing.T) {
-	t.Parallel()
-
-	backend := &fakeBackend{}
-	cfg := Config{BaseURL: "http://localhost:3003/v1"}
-
-	client := NewClient(backend, cfg)
-
-	assert.NotNil(t, client.backend)
+	client := NewClient(backend, Config{})
+	assert.NotNil(t, client)
 }
 
 // ---------------------------------------------------------------------------

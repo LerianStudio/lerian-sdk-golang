@@ -10,10 +10,10 @@ import (
 	"github.com/LerianStudio/lerian-sdk-golang/pkg/pagination"
 )
 
-// ValidationsService evaluates transactions against active rules and limits.
+// validationsServiceAPI evaluates transactions against active rules and limits.
 // Create is an RPC-style operation that submits a transaction for validation
 // and returns the resulting decision (approved, rejected, or pending).
-type ValidationsService interface {
+type validationsServiceAPI interface {
 	// Create submits a transaction for validation against active rules and limits.
 	Create(ctx context.Context, input *CreateValidationInput) (*Validation, error)
 
@@ -21,23 +21,23 @@ type ValidationsService interface {
 	Get(ctx context.Context, id string) (*Validation, error)
 
 	// List returns a paginated iterator over all validation results.
-	List(ctx context.Context, opts *models.ListOptions) *pagination.Iterator[Validation]
+	List(ctx context.Context, opts *models.CursorListOptions) *pagination.Iterator[Validation]
 }
 
-// validationsService is the concrete implementation of [ValidationsService].
+// validationsService is the concrete implementation of [validationsServiceAPI].
 type validationsService struct {
 	core.BaseService
 }
 
-// newValidationsService creates a new [ValidationsService] backed by the given [core.Backend].
-func newValidationsService(backend core.Backend) ValidationsService {
+// newValidationsService creates a new [validationsServiceAPI] backed by the given [core.Backend].
+func newValidationsService(backend core.Backend) validationsServiceAPI {
 	return &validationsService{
 		BaseService: core.BaseService{Backend: backend},
 	}
 }
 
 // Compile-time interface check.
-var _ ValidationsService = (*validationsService)(nil)
+var _ validationsServiceAPI = (*validationsService)(nil)
 
 func (s *validationsService) Create(ctx context.Context, input *CreateValidationInput) (*Validation, error) {
 	const operation = "Validations.Create"
@@ -59,6 +59,6 @@ func (s *validationsService) Get(ctx context.Context, id string) (*Validation, e
 	return core.Get[Validation](ctx, &s.BaseService, "/validations/"+url.PathEscape(id))
 }
 
-func (s *validationsService) List(ctx context.Context, opts *models.ListOptions) *pagination.Iterator[Validation] {
+func (s *validationsService) List(ctx context.Context, opts *models.CursorListOptions) *pagination.Iterator[Validation] {
 	return core.List[Validation](ctx, &s.BaseService, "/validations", opts)
 }

@@ -104,37 +104,32 @@ func WithTimeout(d time.Duration) Option {
 
 // ---------------------------------------------------------------------------
 // Service interfaces are defined in their respective files:
-//   - DataSourcesService  → datasources.go
-//   - ReportsService      → reports.go
-//   - TemplatesService    → templates.go
+//   - dataSourcesServiceAPI  → datasources.go
+//   - reportsServiceAPI      → reports.go
+//   - templatesServiceAPI    → templates.go
 // ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
 // Client
 // ---------------------------------------------------------------------------
 
-// Client is the Reporter product client. It is constructed by the root
-// [lerian.Client] when the WithReporter option is supplied and provides
-// access to all Reporter service endpoints through domain-specific accessors.
+// Client is the Reporter product client. It is typically constructed by the
+// root [lerian.Client] from [lerian.Config] and provides access to all
+// Reporter service endpoints through domain-specific accessors.
 type Client struct {
-	backend core.Backend
-	config  Config
-
 	// Service accessors for Reporter domain endpoints.
-	DataSources DataSourcesService
-	Reports     ReportsService
-	Templates   TemplatesService
+	DataSources dataSourcesServiceAPI
+	Reports     reportsServiceAPI
+	Templates   templatesServiceAPI
 }
 
 // NewClient creates a Reporter product [Client] from a pre-configured backend
 // and a validated [Config].
 //
-// This function is called internally by the umbrella client during
-// [lerian.New] — SDK consumers should not call it directly.
-func NewClient(backend core.Backend, cfg Config) *Client {
+// Prefer constructing Reporter through the root [lerian.New] API unless you
+// are wiring a custom integration layer.
+func NewClient(backend core.Backend, _ Config) *Client {
 	return &Client{
-		backend:     backend,
-		config:      cfg,
 		DataSources: newDataSourcesService(backend),
 		Reports:     newReportsService(backend),
 		Templates:   newTemplatesService(backend),
