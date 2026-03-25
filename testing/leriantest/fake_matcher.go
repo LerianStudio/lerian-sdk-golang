@@ -40,8 +40,6 @@ type fakeMatcherContexts struct {
 	cfg   *fakeConfig
 }
 
-var _ matcher.ContextsService = (*fakeMatcherContexts)(nil)
-
 func (f *fakeMatcherContexts) Create(_ context.Context, input *matcher.CreateContextInput) (*matcher.Context, error) {
 	if err := f.cfg.injectedError("matcher.Contexts.Create"); err != nil {
 		return nil, err
@@ -55,20 +53,11 @@ func (f *fakeMatcherContexts) Create(_ context.Context, input *matcher.CreateCon
 }
 
 func (f *fakeMatcherContexts) Get(_ context.Context, id string) (*matcher.Context, error) {
-	if err := f.cfg.injectedError("matcher.Contexts.Get"); err != nil {
-		return nil, err
-	}
-
-	c, ok := f.store.Get(id)
-	if !ok {
-		return nil, sdkerrors.NewNotFound("Contexts.Get", "Context", id)
-	}
-
-	return &c, nil
+	return fakeGetStored(f.cfg, "matcher.Contexts.Get", "Contexts.Get", "Context", id, f.store)
 }
 
-func (f *fakeMatcherContexts) List(_ context.Context, opts *models.ListOptions) *pagination.Iterator[matcher.Context] {
-	return f.store.PaginatedIterator(opts)
+func (f *fakeMatcherContexts) List(_ context.Context, opts *models.CursorListOptions) *pagination.Iterator[matcher.Context] {
+	return fakeListStored(f.cfg, "", f.store, opts)
 }
 
 func (f *fakeMatcherContexts) Update(_ context.Context, id string, input *matcher.UpdateContextInput) (*matcher.Context, error) {
@@ -92,31 +81,17 @@ func (f *fakeMatcherContexts) Update(_ context.Context, id string, input *matche
 }
 
 func (f *fakeMatcherContexts) Delete(_ context.Context, id string) error {
-	if err := f.cfg.injectedError("matcher.Contexts.Delete"); err != nil {
-		return err
-	}
-
-	if _, ok := f.store.Get(id); !ok {
-		return sdkerrors.NewNotFound("Contexts.Delete", "Context", id)
-	}
-
-	f.store.Delete(id)
-
-	return nil
+	return fakeDeleteStored(f.cfg, "matcher.Contexts.Delete", "Contexts.Delete", "Context", id, f.store)
 }
 
 func (f *fakeMatcherContexts) Clone(_ context.Context, id string) (*matcher.Context, error) {
-	if err := f.cfg.injectedError("matcher.Contexts.Clone"); err != nil {
+	c, err := fakeActionStored(f.cfg, "matcher.Contexts.Clone", "Contexts.Clone", "Context", id, f.store)
+	if err != nil {
 		return nil, err
 	}
 
-	c, ok := f.store.Get(id)
-	if !ok {
-		return nil, sdkerrors.NewNotFound("Contexts.Clone", "Context", id)
-	}
-
 	now := time.Now()
-	clone := c
+	clone := *c
 	clone.ID = generateID("mctx")
 	clone.CreatedAt = now
 	clone.UpdatedAt = now
@@ -134,8 +109,6 @@ type fakeMatcherRules struct {
 	cfg   *fakeConfig
 }
 
-var _ matcher.RulesService = (*fakeMatcherRules)(nil)
-
 func (f *fakeMatcherRules) Create(_ context.Context, input *matcher.CreateRuleInput) (*matcher.Rule, error) {
 	if err := f.cfg.injectedError("matcher.Rules.Create"); err != nil {
 		return nil, err
@@ -149,20 +122,11 @@ func (f *fakeMatcherRules) Create(_ context.Context, input *matcher.CreateRuleIn
 }
 
 func (f *fakeMatcherRules) Get(_ context.Context, id string) (*matcher.Rule, error) {
-	if err := f.cfg.injectedError("matcher.Rules.Get"); err != nil {
-		return nil, err
-	}
-
-	r, ok := f.store.Get(id)
-	if !ok {
-		return nil, sdkerrors.NewNotFound("Rules.Get", "Rule", id)
-	}
-
-	return &r, nil
+	return fakeGetStored(f.cfg, "matcher.Rules.Get", "Rules.Get", "Rule", id, f.store)
 }
 
-func (f *fakeMatcherRules) List(_ context.Context, opts *models.ListOptions) *pagination.Iterator[matcher.Rule] {
-	return f.store.PaginatedIterator(opts)
+func (f *fakeMatcherRules) List(_ context.Context, opts *models.CursorListOptions) *pagination.Iterator[matcher.Rule] {
+	return fakeListStored(f.cfg, "", f.store, opts)
 }
 
 func (f *fakeMatcherRules) Update(_ context.Context, id string, input *matcher.UpdateRuleInput) (*matcher.Rule, error) {
@@ -186,17 +150,7 @@ func (f *fakeMatcherRules) Update(_ context.Context, id string, input *matcher.U
 }
 
 func (f *fakeMatcherRules) Delete(_ context.Context, id string) error {
-	if err := f.cfg.injectedError("matcher.Rules.Delete"); err != nil {
-		return err
-	}
-
-	if _, ok := f.store.Get(id); !ok {
-		return sdkerrors.NewNotFound("Rules.Delete", "Rule", id)
-	}
-
-	f.store.Delete(id)
-
-	return nil
+	return fakeDeleteStored(f.cfg, "matcher.Rules.Delete", "Rules.Delete", "Rule", id, f.store)
 }
 
 func (f *fakeMatcherRules) Reorder(_ context.Context, _ string, _ *matcher.ReorderRulesInput) error {
@@ -216,8 +170,6 @@ type fakeMatcherSchedules struct {
 	cfg   *fakeConfig
 }
 
-var _ matcher.SchedulesService = (*fakeMatcherSchedules)(nil)
-
 func (f *fakeMatcherSchedules) Create(_ context.Context, input *matcher.CreateScheduleInput) (*matcher.Schedule, error) {
 	if err := f.cfg.injectedError("matcher.Schedules.Create"); err != nil {
 		return nil, err
@@ -231,20 +183,11 @@ func (f *fakeMatcherSchedules) Create(_ context.Context, input *matcher.CreateSc
 }
 
 func (f *fakeMatcherSchedules) Get(_ context.Context, id string) (*matcher.Schedule, error) {
-	if err := f.cfg.injectedError("matcher.Schedules.Get"); err != nil {
-		return nil, err
-	}
-
-	s, ok := f.store.Get(id)
-	if !ok {
-		return nil, sdkerrors.NewNotFound("Schedules.Get", "Schedule", id)
-	}
-
-	return &s, nil
+	return fakeGetStored(f.cfg, "matcher.Schedules.Get", "Schedules.Get", "Schedule", id, f.store)
 }
 
-func (f *fakeMatcherSchedules) List(_ context.Context, opts *models.ListOptions) *pagination.Iterator[matcher.Schedule] {
-	return f.store.PaginatedIterator(opts)
+func (f *fakeMatcherSchedules) List(_ context.Context, opts *models.CursorListOptions) *pagination.Iterator[matcher.Schedule] {
+	return fakeListStored(f.cfg, "", f.store, opts)
 }
 
 func (f *fakeMatcherSchedules) Update(_ context.Context, id string, _ *matcher.UpdateScheduleInput) (*matcher.Schedule, error) {
@@ -264,17 +207,7 @@ func (f *fakeMatcherSchedules) Update(_ context.Context, id string, _ *matcher.U
 }
 
 func (f *fakeMatcherSchedules) Delete(_ context.Context, id string) error {
-	if err := f.cfg.injectedError("matcher.Schedules.Delete"); err != nil {
-		return err
-	}
-
-	if _, ok := f.store.Get(id); !ok {
-		return sdkerrors.NewNotFound("Schedules.Delete", "Schedule", id)
-	}
-
-	f.store.Delete(id)
-
-	return nil
+	return fakeDeleteStored(f.cfg, "matcher.Schedules.Delete", "Schedules.Delete", "Schedule", id, f.store)
 }
 
 // ---------------------------------------------------------------------------
@@ -285,8 +218,6 @@ type fakeMatcherSources struct {
 	store *fakeStore[matcher.Source]
 	cfg   *fakeConfig
 }
-
-var _ matcher.SourcesService = (*fakeMatcherSources)(nil)
 
 func (f *fakeMatcherSources) Create(_ context.Context, input *matcher.CreateSourceInput) (*matcher.Source, error) {
 	if err := f.cfg.injectedError("matcher.Sources.Create"); err != nil {
@@ -301,20 +232,11 @@ func (f *fakeMatcherSources) Create(_ context.Context, input *matcher.CreateSour
 }
 
 func (f *fakeMatcherSources) Get(_ context.Context, id string) (*matcher.Source, error) {
-	if err := f.cfg.injectedError("matcher.Sources.Get"); err != nil {
-		return nil, err
-	}
-
-	s, ok := f.store.Get(id)
-	if !ok {
-		return nil, sdkerrors.NewNotFound("Sources.Get", "Source", id)
-	}
-
-	return &s, nil
+	return fakeGetStored(f.cfg, "matcher.Sources.Get", "Sources.Get", "Source", id, f.store)
 }
 
-func (f *fakeMatcherSources) List(_ context.Context, opts *models.ListOptions) *pagination.Iterator[matcher.Source] {
-	return f.store.PaginatedIterator(opts)
+func (f *fakeMatcherSources) List(_ context.Context, opts *models.CursorListOptions) *pagination.Iterator[matcher.Source] {
+	return fakeListStored(f.cfg, "", f.store, opts)
 }
 
 func (f *fakeMatcherSources) Update(_ context.Context, id string, _ *matcher.UpdateSourceInput) (*matcher.Source, error) {
@@ -334,17 +256,7 @@ func (f *fakeMatcherSources) Update(_ context.Context, id string, _ *matcher.Upd
 }
 
 func (f *fakeMatcherSources) Delete(_ context.Context, id string) error {
-	if err := f.cfg.injectedError("matcher.Sources.Delete"); err != nil {
-		return err
-	}
-
-	if _, ok := f.store.Get(id); !ok {
-		return sdkerrors.NewNotFound("Sources.Delete", "Source", id)
-	}
-
-	f.store.Delete(id)
-
-	return nil
+	return fakeDeleteStored(f.cfg, "matcher.Sources.Delete", "Sources.Delete", "Source", id, f.store)
 }
 
 // ---------------------------------------------------------------------------
@@ -355,8 +267,6 @@ type fakeMatcherSourceFieldMaps struct {
 	store *fakeStore[matcher.SourceFieldMap]
 	cfg   *fakeConfig
 }
-
-var _ matcher.SourceFieldMapsService = (*fakeMatcherSourceFieldMaps)(nil)
 
 func (f *fakeMatcherSourceFieldMaps) Create(_ context.Context, _ *matcher.CreateSourceFieldMapInput) (*matcher.SourceFieldMap, error) {
 	if err := f.cfg.injectedError("matcher.SourceFieldMaps.Create"); err != nil {
@@ -371,20 +281,11 @@ func (f *fakeMatcherSourceFieldMaps) Create(_ context.Context, _ *matcher.Create
 }
 
 func (f *fakeMatcherSourceFieldMaps) Get(_ context.Context, id string) (*matcher.SourceFieldMap, error) {
-	if err := f.cfg.injectedError("matcher.SourceFieldMaps.Get"); err != nil {
-		return nil, err
-	}
-
-	sfm, ok := f.store.Get(id)
-	if !ok {
-		return nil, sdkerrors.NewNotFound("SourceFieldMaps.Get", "SourceFieldMap", id)
-	}
-
-	return &sfm, nil
+	return fakeGetStored(f.cfg, "matcher.SourceFieldMaps.Get", "SourceFieldMaps.Get", "SourceFieldMap", id, f.store)
 }
 
-func (f *fakeMatcherSourceFieldMaps) List(_ context.Context, opts *models.ListOptions) *pagination.Iterator[matcher.SourceFieldMap] {
-	return f.store.PaginatedIterator(opts)
+func (f *fakeMatcherSourceFieldMaps) List(_ context.Context, opts *models.CursorListOptions) *pagination.Iterator[matcher.SourceFieldMap] {
+	return fakeListStored(f.cfg, "", f.store, opts)
 }
 
 func (f *fakeMatcherSourceFieldMaps) Update(_ context.Context, id string, _ *matcher.UpdateSourceFieldMapInput) (*matcher.SourceFieldMap, error) {
@@ -404,17 +305,7 @@ func (f *fakeMatcherSourceFieldMaps) Update(_ context.Context, id string, _ *mat
 }
 
 func (f *fakeMatcherSourceFieldMaps) Delete(_ context.Context, id string) error {
-	if err := f.cfg.injectedError("matcher.SourceFieldMaps.Delete"); err != nil {
-		return err
-	}
-
-	if _, ok := f.store.Get(id); !ok {
-		return sdkerrors.NewNotFound("SourceFieldMaps.Delete", "SourceFieldMap", id)
-	}
-
-	f.store.Delete(id)
-
-	return nil
+	return fakeDeleteStored(f.cfg, "matcher.SourceFieldMaps.Delete", "SourceFieldMaps.Delete", "SourceFieldMap", id, f.store)
 }
 
 // ---------------------------------------------------------------------------
@@ -425,8 +316,6 @@ type fakeMatcherFeeSchedules struct {
 	store *fakeStore[matcher.FeeSchedule]
 	cfg   *fakeConfig
 }
-
-var _ matcher.FeeSchedulesService = (*fakeMatcherFeeSchedules)(nil)
 
 func (f *fakeMatcherFeeSchedules) Create(_ context.Context, input *matcher.CreateFeeScheduleInput) (*matcher.FeeSchedule, error) {
 	if err := f.cfg.injectedError("matcher.FeeSchedules.Create"); err != nil {
@@ -441,20 +330,11 @@ func (f *fakeMatcherFeeSchedules) Create(_ context.Context, input *matcher.Creat
 }
 
 func (f *fakeMatcherFeeSchedules) Get(_ context.Context, id string) (*matcher.FeeSchedule, error) {
-	if err := f.cfg.injectedError("matcher.FeeSchedules.Get"); err != nil {
-		return nil, err
-	}
-
-	fs, ok := f.store.Get(id)
-	if !ok {
-		return nil, sdkerrors.NewNotFound("FeeSchedules.Get", "FeeSchedule", id)
-	}
-
-	return &fs, nil
+	return fakeGetStored(f.cfg, "matcher.FeeSchedules.Get", "FeeSchedules.Get", "FeeSchedule", id, f.store)
 }
 
-func (f *fakeMatcherFeeSchedules) List(_ context.Context, opts *models.ListOptions) *pagination.Iterator[matcher.FeeSchedule] {
-	return f.store.PaginatedIterator(opts)
+func (f *fakeMatcherFeeSchedules) List(_ context.Context, opts *models.CursorListOptions) *pagination.Iterator[matcher.FeeSchedule] {
+	return fakeListStored(f.cfg, "", f.store, opts)
 }
 
 func (f *fakeMatcherFeeSchedules) Update(_ context.Context, id string, _ *matcher.UpdateFeeScheduleInput) (*matcher.FeeSchedule, error) {
@@ -474,17 +354,7 @@ func (f *fakeMatcherFeeSchedules) Update(_ context.Context, id string, _ *matche
 }
 
 func (f *fakeMatcherFeeSchedules) Delete(_ context.Context, id string) error {
-	if err := f.cfg.injectedError("matcher.FeeSchedules.Delete"); err != nil {
-		return err
-	}
-
-	if _, ok := f.store.Get(id); !ok {
-		return sdkerrors.NewNotFound("FeeSchedules.Delete", "FeeSchedule", id)
-	}
-
-	f.store.Delete(id)
-
-	return nil
+	return fakeDeleteStored(f.cfg, "matcher.FeeSchedules.Delete", "FeeSchedules.Delete", "FeeSchedule", id, f.store)
 }
 
 func (f *fakeMatcherFeeSchedules) Simulate(_ context.Context, _ string, _ *matcher.SimulateFeeScheduleInput) (*matcher.FeeSimulationResult, error) {
@@ -504,8 +374,6 @@ type fakeMatcherFieldMaps struct {
 	cfg   *fakeConfig
 }
 
-var _ matcher.FieldMapsService = (*fakeMatcherFieldMaps)(nil)
-
 func (f *fakeMatcherFieldMaps) Create(_ context.Context, _ *matcher.CreateFieldMapInput) (*matcher.FieldMap, error) {
 	if err := f.cfg.injectedError("matcher.FieldMaps.Create"); err != nil {
 		return nil, err
@@ -519,20 +387,11 @@ func (f *fakeMatcherFieldMaps) Create(_ context.Context, _ *matcher.CreateFieldM
 }
 
 func (f *fakeMatcherFieldMaps) Get(_ context.Context, id string) (*matcher.FieldMap, error) {
-	if err := f.cfg.injectedError("matcher.FieldMaps.Get"); err != nil {
-		return nil, err
-	}
-
-	fm, ok := f.store.Get(id)
-	if !ok {
-		return nil, sdkerrors.NewNotFound("FieldMaps.Get", "FieldMap", id)
-	}
-
-	return &fm, nil
+	return fakeGetStored(f.cfg, "matcher.FieldMaps.Get", "FieldMaps.Get", "FieldMap", id, f.store)
 }
 
-func (f *fakeMatcherFieldMaps) List(_ context.Context, opts *models.ListOptions) *pagination.Iterator[matcher.FieldMap] {
-	return f.store.PaginatedIterator(opts)
+func (f *fakeMatcherFieldMaps) List(_ context.Context, opts *models.CursorListOptions) *pagination.Iterator[matcher.FieldMap] {
+	return fakeListStored(f.cfg, "", f.store, opts)
 }
 
 func (f *fakeMatcherFieldMaps) Update(_ context.Context, id string, _ *matcher.UpdateFieldMapInput) (*matcher.FieldMap, error) {
@@ -552,17 +411,7 @@ func (f *fakeMatcherFieldMaps) Update(_ context.Context, id string, _ *matcher.U
 }
 
 func (f *fakeMatcherFieldMaps) Delete(_ context.Context, id string) error {
-	if err := f.cfg.injectedError("matcher.FieldMaps.Delete"); err != nil {
-		return err
-	}
-
-	if _, ok := f.store.Get(id); !ok {
-		return sdkerrors.NewNotFound("FieldMaps.Delete", "FieldMap", id)
-	}
-
-	f.store.Delete(id)
-
-	return nil
+	return fakeDeleteStored(f.cfg, "matcher.FieldMaps.Delete", "FieldMaps.Delete", "FieldMap", id, f.store)
 }
 
 // ---------------------------------------------------------------------------
@@ -573,8 +422,6 @@ type fakeMatcherExportJobs struct {
 	store *fakeStore[matcher.ExportJob]
 	cfg   *fakeConfig
 }
-
-var _ matcher.ExportJobsService = (*fakeMatcherExportJobs)(nil)
 
 func (f *fakeMatcherExportJobs) Create(_ context.Context, _ *matcher.CreateExportJobInput) (*matcher.ExportJob, error) {
 	if err := f.cfg.injectedError("matcher.ExportJobs.Create"); err != nil {
@@ -589,33 +436,15 @@ func (f *fakeMatcherExportJobs) Create(_ context.Context, _ *matcher.CreateExpor
 }
 
 func (f *fakeMatcherExportJobs) Get(_ context.Context, id string) (*matcher.ExportJob, error) {
-	if err := f.cfg.injectedError("matcher.ExportJobs.Get"); err != nil {
-		return nil, err
-	}
-
-	ej, ok := f.store.Get(id)
-	if !ok {
-		return nil, sdkerrors.NewNotFound("ExportJobs.Get", "ExportJob", id)
-	}
-
-	return &ej, nil
+	return fakeGetStored(f.cfg, "matcher.ExportJobs.Get", "ExportJobs.Get", "ExportJob", id, f.store)
 }
 
-func (f *fakeMatcherExportJobs) List(_ context.Context, opts *models.ListOptions) *pagination.Iterator[matcher.ExportJob] {
-	return f.store.PaginatedIterator(opts)
+func (f *fakeMatcherExportJobs) List(_ context.Context, opts *models.CursorListOptions) *pagination.Iterator[matcher.ExportJob] {
+	return fakeListStored(f.cfg, "", f.store, opts)
 }
 
 func (f *fakeMatcherExportJobs) Cancel(_ context.Context, id string) (*matcher.ExportJob, error) {
-	if err := f.cfg.injectedError("matcher.ExportJobs.Cancel"); err != nil {
-		return nil, err
-	}
-
-	ej, ok := f.store.Get(id)
-	if !ok {
-		return nil, sdkerrors.NewNotFound("ExportJobs.Cancel", "ExportJob", id)
-	}
-
-	return &ej, nil
+	return fakeActionStored(f.cfg, "matcher.ExportJobs.Cancel", "ExportJobs.Cancel", "ExportJob", id, f.store)
 }
 
 func (f *fakeMatcherExportJobs) Download(_ context.Context, id string) ([]byte, error) {
@@ -639,8 +468,6 @@ type fakeMatcherDisputes struct {
 	cfg   *fakeConfig
 }
 
-var _ matcher.DisputesService = (*fakeMatcherDisputes)(nil)
-
 func (f *fakeMatcherDisputes) Create(_ context.Context, _ *matcher.CreateDisputeInput) (*matcher.Dispute, error) {
 	if err := f.cfg.injectedError("matcher.Disputes.Create"); err != nil {
 		return nil, err
@@ -654,62 +481,25 @@ func (f *fakeMatcherDisputes) Create(_ context.Context, _ *matcher.CreateDispute
 }
 
 func (f *fakeMatcherDisputes) Get(_ context.Context, id string) (*matcher.Dispute, error) {
-	if err := f.cfg.injectedError("matcher.Disputes.Get"); err != nil {
-		return nil, err
-	}
-
-	d, ok := f.store.Get(id)
-	if !ok {
-		return nil, sdkerrors.NewNotFound("Disputes.Get", "Dispute", id)
-	}
-
-	return &d, nil
+	return fakeGetStored(f.cfg, "matcher.Disputes.Get", "Disputes.Get", "Dispute", id, f.store)
 }
 
-func (f *fakeMatcherDisputes) List(_ context.Context, opts *models.ListOptions) *pagination.Iterator[matcher.Dispute] {
-	return f.store.PaginatedIterator(opts)
+func (f *fakeMatcherDisputes) List(_ context.Context, opts *models.CursorListOptions) *pagination.Iterator[matcher.Dispute] {
+	return fakeListStored(f.cfg, "", f.store, opts)
 }
 
 func (f *fakeMatcherDisputes) Update(_ context.Context, id string, _ *matcher.UpdateDisputeInput) (*matcher.Dispute, error) {
-	if err := f.cfg.injectedError("matcher.Disputes.Update"); err != nil {
-		return nil, err
-	}
-
-	d, ok := f.store.Get(id)
-	if !ok {
-		return nil, sdkerrors.NewNotFound("Disputes.Update", "Dispute", id)
-	}
-
-	d.UpdatedAt = time.Now()
-	f.store.Set(id, d)
-
-	return &d, nil
+	return fakeMutateStored(f.cfg, "matcher.Disputes.Update", "Disputes.Update", "Dispute", id, f.store, func(d *matcher.Dispute) {
+		d.UpdatedAt = time.Now()
+	})
 }
 
 func (f *fakeMatcherDisputes) Resolve(_ context.Context, id string, _ *matcher.ResolveDisputeInput) (*matcher.Dispute, error) {
-	if err := f.cfg.injectedError("matcher.Disputes.Resolve"); err != nil {
-		return nil, err
-	}
-
-	d, ok := f.store.Get(id)
-	if !ok {
-		return nil, sdkerrors.NewNotFound("Disputes.Resolve", "Dispute", id)
-	}
-
-	return &d, nil
+	return fakeActionStored(f.cfg, "matcher.Disputes.Resolve", "Disputes.Resolve", "Dispute", id, f.store)
 }
 
 func (f *fakeMatcherDisputes) Escalate(_ context.Context, id string) (*matcher.Dispute, error) {
-	if err := f.cfg.injectedError("matcher.Disputes.Escalate"); err != nil {
-		return nil, err
-	}
-
-	d, ok := f.store.Get(id)
-	if !ok {
-		return nil, sdkerrors.NewNotFound("Disputes.Escalate", "Dispute", id)
-	}
-
-	return &d, nil
+	return fakeActionStored(f.cfg, "matcher.Disputes.Escalate", "Disputes.Escalate", "Dispute", id, f.store)
 }
 
 // ---------------------------------------------------------------------------
@@ -720,8 +510,6 @@ type fakeMatcherExceptions struct {
 	store *fakeStore[matcher.Exception]
 	cfg   *fakeConfig
 }
-
-var _ matcher.ExceptionsService = (*fakeMatcherExceptions)(nil)
 
 func (f *fakeMatcherExceptions) Create(_ context.Context, _ *matcher.CreateExceptionInput) (*matcher.Exception, error) {
 	if err := f.cfg.injectedError("matcher.Exceptions.Create"); err != nil {
@@ -736,89 +524,33 @@ func (f *fakeMatcherExceptions) Create(_ context.Context, _ *matcher.CreateExcep
 }
 
 func (f *fakeMatcherExceptions) Get(_ context.Context, id string) (*matcher.Exception, error) {
-	if err := f.cfg.injectedError("matcher.Exceptions.Get"); err != nil {
-		return nil, err
-	}
-
-	e, ok := f.store.Get(id)
-	if !ok {
-		return nil, sdkerrors.NewNotFound("Exceptions.Get", "Exception", id)
-	}
-
-	return &e, nil
+	return fakeGetStored(f.cfg, "matcher.Exceptions.Get", "Exceptions.Get", "Exception", id, f.store)
 }
 
-func (f *fakeMatcherExceptions) List(_ context.Context, opts *models.ListOptions) *pagination.Iterator[matcher.Exception] {
-	return f.store.PaginatedIterator(opts)
+func (f *fakeMatcherExceptions) List(_ context.Context, opts *models.CursorListOptions) *pagination.Iterator[matcher.Exception] {
+	return fakeListStored(f.cfg, "", f.store, opts)
 }
 
 func (f *fakeMatcherExceptions) Update(_ context.Context, id string, _ *matcher.UpdateExceptionInput) (*matcher.Exception, error) {
-	if err := f.cfg.injectedError("matcher.Exceptions.Update"); err != nil {
-		return nil, err
-	}
-
-	e, ok := f.store.Get(id)
-	if !ok {
-		return nil, sdkerrors.NewNotFound("Exceptions.Update", "Exception", id)
-	}
-
-	e.UpdatedAt = time.Now()
-	f.store.Set(id, e)
-
-	return &e, nil
+	return fakeMutateStored(f.cfg, "matcher.Exceptions.Update", "Exceptions.Update", "Exception", id, f.store, func(e *matcher.Exception) {
+		e.UpdatedAt = time.Now()
+	})
 }
 
 func (f *fakeMatcherExceptions) Delete(_ context.Context, id string) error {
-	if err := f.cfg.injectedError("matcher.Exceptions.Delete"); err != nil {
-		return err
-	}
-
-	if _, ok := f.store.Get(id); !ok {
-		return sdkerrors.NewNotFound("Exceptions.Delete", "Exception", id)
-	}
-
-	f.store.Delete(id)
-
-	return nil
+	return fakeDeleteStored(f.cfg, "matcher.Exceptions.Delete", "Exceptions.Delete", "Exception", id, f.store)
 }
 
 func (f *fakeMatcherExceptions) Approve(_ context.Context, id string) (*matcher.Exception, error) {
-	if err := f.cfg.injectedError("matcher.Exceptions.Approve"); err != nil {
-		return nil, err
-	}
-
-	e, ok := f.store.Get(id)
-	if !ok {
-		return nil, sdkerrors.NewNotFound("Exceptions.Approve", "Exception", id)
-	}
-
-	return &e, nil
+	return fakeActionStored(f.cfg, "matcher.Exceptions.Approve", "Exceptions.Approve", "Exception", id, f.store)
 }
 
 func (f *fakeMatcherExceptions) Reject(_ context.Context, id string, _ *matcher.RejectExceptionInput) (*matcher.Exception, error) {
-	if err := f.cfg.injectedError("matcher.Exceptions.Reject"); err != nil {
-		return nil, err
-	}
-
-	e, ok := f.store.Get(id)
-	if !ok {
-		return nil, sdkerrors.NewNotFound("Exceptions.Reject", "Exception", id)
-	}
-
-	return &e, nil
+	return fakeActionStored(f.cfg, "matcher.Exceptions.Reject", "Exceptions.Reject", "Exception", id, f.store)
 }
 
 func (f *fakeMatcherExceptions) Reassign(_ context.Context, id string, _ *matcher.ReassignExceptionInput) (*matcher.Exception, error) {
-	if err := f.cfg.injectedError("matcher.Exceptions.Reassign"); err != nil {
-		return nil, err
-	}
-
-	e, ok := f.store.Get(id)
-	if !ok {
-		return nil, sdkerrors.NewNotFound("Exceptions.Reassign", "Exception", id)
-	}
-
-	return &e, nil
+	return fakeActionStored(f.cfg, "matcher.Exceptions.Reassign", "Exceptions.Reassign", "Exception", id, f.store)
 }
 
 func (f *fakeMatcherExceptions) BulkApprove(_ context.Context, _ *matcher.BulkExceptionInput) (*matcher.BulkExceptionResult, error) {
@@ -845,7 +577,7 @@ func (f *fakeMatcherExceptions) BulkReassign(_ context.Context, _ *matcher.BulkR
 	return &matcher.BulkExceptionResult{}, nil
 }
 
-func (f *fakeMatcherExceptions) ListByContext(_ context.Context, _ string, opts *models.ListOptions) *pagination.Iterator[matcher.Exception] {
+func (f *fakeMatcherExceptions) ListByContext(_ context.Context, _ string, opts *models.CursorListOptions) *pagination.Iterator[matcher.Exception] {
 	return f.store.PaginatedIterator(opts)
 }
 
@@ -867,40 +599,20 @@ type fakeMatcherGovernance struct {
 	cfg       *fakeConfig
 }
 
-var _ matcher.GovernanceService = (*fakeMatcherGovernance)(nil)
-
-func (f *fakeMatcherGovernance) ListArchives(_ context.Context, opts *models.ListOptions) *pagination.Iterator[matcher.Archive] {
+func (f *fakeMatcherGovernance) ListArchives(_ context.Context, opts *models.CursorListOptions) *pagination.Iterator[matcher.Archive] {
 	return f.archives.PaginatedIterator(opts)
 }
 
 func (f *fakeMatcherGovernance) GetArchive(_ context.Context, id string) (*matcher.Archive, error) {
-	if err := f.cfg.injectedError("matcher.Governance.GetArchive"); err != nil {
-		return nil, err
-	}
-
-	a, ok := f.archives.Get(id)
-	if !ok {
-		return nil, sdkerrors.NewNotFound("Governance.GetArchive", "Archive", id)
-	}
-
-	return &a, nil
+	return fakeActionStored(f.cfg, "matcher.Governance.GetArchive", "Governance.GetArchive", "Archive", id, f.archives)
 }
 
-func (f *fakeMatcherGovernance) ListAuditLogs(_ context.Context, opts *models.ListOptions) *pagination.Iterator[matcher.AuditLog] {
+func (f *fakeMatcherGovernance) ListAuditLogs(_ context.Context, opts *models.CursorListOptions) *pagination.Iterator[matcher.AuditLog] {
 	return f.auditLogs.PaginatedIterator(opts)
 }
 
 func (f *fakeMatcherGovernance) GetAuditLog(_ context.Context, id string) (*matcher.AuditLog, error) {
-	if err := f.cfg.injectedError("matcher.Governance.GetAuditLog"); err != nil {
-		return nil, err
-	}
-
-	al, ok := f.auditLogs.Get(id)
-	if !ok {
-		return nil, sdkerrors.NewNotFound("Governance.GetAuditLog", "AuditLog", id)
-	}
-
-	return &al, nil
+	return fakeActionStored(f.cfg, "matcher.Governance.GetAuditLog", "Governance.GetAuditLog", "AuditLog", id, f.auditLogs)
 }
 
 // ---------------------------------------------------------------------------
@@ -911,8 +623,6 @@ type fakeMatcherImports struct {
 	store *fakeStore[matcher.Import]
 	cfg   *fakeConfig
 }
-
-var _ matcher.ImportsService = (*fakeMatcherImports)(nil)
 
 func (f *fakeMatcherImports) Create(_ context.Context, _ *matcher.CreateImportInput) (*matcher.Import, error) {
 	if err := f.cfg.injectedError("matcher.Imports.Create"); err != nil {
@@ -927,33 +637,15 @@ func (f *fakeMatcherImports) Create(_ context.Context, _ *matcher.CreateImportIn
 }
 
 func (f *fakeMatcherImports) Get(_ context.Context, id string) (*matcher.Import, error) {
-	if err := f.cfg.injectedError("matcher.Imports.Get"); err != nil {
-		return nil, err
-	}
-
-	imp, ok := f.store.Get(id)
-	if !ok {
-		return nil, sdkerrors.NewNotFound("Imports.Get", "Import", id)
-	}
-
-	return &imp, nil
+	return fakeGetStored(f.cfg, "matcher.Imports.Get", "Imports.Get", "Import", id, f.store)
 }
 
-func (f *fakeMatcherImports) List(_ context.Context, opts *models.ListOptions) *pagination.Iterator[matcher.Import] {
-	return f.store.PaginatedIterator(opts)
+func (f *fakeMatcherImports) List(_ context.Context, opts *models.CursorListOptions) *pagination.Iterator[matcher.Import] {
+	return fakeListStored(f.cfg, "", f.store, opts)
 }
 
 func (f *fakeMatcherImports) Cancel(_ context.Context, id string) (*matcher.Import, error) {
-	if err := f.cfg.injectedError("matcher.Imports.Cancel"); err != nil {
-		return nil, err
-	}
-
-	imp, ok := f.store.Get(id)
-	if !ok {
-		return nil, sdkerrors.NewNotFound("Imports.Cancel", "Import", id)
-	}
-
-	return &imp, nil
+	return fakeActionStored(f.cfg, "matcher.Imports.Cancel", "Imports.Cancel", "Import", id, f.store)
 }
 
 func (f *fakeMatcherImports) GetStatus(_ context.Context, id string) (*matcher.ImportStatus, error) {
@@ -975,8 +667,6 @@ func (f *fakeMatcherImports) GetStatus(_ context.Context, id string) (*matcher.I
 type fakeMatcherMatching struct {
 	cfg *fakeConfig
 }
-
-var _ matcher.MatchingService = (*fakeMatcherMatching)(nil)
 
 func (f *fakeMatcherMatching) Run(_ context.Context, contextID string) (*matcher.MatchResult, error) {
 	if err := f.cfg.injectedError("matcher.Matching.Run"); err != nil {
@@ -1010,88 +700,46 @@ type fakeMatcherReports struct {
 	cfg *fakeConfig
 }
 
-var _ matcher.ReportsService = (*fakeMatcherReports)(nil)
-
 func (f *fakeMatcherReports) GetSummary(_ context.Context, _ string) (*matcher.ReconciliationSummary, error) {
-	if err := f.cfg.injectedError("matcher.Reports.GetSummary"); err != nil {
-		return nil, err
-	}
-
-	return &matcher.ReconciliationSummary{}, nil
+	return fakeStaticResult(f.cfg, "matcher.Reports.GetSummary", matcher.ReconciliationSummary{})
 }
 
 func (f *fakeMatcherReports) GetMatchRate(_ context.Context, _ string) (*matcher.MatchRateReport, error) {
-	if err := f.cfg.injectedError("matcher.Reports.GetMatchRate"); err != nil {
-		return nil, err
-	}
-
-	return &matcher.MatchRateReport{}, nil
+	return fakeStaticResult(f.cfg, "matcher.Reports.GetMatchRate", matcher.MatchRateReport{})
 }
 
 func (f *fakeMatcherReports) GetExceptionTrend(_ context.Context, _ string) (*matcher.ExceptionTrendReport, error) {
-	if err := f.cfg.injectedError("matcher.Reports.GetExceptionTrend"); err != nil {
-		return nil, err
-	}
-
-	return &matcher.ExceptionTrendReport{}, nil
+	return fakeStaticResult(f.cfg, "matcher.Reports.GetExceptionTrend", matcher.ExceptionTrendReport{})
 }
 
 func (f *fakeMatcherReports) GetAgingAnalysis(_ context.Context, _ string) (*matcher.AgingAnalysisReport, error) {
-	if err := f.cfg.injectedError("matcher.Reports.GetAgingAnalysis"); err != nil {
-		return nil, err
-	}
-
-	return &matcher.AgingAnalysisReport{}, nil
+	return fakeStaticResult(f.cfg, "matcher.Reports.GetAgingAnalysis", matcher.AgingAnalysisReport{})
 }
 
 func (f *fakeMatcherReports) GetSourceComparison(_ context.Context, _ string) (*matcher.SourceComparisonReport, error) {
-	if err := f.cfg.injectedError("matcher.Reports.GetSourceComparison"); err != nil {
-		return nil, err
-	}
-
-	return &matcher.SourceComparisonReport{}, nil
+	return fakeStaticResult(f.cfg, "matcher.Reports.GetSourceComparison", matcher.SourceComparisonReport{})
 }
 
 func (f *fakeMatcherReports) GetVolumeAnalysis(_ context.Context, _ string) (*matcher.VolumeAnalysisReport, error) {
-	if err := f.cfg.injectedError("matcher.Reports.GetVolumeAnalysis"); err != nil {
-		return nil, err
-	}
-
-	return &matcher.VolumeAnalysisReport{}, nil
+	return fakeStaticResult(f.cfg, "matcher.Reports.GetVolumeAnalysis", matcher.VolumeAnalysisReport{})
 }
 
 func (f *fakeMatcherReports) GetDisputeMetrics(_ context.Context, _ string) (*matcher.DisputeMetricsReport, error) {
-	if err := f.cfg.injectedError("matcher.Reports.GetDisputeMetrics"); err != nil {
-		return nil, err
-	}
-
-	return &matcher.DisputeMetricsReport{}, nil
+	return fakeStaticResult(f.cfg, "matcher.Reports.GetDisputeMetrics", matcher.DisputeMetricsReport{})
 }
 
 func (f *fakeMatcherReports) GetFeeAnalysis(_ context.Context, _ string) (*matcher.FeeAnalysisReport, error) {
-	if err := f.cfg.injectedError("matcher.Reports.GetFeeAnalysis"); err != nil {
-		return nil, err
-	}
-
-	return &matcher.FeeAnalysisReport{}, nil
+	return fakeStaticResult(f.cfg, "matcher.Reports.GetFeeAnalysis", matcher.FeeAnalysisReport{})
 }
 
-func (f *fakeMatcherReports) GetReconciliationHistory(_ context.Context, _ string, _ *models.ListOptions) *pagination.Iterator[matcher.ReconciliationHistoryEntry] {
+func (f *fakeMatcherReports) GetReconciliationHistory(_ context.Context, _ string, _ *models.CursorListOptions) *pagination.Iterator[matcher.ReconciliationHistoryEntry] {
 	return pagination.NewIteratorFromSlice[matcher.ReconciliationHistoryEntry](nil)
 }
 
 func (f *fakeMatcherReports) GetPerformanceMetrics(_ context.Context, _ string) (*matcher.PerformanceMetricsReport, error) {
-	if err := f.cfg.injectedError("matcher.Reports.GetPerformanceMetrics"); err != nil {
-		return nil, err
-	}
-
-	return &matcher.PerformanceMetricsReport{}, nil
+	return fakeStaticResult(f.cfg, "matcher.Reports.GetPerformanceMetrics", matcher.PerformanceMetricsReport{})
 }
 
 func (f *fakeMatcherReports) GetDashboard(_ context.Context, _ string) (*matcher.DashboardReport, error) {
-	if err := f.cfg.injectedError("matcher.Reports.GetDashboard"); err != nil {
-		return nil, err
-	}
-
-	return &matcher.DashboardReport{}, nil
+	return fakeStaticResult(f.cfg, "matcher.Reports.GetDashboard", matcher.DashboardReport{})
 }

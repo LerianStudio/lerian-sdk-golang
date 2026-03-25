@@ -25,7 +25,7 @@ func TestFakeMidazAccountTypesCRUD(t *testing.T) {
 	desc := "Savings accounts"
 
 	// Create
-	created, err := client.Midaz.AccountTypes.Create(ctx, orgID, ledgerID, &midaz.CreateAccountTypeInput{
+	created, err := client.Midaz.Onboarding.AccountTypes.Create(ctx, orgID, ledgerID, &midaz.CreateAccountTypeInput{
 		Name:        "savings",
 		Description: &desc,
 	})
@@ -39,14 +39,14 @@ func TestFakeMidazAccountTypesCRUD(t *testing.T) {
 	assert.False(t, created.UpdatedAt.IsZero())
 
 	// Get
-	got, err := client.Midaz.AccountTypes.Get(ctx, orgID, ledgerID, created.ID)
+	got, err := client.Midaz.Onboarding.AccountTypes.Get(ctx, orgID, ledgerID, created.ID)
 	require.NoError(t, err)
 	assert.Equal(t, created.ID, got.ID)
 	assert.Equal(t, "savings", got.Name)
 
 	// Update
 	newName := "deposit"
-	updated, err := client.Midaz.AccountTypes.Update(ctx, orgID, ledgerID, created.ID, &midaz.UpdateAccountTypeInput{
+	updated, err := client.Midaz.Onboarding.AccountTypes.Update(ctx, orgID, ledgerID, created.ID, &midaz.UpdateAccountTypeInput{
 		Name: &newName,
 	})
 	require.NoError(t, err)
@@ -55,18 +55,18 @@ func TestFakeMidazAccountTypesCRUD(t *testing.T) {
 	assert.True(t, updated.UpdatedAt.After(created.UpdatedAt) || updated.UpdatedAt.Equal(created.UpdatedAt))
 
 	// List -- should have 1 item
-	iter := client.Midaz.AccountTypes.List(ctx, orgID, ledgerID, nil)
+	iter := client.Midaz.Onboarding.AccountTypes.List(ctx, orgID, ledgerID, nil)
 	items, err := iter.Collect(ctx)
 	require.NoError(t, err)
 	assert.Len(t, items, 1)
 	assert.Equal(t, created.ID, items[0].ID)
 
 	// Delete
-	err = client.Midaz.AccountTypes.Delete(ctx, orgID, ledgerID, created.ID)
+	err = client.Midaz.Onboarding.AccountTypes.Delete(ctx, orgID, ledgerID, created.ID)
 	require.NoError(t, err)
 
 	// Verify deleted
-	_, err = client.Midaz.AccountTypes.Get(ctx, orgID, ledgerID, created.ID)
+	_, err = client.Midaz.Onboarding.AccountTypes.Get(ctx, orgID, ledgerID, created.ID)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "not found")
 }
@@ -82,12 +82,12 @@ func TestFakeMidazAccountTypesNotFound(t *testing.T) {
 		name string
 		fn   func() error
 	}{
-		{"Get", func() error { _, err := client.Midaz.AccountTypes.Get(ctx, "o", "l", ghost); return err }},
+		{"Get", func() error { _, err := client.Midaz.Onboarding.AccountTypes.Get(ctx, "o", "l", ghost); return err }},
 		{"Update", func() error {
-			_, err := client.Midaz.AccountTypes.Update(ctx, "o", "l", ghost, &midaz.UpdateAccountTypeInput{})
+			_, err := client.Midaz.Onboarding.AccountTypes.Update(ctx, "o", "l", ghost, &midaz.UpdateAccountTypeInput{})
 			return err
 		}},
-		{"Delete", func() error { return client.Midaz.AccountTypes.Delete(ctx, "o", "l", ghost) }},
+		{"Delete", func() error { return client.Midaz.Onboarding.AccountTypes.Delete(ctx, "o", "l", ghost) }},
 	}
 
 	for _, tc := range tests {
@@ -111,7 +111,7 @@ func TestFakeMidazAccountTypesErrorInjection(t *testing.T) {
 		leriantest.WithErrorOn("midaz.AccountTypes.Create", injectedErr),
 	)
 
-	_, err := client.Midaz.AccountTypes.Create(ctx, "o", "l", &midaz.CreateAccountTypeInput{
+	_, err := client.Midaz.Onboarding.AccountTypes.Create(ctx, "o", "l", &midaz.CreateAccountTypeInput{
 		Name: "Should Fail",
 	})
 	require.Error(t, err)
@@ -132,7 +132,7 @@ func TestFakeMidazAssetsCRUD(t *testing.T) {
 	ledgerID := "ledger-1"
 
 	// Create
-	created, err := client.Midaz.Assets.Create(ctx, orgID, ledgerID, &midaz.CreateAssetInput{
+	created, err := client.Midaz.Onboarding.Assets.Create(ctx, orgID, ledgerID, &midaz.CreateAssetInput{
 		Name: "Brazilian Real",
 		Code: "BRL",
 		Type: "currency",
@@ -149,14 +149,14 @@ func TestFakeMidazAssetsCRUD(t *testing.T) {
 	assert.False(t, created.UpdatedAt.IsZero())
 
 	// Get
-	got, err := client.Midaz.Assets.Get(ctx, orgID, ledgerID, created.ID)
+	got, err := client.Midaz.Onboarding.Assets.Get(ctx, orgID, ledgerID, created.ID)
 	require.NoError(t, err)
 	assert.Equal(t, created.ID, got.ID)
 	assert.Equal(t, "BRL", got.Code)
 
 	// Update
 	newName := "Real Brasileiro"
-	updated, err := client.Midaz.Assets.Update(ctx, orgID, ledgerID, created.ID, &midaz.UpdateAssetInput{
+	updated, err := client.Midaz.Onboarding.Assets.Update(ctx, orgID, ledgerID, created.ID, &midaz.UpdateAssetInput{
 		Name: &newName,
 	})
 	require.NoError(t, err)
@@ -165,18 +165,18 @@ func TestFakeMidazAssetsCRUD(t *testing.T) {
 	assert.True(t, updated.UpdatedAt.After(created.UpdatedAt) || updated.UpdatedAt.Equal(created.UpdatedAt))
 
 	// List -- should have 1 item
-	iter := client.Midaz.Assets.List(ctx, orgID, ledgerID, nil)
+	iter := client.Midaz.Onboarding.Assets.List(ctx, orgID, ledgerID, nil)
 	items, err := iter.Collect(ctx)
 	require.NoError(t, err)
 	assert.Len(t, items, 1)
 	assert.Equal(t, created.ID, items[0].ID)
 
 	// Delete
-	err = client.Midaz.Assets.Delete(ctx, orgID, ledgerID, created.ID)
+	err = client.Midaz.Onboarding.Assets.Delete(ctx, orgID, ledgerID, created.ID)
 	require.NoError(t, err)
 
 	// Verify deleted
-	_, err = client.Midaz.Assets.Get(ctx, orgID, ledgerID, created.ID)
+	_, err = client.Midaz.Onboarding.Assets.Get(ctx, orgID, ledgerID, created.ID)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "not found")
 }
@@ -192,12 +192,12 @@ func TestFakeMidazAssetsNotFound(t *testing.T) {
 		name string
 		fn   func() error
 	}{
-		{"Get", func() error { _, err := client.Midaz.Assets.Get(ctx, "o", "l", ghost); return err }},
+		{"Get", func() error { _, err := client.Midaz.Onboarding.Assets.Get(ctx, "o", "l", ghost); return err }},
 		{"Update", func() error {
-			_, err := client.Midaz.Assets.Update(ctx, "o", "l", ghost, &midaz.UpdateAssetInput{})
+			_, err := client.Midaz.Onboarding.Assets.Update(ctx, "o", "l", ghost, &midaz.UpdateAssetInput{})
 			return err
 		}},
-		{"Delete", func() error { return client.Midaz.Assets.Delete(ctx, "o", "l", ghost) }},
+		{"Delete", func() error { return client.Midaz.Onboarding.Assets.Delete(ctx, "o", "l", ghost) }},
 	}
 
 	for _, tc := range tests {
@@ -218,7 +218,7 @@ func TestFakeMidazAssetsListMultiple(t *testing.T) {
 	client := leriantest.NewFakeClient()
 
 	for i := 0; i < 3; i++ {
-		_, err := client.Midaz.Assets.Create(ctx, "o", "l", &midaz.CreateAssetInput{
+		_, err := client.Midaz.Onboarding.Assets.Create(ctx, "o", "l", &midaz.CreateAssetInput{
 			Name: "Asset",
 			Code: "TST",
 			Type: "currency",
@@ -226,7 +226,7 @@ func TestFakeMidazAssetsListMultiple(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	iter := client.Midaz.Assets.List(ctx, "o", "l", nil)
+	iter := client.Midaz.Onboarding.Assets.List(ctx, "o", "l", nil)
 	items, err := iter.Collect(ctx)
 	require.NoError(t, err)
 	assert.Len(t, items, 3)
@@ -248,7 +248,7 @@ func TestFakeMidazAssetRatesCRUD(t *testing.T) {
 	externalID := "ext-rate-001"
 
 	// Create
-	created, err := client.Midaz.AssetRates.Create(ctx, orgID, ledgerID, &midaz.CreateAssetRateInput{
+	created, err := client.Midaz.Transactions.AssetRates.Create(ctx, orgID, ledgerID, &midaz.CreateAssetRateInput{
 		BaseAssetCode:    "BRL",
 		CounterAssetCode: "USD",
 		Amount:           550,
@@ -270,7 +270,7 @@ func TestFakeMidazAssetRatesCRUD(t *testing.T) {
 	assert.False(t, created.UpdatedAt.IsZero())
 
 	// Get
-	got, err := client.Midaz.AssetRates.Get(ctx, orgID, ledgerID, created.ID)
+	got, err := client.Midaz.Transactions.AssetRates.Get(ctx, orgID, ledgerID, created.ID)
 	require.NoError(t, err)
 	assert.Equal(t, created.ID, got.ID)
 	assert.Equal(t, "BRL", got.BaseAssetCode)
@@ -278,7 +278,7 @@ func TestFakeMidazAssetRatesCRUD(t *testing.T) {
 	// Update
 	newAmount := int64(560)
 	newScale := 2
-	updated, err := client.Midaz.AssetRates.Update(ctx, orgID, ledgerID, created.ID, &midaz.UpdateAssetRateInput{
+	updated, err := client.Midaz.Transactions.AssetRates.Update(ctx, orgID, ledgerID, created.ID, &midaz.UpdateAssetRateInput{
 		Amount: &newAmount,
 		Scale:  &newScale,
 	})
@@ -288,18 +288,18 @@ func TestFakeMidazAssetRatesCRUD(t *testing.T) {
 	assert.True(t, updated.UpdatedAt.After(created.UpdatedAt) || updated.UpdatedAt.Equal(created.UpdatedAt))
 
 	// List -- should have 1 item
-	iter := client.Midaz.AssetRates.List(ctx, orgID, ledgerID, nil)
+	iter := client.Midaz.Transactions.AssetRates.List(ctx, orgID, ledgerID, nil)
 	items, err := iter.Collect(ctx)
 	require.NoError(t, err)
 	assert.Len(t, items, 1)
 	assert.Equal(t, created.ID, items[0].ID)
 
 	// Delete
-	err = client.Midaz.AssetRates.Delete(ctx, orgID, ledgerID, created.ID)
+	err = client.Midaz.Transactions.AssetRates.Delete(ctx, orgID, ledgerID, created.ID)
 	require.NoError(t, err)
 
 	// Verify deleted
-	_, err = client.Midaz.AssetRates.Get(ctx, orgID, ledgerID, created.ID)
+	_, err = client.Midaz.Transactions.AssetRates.Get(ctx, orgID, ledgerID, created.ID)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "not found")
 }
@@ -315,12 +315,12 @@ func TestFakeMidazAssetRatesNotFound(t *testing.T) {
 		name string
 		fn   func() error
 	}{
-		{"Get", func() error { _, err := client.Midaz.AssetRates.Get(ctx, "o", "l", ghost); return err }},
+		{"Get", func() error { _, err := client.Midaz.Transactions.AssetRates.Get(ctx, "o", "l", ghost); return err }},
 		{"Update", func() error {
-			_, err := client.Midaz.AssetRates.Update(ctx, "o", "l", ghost, &midaz.UpdateAssetRateInput{})
+			_, err := client.Midaz.Transactions.AssetRates.Update(ctx, "o", "l", ghost, &midaz.UpdateAssetRateInput{})
 			return err
 		}},
-		{"Delete", func() error { return client.Midaz.AssetRates.Delete(ctx, "o", "l", ghost) }},
+		{"Delete", func() error { return client.Midaz.Transactions.AssetRates.Delete(ctx, "o", "l", ghost) }},
 	}
 
 	for _, tc := range tests {
@@ -342,7 +342,7 @@ func TestFakeMidazAssetRatesGetByExternalID(t *testing.T) {
 
 	externalID := "ext-rate-lookup"
 
-	created, err := client.Midaz.AssetRates.Create(ctx, "o", "l", &midaz.CreateAssetRateInput{
+	created, err := client.Midaz.Transactions.AssetRates.Create(ctx, "o", "l", &midaz.CreateAssetRateInput{
 		BaseAssetCode:    "BRL",
 		CounterAssetCode: "EUR",
 		Amount:           600,
@@ -352,12 +352,12 @@ func TestFakeMidazAssetRatesGetByExternalID(t *testing.T) {
 	require.NoError(t, err)
 
 	// Found
-	got, err := client.Midaz.AssetRates.GetByExternalID(ctx, "o", "l", "ext-rate-lookup")
+	got, err := client.Midaz.Transactions.AssetRates.GetByExternalID(ctx, "o", "l", "ext-rate-lookup")
 	require.NoError(t, err)
 	assert.Equal(t, created.ID, got.ID)
 
 	// Not found
-	_, err = client.Midaz.AssetRates.GetByExternalID(ctx, "o", "l", "nonexistent")
+	_, err = client.Midaz.Transactions.AssetRates.GetByExternalID(ctx, "o", "l", "nonexistent")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "not found")
 }
@@ -368,7 +368,7 @@ func TestFakeMidazAssetRatesGetFromAssetCode(t *testing.T) {
 	ctx := context.Background()
 	client := leriantest.NewFakeClient()
 
-	created, err := client.Midaz.AssetRates.Create(ctx, "o", "l", &midaz.CreateAssetRateInput{
+	created, err := client.Midaz.Transactions.AssetRates.Create(ctx, "o", "l", &midaz.CreateAssetRateInput{
 		BaseAssetCode:    "GBP",
 		CounterAssetCode: "USD",
 		Amount:           130,
@@ -377,12 +377,12 @@ func TestFakeMidazAssetRatesGetFromAssetCode(t *testing.T) {
 	require.NoError(t, err)
 
 	// Found by base asset code
-	got, err := client.Midaz.AssetRates.GetFromAssetCode(ctx, "o", "l", "GBP")
+	got, err := client.Midaz.Transactions.AssetRates.GetFromAssetCode(ctx, "o", "l", "GBP")
 	require.NoError(t, err)
 	assert.Equal(t, created.ID, got.ID)
 
 	// Not found
-	_, err = client.Midaz.AssetRates.GetFromAssetCode(ctx, "o", "l", "JPY")
+	_, err = client.Midaz.Transactions.AssetRates.GetFromAssetCode(ctx, "o", "l", "JPY")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "not found")
 }
@@ -402,7 +402,7 @@ func TestFakeMidazPortfoliosCRUD(t *testing.T) {
 	entityID := "entity-abc"
 
 	// Create
-	created, err := client.Midaz.Portfolios.Create(ctx, orgID, ledgerID, &midaz.CreatePortfolioInput{
+	created, err := client.Midaz.Onboarding.Portfolios.Create(ctx, orgID, ledgerID, &midaz.CreatePortfolioInput{
 		Name:     "Main Portfolio",
 		EntityID: &entityID,
 	})
@@ -417,14 +417,14 @@ func TestFakeMidazPortfoliosCRUD(t *testing.T) {
 	assert.False(t, created.UpdatedAt.IsZero())
 
 	// Get
-	got, err := client.Midaz.Portfolios.Get(ctx, orgID, ledgerID, created.ID)
+	got, err := client.Midaz.Onboarding.Portfolios.Get(ctx, orgID, ledgerID, created.ID)
 	require.NoError(t, err)
 	assert.Equal(t, created.ID, got.ID)
 	assert.Equal(t, "Main Portfolio", got.Name)
 
 	// Update
 	newName := "Updated Portfolio"
-	updated, err := client.Midaz.Portfolios.Update(ctx, orgID, ledgerID, created.ID, &midaz.UpdatePortfolioInput{
+	updated, err := client.Midaz.Onboarding.Portfolios.Update(ctx, orgID, ledgerID, created.ID, &midaz.UpdatePortfolioInput{
 		Name: &newName,
 	})
 	require.NoError(t, err)
@@ -433,18 +433,18 @@ func TestFakeMidazPortfoliosCRUD(t *testing.T) {
 	assert.True(t, updated.UpdatedAt.After(created.UpdatedAt) || updated.UpdatedAt.Equal(created.UpdatedAt))
 
 	// List -- should have 1 item
-	iter := client.Midaz.Portfolios.List(ctx, orgID, ledgerID, nil)
+	iter := client.Midaz.Onboarding.Portfolios.List(ctx, orgID, ledgerID, nil)
 	items, err := iter.Collect(ctx)
 	require.NoError(t, err)
 	assert.Len(t, items, 1)
 	assert.Equal(t, created.ID, items[0].ID)
 
 	// Delete
-	err = client.Midaz.Portfolios.Delete(ctx, orgID, ledgerID, created.ID)
+	err = client.Midaz.Onboarding.Portfolios.Delete(ctx, orgID, ledgerID, created.ID)
 	require.NoError(t, err)
 
 	// Verify deleted
-	_, err = client.Midaz.Portfolios.Get(ctx, orgID, ledgerID, created.ID)
+	_, err = client.Midaz.Onboarding.Portfolios.Get(ctx, orgID, ledgerID, created.ID)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "not found")
 }
@@ -460,12 +460,12 @@ func TestFakeMidazPortfoliosNotFound(t *testing.T) {
 		name string
 		fn   func() error
 	}{
-		{"Get", func() error { _, err := client.Midaz.Portfolios.Get(ctx, "o", "l", ghost); return err }},
+		{"Get", func() error { _, err := client.Midaz.Onboarding.Portfolios.Get(ctx, "o", "l", ghost); return err }},
 		{"Update", func() error {
-			_, err := client.Midaz.Portfolios.Update(ctx, "o", "l", ghost, &midaz.UpdatePortfolioInput{})
+			_, err := client.Midaz.Onboarding.Portfolios.Update(ctx, "o", "l", ghost, &midaz.UpdatePortfolioInput{})
 			return err
 		}},
-		{"Delete", func() error { return client.Midaz.Portfolios.Delete(ctx, "o", "l", ghost) }},
+		{"Delete", func() error { return client.Midaz.Onboarding.Portfolios.Delete(ctx, "o", "l", ghost) }},
 	}
 
 	for _, tc := range tests {
@@ -489,7 +489,7 @@ func TestFakeMidazPortfoliosErrorInjection(t *testing.T) {
 		leriantest.WithErrorOn("midaz.Portfolios.Create", injectedErr),
 	)
 
-	_, err := client.Midaz.Portfolios.Create(ctx, "o", "l", &midaz.CreatePortfolioInput{
+	_, err := client.Midaz.Onboarding.Portfolios.Create(ctx, "o", "l", &midaz.CreatePortfolioInput{
 		Name: "Should Fail",
 	})
 	require.Error(t, err)
@@ -510,7 +510,7 @@ func TestFakeMidazSegmentsCRUD(t *testing.T) {
 	ledgerID := "ledger-1"
 
 	// Create
-	created, err := client.Midaz.Segments.Create(ctx, orgID, ledgerID, &midaz.CreateSegmentInput{
+	created, err := client.Midaz.Onboarding.Segments.Create(ctx, orgID, ledgerID, &midaz.CreateSegmentInput{
 		Name: "Retail Banking",
 	})
 	require.NoError(t, err)
@@ -523,14 +523,14 @@ func TestFakeMidazSegmentsCRUD(t *testing.T) {
 	assert.False(t, created.UpdatedAt.IsZero())
 
 	// Get
-	got, err := client.Midaz.Segments.Get(ctx, orgID, ledgerID, created.ID)
+	got, err := client.Midaz.Onboarding.Segments.Get(ctx, orgID, ledgerID, created.ID)
 	require.NoError(t, err)
 	assert.Equal(t, created.ID, got.ID)
 	assert.Equal(t, "Retail Banking", got.Name)
 
 	// Update
 	newName := "Corporate Banking"
-	updated, err := client.Midaz.Segments.Update(ctx, orgID, ledgerID, created.ID, &midaz.UpdateSegmentInput{
+	updated, err := client.Midaz.Onboarding.Segments.Update(ctx, orgID, ledgerID, created.ID, &midaz.UpdateSegmentInput{
 		Name: &newName,
 	})
 	require.NoError(t, err)
@@ -539,18 +539,18 @@ func TestFakeMidazSegmentsCRUD(t *testing.T) {
 	assert.True(t, updated.UpdatedAt.After(created.UpdatedAt) || updated.UpdatedAt.Equal(created.UpdatedAt))
 
 	// List -- should have 1 item
-	iter := client.Midaz.Segments.List(ctx, orgID, ledgerID, nil)
+	iter := client.Midaz.Onboarding.Segments.List(ctx, orgID, ledgerID, nil)
 	items, err := iter.Collect(ctx)
 	require.NoError(t, err)
 	assert.Len(t, items, 1)
 	assert.Equal(t, created.ID, items[0].ID)
 
 	// Delete
-	err = client.Midaz.Segments.Delete(ctx, orgID, ledgerID, created.ID)
+	err = client.Midaz.Onboarding.Segments.Delete(ctx, orgID, ledgerID, created.ID)
 	require.NoError(t, err)
 
 	// Verify deleted
-	_, err = client.Midaz.Segments.Get(ctx, orgID, ledgerID, created.ID)
+	_, err = client.Midaz.Onboarding.Segments.Get(ctx, orgID, ledgerID, created.ID)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "not found")
 }
@@ -566,12 +566,12 @@ func TestFakeMidazSegmentsNotFound(t *testing.T) {
 		name string
 		fn   func() error
 	}{
-		{"Get", func() error { _, err := client.Midaz.Segments.Get(ctx, "o", "l", ghost); return err }},
+		{"Get", func() error { _, err := client.Midaz.Onboarding.Segments.Get(ctx, "o", "l", ghost); return err }},
 		{"Update", func() error {
-			_, err := client.Midaz.Segments.Update(ctx, "o", "l", ghost, &midaz.UpdateSegmentInput{})
+			_, err := client.Midaz.Onboarding.Segments.Update(ctx, "o", "l", ghost, &midaz.UpdateSegmentInput{})
 			return err
 		}},
-		{"Delete", func() error { return client.Midaz.Segments.Delete(ctx, "o", "l", ghost) }},
+		{"Delete", func() error { return client.Midaz.Onboarding.Segments.Delete(ctx, "o", "l", ghost) }},
 	}
 
 	for _, tc := range tests {
@@ -592,13 +592,13 @@ func TestFakeMidazSegmentsListMultiple(t *testing.T) {
 	client := leriantest.NewFakeClient()
 
 	for i := 0; i < 3; i++ {
-		_, err := client.Midaz.Segments.Create(ctx, "o", "l", &midaz.CreateSegmentInput{
+		_, err := client.Midaz.Onboarding.Segments.Create(ctx, "o", "l", &midaz.CreateSegmentInput{
 			Name: "Segment",
 		})
 		require.NoError(t, err)
 	}
 
-	iter := client.Midaz.Segments.List(ctx, "o", "l", nil)
+	iter := client.Midaz.Onboarding.Segments.List(ctx, "o", "l", nil)
 	items, err := iter.Collect(ctx)
 	require.NoError(t, err)
 	assert.Len(t, items, 3)
@@ -616,15 +616,21 @@ func TestFakeMidazBalancesCRUD(t *testing.T) {
 
 	orgID := "org-1"
 	ledgerID := "ledger-1"
+	alias := "@acct-123"
 
-	// Create
-	created, err := client.Midaz.Balances.Create(ctx, orgID, ledgerID, &midaz.CreateBalanceInput{
-		AccountID: "acct-123",
+	account, err := client.Midaz.Onboarding.Accounts.Create(ctx, orgID, ledgerID, &midaz.CreateAccountInput{
+		Name:      "Account 123",
+		Type:      "asset",
 		AssetCode: "BRL",
+		Alias:     &alias,
 	})
 	require.NoError(t, err)
+
+	// Create
+	created, err := client.Midaz.Transactions.Balances.CreateForAccount(ctx, orgID, ledgerID, account.ID, &midaz.CreateBalanceInput{Key: "asset-freeze"})
+	require.NoError(t, err)
 	require.NotEmpty(t, created.ID)
-	assert.Equal(t, "acct-123", created.AccountID)
+	assert.Equal(t, account.ID, created.AccountID)
 	assert.Equal(t, "BRL", created.AssetCode)
 	assert.Equal(t, "active", created.Status.Code)
 	assert.True(t, created.AllowSending)
@@ -635,14 +641,14 @@ func TestFakeMidazBalancesCRUD(t *testing.T) {
 	assert.False(t, created.UpdatedAt.IsZero())
 
 	// Get
-	got, err := client.Midaz.Balances.Get(ctx, orgID, ledgerID, created.ID)
+	got, err := client.Midaz.Transactions.Balances.Get(ctx, orgID, ledgerID, created.ID)
 	require.NoError(t, err)
 	assert.Equal(t, created.ID, got.ID)
-	assert.Equal(t, "acct-123", got.AccountID)
+	assert.Equal(t, account.ID, got.AccountID)
 
 	// Update
 	allowSending := false
-	updated, err := client.Midaz.Balances.Update(ctx, orgID, ledgerID, created.ID, &midaz.UpdateBalanceInput{
+	updated, err := client.Midaz.Transactions.Balances.Update(ctx, orgID, ledgerID, created.ID, &midaz.UpdateBalanceInput{
 		AllowSending: &allowSending,
 	})
 	require.NoError(t, err)
@@ -652,18 +658,18 @@ func TestFakeMidazBalancesCRUD(t *testing.T) {
 	assert.True(t, updated.UpdatedAt.After(created.UpdatedAt) || updated.UpdatedAt.Equal(created.UpdatedAt))
 
 	// List -- should have 1 item
-	iter := client.Midaz.Balances.List(ctx, orgID, ledgerID, nil)
+	iter := client.Midaz.Transactions.Balances.List(ctx, orgID, ledgerID, nil)
 	items, err := iter.Collect(ctx)
 	require.NoError(t, err)
 	assert.Len(t, items, 1)
 	assert.Equal(t, created.ID, items[0].ID)
 
 	// Delete
-	err = client.Midaz.Balances.Delete(ctx, orgID, ledgerID, created.ID)
+	err = client.Midaz.Transactions.Balances.Delete(ctx, orgID, ledgerID, created.ID)
 	require.NoError(t, err)
 
 	// Verify deleted
-	_, err = client.Midaz.Balances.Get(ctx, orgID, ledgerID, created.ID)
+	_, err = client.Midaz.Transactions.Balances.Get(ctx, orgID, ledgerID, created.ID)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "not found")
 }
@@ -679,12 +685,12 @@ func TestFakeMidazBalancesNotFound(t *testing.T) {
 		name string
 		fn   func() error
 	}{
-		{"Get", func() error { _, err := client.Midaz.Balances.Get(ctx, "o", "l", ghost); return err }},
+		{"Get", func() error { _, err := client.Midaz.Transactions.Balances.Get(ctx, "o", "l", ghost); return err }},
 		{"Update", func() error {
-			_, err := client.Midaz.Balances.Update(ctx, "o", "l", ghost, &midaz.UpdateBalanceInput{})
+			_, err := client.Midaz.Transactions.Balances.Update(ctx, "o", "l", ghost, &midaz.UpdateBalanceInput{})
 			return err
 		}},
-		{"Delete", func() error { return client.Midaz.Balances.Delete(ctx, "o", "l", ghost) }},
+		{"Delete", func() error { return client.Midaz.Transactions.Balances.Delete(ctx, "o", "l", ghost) }},
 	}
 
 	for _, tc := range tests {
@@ -698,54 +704,85 @@ func TestFakeMidazBalancesNotFound(t *testing.T) {
 	}
 }
 
-func TestFakeMidazBalancesGetByAccountID(t *testing.T) {
+func TestFakeMidazBalancesListByAccountID(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
 	client := leriantest.NewFakeClient()
-
-	created, err := client.Midaz.Balances.Create(ctx, "o", "l", &midaz.CreateBalanceInput{
-		AccountID: "acct-lookup-001",
+	account, err := client.Midaz.Onboarding.Accounts.Create(ctx, "o", "l", &midaz.CreateAccountInput{
+		Name:      "Lookup",
+		Type:      "asset",
 		AssetCode: "USD",
 	})
 	require.NoError(t, err)
 
-	// Found
-	got, err := client.Midaz.Balances.GetByAccountID(ctx, "o", "l", "acct-lookup-001")
+	created, err := client.Midaz.Transactions.Balances.CreateForAccount(ctx, "o", "l", account.ID, &midaz.CreateBalanceInput{Key: "asset-freeze"})
 	require.NoError(t, err)
-	assert.Equal(t, created.ID, got.ID)
+
+	// Found
+	items, err := client.Midaz.Transactions.Balances.ListByAccountID(ctx, "o", "l", account.ID)
+	require.NoError(t, err)
+	require.Len(t, items, 1)
+	assert.Equal(t, created.ID, items[0].ID)
 
 	// Not found
-	_, err = client.Midaz.Balances.GetByAccountID(ctx, "o", "l", "nonexistent-acct")
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "not found")
+	items, err = client.Midaz.Transactions.Balances.ListByAccountID(ctx, "o", "l", "nonexistent-acct")
+	require.NoError(t, err)
+	assert.Empty(t, items)
 }
 
-func TestFakeMidazBalancesGetByAlias(t *testing.T) {
+func TestFakeMidazBalancesListByAlias(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
 	client := leriantest.NewFakeClient()
+	alias := "@balance-alias"
+	account, err := client.Midaz.Onboarding.Accounts.Create(ctx, "o", "l", &midaz.CreateAccountInput{
+		Name:      "Alias Lookup",
+		Type:      "asset",
+		AssetCode: "BRL",
+		Alias:     &alias,
+	})
+	require.NoError(t, err)
 
-	// The Balance model has AccountAlias but CreateBalanceInput does not set it
-	// directly. GetByAlias searches by AccountAlias field on the stored Balance.
-	// Since the fake Create does not set AccountAlias, this should return not found.
-	_, err := client.Midaz.Balances.GetByAlias(ctx, "o", "l", "some-alias")
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "not found")
+	created, err := client.Midaz.Transactions.Balances.CreateForAccount(ctx, "o", "l", account.ID, &midaz.CreateBalanceInput{Key: "asset-freeze"})
+	require.NoError(t, err)
+
+	items, err := client.Midaz.Transactions.Balances.ListByAlias(ctx, "o", "l", alias)
+	require.NoError(t, err)
+	require.Len(t, items, 1)
+	assert.Equal(t, created.ID, items[0].ID)
+
+	items, err = client.Midaz.Transactions.Balances.ListByAlias(ctx, "o", "l", "some-alias")
+	require.NoError(t, err)
+	assert.Empty(t, items)
 }
 
-func TestFakeMidazBalancesGetByExternalCode(t *testing.T) {
+func TestFakeMidazBalancesListByExternalCode(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
 	client := leriantest.NewFakeClient()
+	externalCode := "some-code"
+	account, err := client.Midaz.Onboarding.Accounts.Create(ctx, "o", "l", &midaz.CreateAccountInput{
+		Name:         "External Lookup",
+		Type:         "asset",
+		AssetCode:    "BRL",
+		ExternalCode: &externalCode,
+	})
+	require.NoError(t, err)
 
-	// GetByExternalCode on Balance always returns not found in the fake
-	// because the Balance model does not have an ExternalCode field.
-	_, err := client.Midaz.Balances.GetByExternalCode(ctx, "o", "l", "some-code")
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "not found")
+	created, err := client.Midaz.Transactions.Balances.CreateForAccount(ctx, "o", "l", account.ID, &midaz.CreateBalanceInput{Key: "asset-freeze"})
+	require.NoError(t, err)
+
+	items, err := client.Midaz.Transactions.Balances.ListByExternalCode(ctx, "o", "l", externalCode)
+	require.NoError(t, err)
+	require.Len(t, items, 1)
+	assert.Equal(t, created.ID, items[0].ID)
+
+	items, err = client.Midaz.Transactions.Balances.ListByExternalCode(ctx, "o", "l", "missing-code")
+	require.NoError(t, err)
+	assert.Empty(t, items)
 }
 
 func TestFakeMidazBalancesErrorInjection(t *testing.T) {
@@ -758,10 +795,7 @@ func TestFakeMidazBalancesErrorInjection(t *testing.T) {
 		leriantest.WithErrorOn("midaz.Balances.Create", injectedErr),
 	)
 
-	_, err := client.Midaz.Balances.Create(ctx, "o", "l", &midaz.CreateBalanceInput{
-		AccountID: "acct-1",
-		AssetCode: "BRL",
-	})
+	_, err := client.Midaz.Transactions.Balances.CreateForAccount(ctx, "o", "l", "acct-1", &midaz.CreateBalanceInput{Key: "asset-freeze"})
 	require.Error(t, err)
 	assert.ErrorIs(t, err, injectedErr)
 }
@@ -782,7 +816,7 @@ func TestFakeMidazTransactionRoutesCRUD(t *testing.T) {
 	code := "XFER"
 
 	// Create
-	created, err := client.Midaz.TransactionRoutes.Create(ctx, orgID, ledgerID, &midaz.CreateTransactionRouteInput{
+	created, err := client.Midaz.Transactions.TransactionRoutes.Create(ctx, orgID, ledgerID, &midaz.CreateTransactionRouteInput{
 		TransactionType: "transfer",
 		Description:     &desc,
 		Code:            &code,
@@ -798,14 +832,14 @@ func TestFakeMidazTransactionRoutesCRUD(t *testing.T) {
 	assert.False(t, created.UpdatedAt.IsZero())
 
 	// Get
-	got, err := client.Midaz.TransactionRoutes.Get(ctx, orgID, ledgerID, created.ID)
+	got, err := client.Midaz.Transactions.TransactionRoutes.Get(ctx, orgID, ledgerID, created.ID)
 	require.NoError(t, err)
 	assert.Equal(t, created.ID, got.ID)
 	assert.Equal(t, "transfer", got.TransactionType)
 
 	// Update
 	newDesc := "Updated transfer route"
-	updated, err := client.Midaz.TransactionRoutes.Update(ctx, orgID, ledgerID, created.ID, &midaz.UpdateTransactionRouteInput{
+	updated, err := client.Midaz.Transactions.TransactionRoutes.Update(ctx, orgID, ledgerID, created.ID, &midaz.UpdateTransactionRouteInput{
 		Description: &newDesc,
 	})
 	require.NoError(t, err)
@@ -814,18 +848,18 @@ func TestFakeMidazTransactionRoutesCRUD(t *testing.T) {
 	assert.True(t, updated.UpdatedAt.After(created.UpdatedAt) || updated.UpdatedAt.Equal(created.UpdatedAt))
 
 	// List -- should have 1 item
-	iter := client.Midaz.TransactionRoutes.List(ctx, orgID, ledgerID, nil)
+	iter := client.Midaz.Transactions.TransactionRoutes.List(ctx, orgID, ledgerID, nil)
 	items, err := iter.Collect(ctx)
 	require.NoError(t, err)
 	assert.Len(t, items, 1)
 	assert.Equal(t, created.ID, items[0].ID)
 
 	// Delete
-	err = client.Midaz.TransactionRoutes.Delete(ctx, orgID, ledgerID, created.ID)
+	err = client.Midaz.Transactions.TransactionRoutes.Delete(ctx, orgID, ledgerID, created.ID)
 	require.NoError(t, err)
 
 	// Verify deleted
-	_, err = client.Midaz.TransactionRoutes.Get(ctx, orgID, ledgerID, created.ID)
+	_, err = client.Midaz.Transactions.TransactionRoutes.Get(ctx, orgID, ledgerID, created.ID)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "not found")
 }
@@ -842,14 +876,14 @@ func TestFakeMidazTransactionRoutesNotFound(t *testing.T) {
 		fn   func() error
 	}{
 		{"Get", func() error {
-			_, err := client.Midaz.TransactionRoutes.Get(ctx, "o", "l", ghost)
+			_, err := client.Midaz.Transactions.TransactionRoutes.Get(ctx, "o", "l", ghost)
 			return err
 		}},
 		{"Update", func() error {
-			_, err := client.Midaz.TransactionRoutes.Update(ctx, "o", "l", ghost, &midaz.UpdateTransactionRouteInput{})
+			_, err := client.Midaz.Transactions.TransactionRoutes.Update(ctx, "o", "l", ghost, &midaz.UpdateTransactionRouteInput{})
 			return err
 		}},
-		{"Delete", func() error { return client.Midaz.TransactionRoutes.Delete(ctx, "o", "l", ghost) }},
+		{"Delete", func() error { return client.Midaz.Transactions.TransactionRoutes.Delete(ctx, "o", "l", ghost) }},
 	}
 
 	for _, tc := range tests {
@@ -873,7 +907,7 @@ func TestFakeMidazTransactionRoutesErrorInjection(t *testing.T) {
 		leriantest.WithErrorOn("midaz.TransactionRoutes.Create", injectedErr),
 	)
 
-	_, err := client.Midaz.TransactionRoutes.Create(ctx, "o", "l", &midaz.CreateTransactionRouteInput{
+	_, err := client.Midaz.Transactions.TransactionRoutes.Create(ctx, "o", "l", &midaz.CreateTransactionRouteInput{
 		TransactionType: "transfer",
 	})
 	require.Error(t, err)
@@ -881,7 +915,7 @@ func TestFakeMidazTransactionRoutesErrorInjection(t *testing.T) {
 }
 
 // ===========================================================================
-// 8. Operations -- read-only (Get, List, ListByTransaction, ListByAccount)
+// 8. Operations -- query/update surface (Get, List, ListByTransaction, ListByAccount, Update)
 // ===========================================================================
 
 func TestFakeMidazOperationsGetNotFound(t *testing.T) {
@@ -890,7 +924,7 @@ func TestFakeMidazOperationsGetNotFound(t *testing.T) {
 	ctx := context.Background()
 	client := leriantest.NewFakeClient()
 
-	_, err := client.Midaz.Operations.Get(ctx, "o", "l", "nonexistent-op-id")
+	_, err := client.Midaz.Transactions.Operations.Get(ctx, "o", "l", "nonexistent-op-id")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "not found")
 }
@@ -901,7 +935,7 @@ func TestFakeMidazOperationsListEmpty(t *testing.T) {
 	ctx := context.Background()
 	client := leriantest.NewFakeClient()
 
-	iter := client.Midaz.Operations.List(ctx, "o", "l", nil)
+	iter := client.Midaz.Transactions.Operations.List(ctx, "o", "l", nil)
 	items, err := iter.Collect(ctx)
 	require.NoError(t, err)
 	assert.Empty(t, items)
@@ -913,7 +947,7 @@ func TestFakeMidazOperationsListByTransactionEmpty(t *testing.T) {
 	ctx := context.Background()
 	client := leriantest.NewFakeClient()
 
-	iter := client.Midaz.Operations.ListByTransaction(ctx, "o", "l", "tx-999", nil)
+	iter := client.Midaz.Transactions.Operations.ListByTransaction(ctx, "o", "l", "tx-999", nil)
 	items, err := iter.Collect(ctx)
 	require.NoError(t, err)
 	assert.Empty(t, items)
@@ -925,7 +959,7 @@ func TestFakeMidazOperationsListByAccountEmpty(t *testing.T) {
 	ctx := context.Background()
 	client := leriantest.NewFakeClient()
 
-	iter := client.Midaz.Operations.ListByAccount(ctx, "o", "l", "acct-999", nil)
+	iter := client.Midaz.Transactions.Operations.ListByAccount(ctx, "o", "l", "acct-999", nil)
 	items, err := iter.Collect(ctx)
 	require.NoError(t, err)
 	assert.Empty(t, items)
@@ -941,7 +975,7 @@ func TestFakeMidazOperationsErrorInjection(t *testing.T) {
 		leriantest.WithErrorOn("midaz.Operations.Get", injectedErr),
 	)
 
-	_, err := client.Midaz.Operations.Get(ctx, "o", "l", "any-id")
+	_, err := client.Midaz.Transactions.Operations.Get(ctx, "o", "l", "any-id")
 	require.Error(t, err)
 	assert.ErrorIs(t, err, injectedErr)
 }
@@ -961,7 +995,7 @@ func TestFakeMidazOperationRoutesCRUD(t *testing.T) {
 	desc := "Debit leg"
 
 	// Create
-	created, err := client.Midaz.OperationRoutes.Create(ctx, orgID, ledgerID, &midaz.CreateOperationRouteInput{
+	created, err := client.Midaz.Transactions.OperationRoutes.Create(ctx, orgID, ledgerID, &midaz.CreateOperationRouteInput{
 		AccountID:   "acct-debit",
 		Type:        "debit",
 		Description: &desc,
@@ -977,7 +1011,7 @@ func TestFakeMidazOperationRoutesCRUD(t *testing.T) {
 	assert.False(t, created.UpdatedAt.IsZero())
 
 	// Get
-	got, err := client.Midaz.OperationRoutes.Get(ctx, orgID, ledgerID, created.ID)
+	got, err := client.Midaz.Transactions.OperationRoutes.Get(ctx, orgID, ledgerID, created.ID)
 	require.NoError(t, err)
 	assert.Equal(t, created.ID, got.ID)
 	assert.Equal(t, "debit", got.Type)
@@ -985,7 +1019,7 @@ func TestFakeMidazOperationRoutesCRUD(t *testing.T) {
 	// Update
 	newAcctID := "acct-debit-v2"
 	newAlias := "debit-alias"
-	updated, err := client.Midaz.OperationRoutes.Update(ctx, orgID, ledgerID, created.ID, &midaz.UpdateOperationRouteInput{
+	updated, err := client.Midaz.Transactions.OperationRoutes.Update(ctx, orgID, ledgerID, created.ID, &midaz.UpdateOperationRouteInput{
 		AccountID:    &newAcctID,
 		AccountAlias: &newAlias,
 	})
@@ -996,18 +1030,18 @@ func TestFakeMidazOperationRoutesCRUD(t *testing.T) {
 	assert.True(t, updated.UpdatedAt.After(created.UpdatedAt) || updated.UpdatedAt.Equal(created.UpdatedAt))
 
 	// List -- should have 1 item
-	iter := client.Midaz.OperationRoutes.List(ctx, orgID, ledgerID, nil)
+	iter := client.Midaz.Transactions.OperationRoutes.List(ctx, orgID, ledgerID, nil)
 	items, err := iter.Collect(ctx)
 	require.NoError(t, err)
 	assert.Len(t, items, 1)
 	assert.Equal(t, created.ID, items[0].ID)
 
 	// Delete
-	err = client.Midaz.OperationRoutes.Delete(ctx, orgID, ledgerID, created.ID)
+	err = client.Midaz.Transactions.OperationRoutes.Delete(ctx, orgID, ledgerID, created.ID)
 	require.NoError(t, err)
 
 	// Verify deleted
-	_, err = client.Midaz.OperationRoutes.Get(ctx, orgID, ledgerID, created.ID)
+	_, err = client.Midaz.Transactions.OperationRoutes.Get(ctx, orgID, ledgerID, created.ID)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "not found")
 }
@@ -1024,14 +1058,14 @@ func TestFakeMidazOperationRoutesNotFound(t *testing.T) {
 		fn   func() error
 	}{
 		{"Get", func() error {
-			_, err := client.Midaz.OperationRoutes.Get(ctx, "o", "l", ghost)
+			_, err := client.Midaz.Transactions.OperationRoutes.Get(ctx, "o", "l", ghost)
 			return err
 		}},
 		{"Update", func() error {
-			_, err := client.Midaz.OperationRoutes.Update(ctx, "o", "l", ghost, &midaz.UpdateOperationRouteInput{})
+			_, err := client.Midaz.Transactions.OperationRoutes.Update(ctx, "o", "l", ghost, &midaz.UpdateOperationRouteInput{})
 			return err
 		}},
-		{"Delete", func() error { return client.Midaz.OperationRoutes.Delete(ctx, "o", "l", ghost) }},
+		{"Delete", func() error { return client.Midaz.Transactions.OperationRoutes.Delete(ctx, "o", "l", ghost) }},
 	}
 
 	for _, tc := range tests {
@@ -1055,7 +1089,7 @@ func TestFakeMidazOperationRoutesErrorInjection(t *testing.T) {
 		leriantest.WithErrorOn("midaz.OperationRoutes.Create", injectedErr),
 	)
 
-	_, err := client.Midaz.OperationRoutes.Create(ctx, "o", "l", &midaz.CreateOperationRouteInput{
+	_, err := client.Midaz.Transactions.OperationRoutes.Create(ctx, "o", "l", &midaz.CreateOperationRouteInput{
 		AccountID: "acct-1",
 		Type:      "debit",
 	})
@@ -1070,14 +1104,14 @@ func TestFakeMidazOperationRoutesListMultiple(t *testing.T) {
 	client := leriantest.NewFakeClient()
 
 	for i := 0; i < 3; i++ {
-		_, err := client.Midaz.OperationRoutes.Create(ctx, "o", "l", &midaz.CreateOperationRouteInput{
+		_, err := client.Midaz.Transactions.OperationRoutes.Create(ctx, "o", "l", &midaz.CreateOperationRouteInput{
 			AccountID: "acct-x",
 			Type:      "credit",
 		})
 		require.NoError(t, err)
 	}
 
-	iter := client.Midaz.OperationRoutes.List(ctx, "o", "l", nil)
+	iter := client.Midaz.Transactions.OperationRoutes.List(ctx, "o", "l", nil)
 	items, err := iter.Collect(ctx)
 	require.NoError(t, err)
 	assert.Len(t, items, 3)

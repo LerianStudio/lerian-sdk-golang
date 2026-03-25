@@ -103,7 +103,7 @@ const defaultFakePageSize = 10
 // cursor of "5" means "start returning items from index 5 onward".
 //
 // When opts is nil or opts.Limit <= 0, the default page size is used.
-func (s *fakeStore[T]) PaginatedIterator(opts *models.ListOptions) *pagination.Iterator[T] {
+func (s *fakeStore[T]) PaginatedIterator(opts *models.CursorListOptions) *pagination.Iterator[T] {
 	pageSize := defaultFakePageSize
 	if opts != nil && opts.Limit > 0 {
 		pageSize = opts.Limit

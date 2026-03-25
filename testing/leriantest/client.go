@@ -13,6 +13,7 @@ type fakeConfig struct {
 	seedOrgs        []midaz.Organization
 	seedLedgers     []midaz.Ledger
 	seedAccounts    []midaz.Account
+	seedOperations  []midaz.Operation
 	errorInjections map[string]error // "midaz.Organizations.Create" -> error
 }
 
@@ -56,7 +57,7 @@ func NewFakeClient(opts ...FakeOption) *lerian.Client {
 // fields the caller supplied.
 func applySeedData(client *lerian.Client, cfg *fakeConfig) {
 	// Seed organizations.
-	if orgs, ok := client.Midaz.Organizations.(*fakeOrganizations); ok && orgs != nil {
+	if orgs, ok := client.Midaz.Onboarding.Organizations.(*fakeOrganizations); ok && orgs != nil {
 		for _, org := range cfg.seedOrgs {
 			if org.ID == "" {
 				org.ID = generateID("org")
@@ -67,7 +68,7 @@ func applySeedData(client *lerian.Client, cfg *fakeConfig) {
 	}
 
 	// Seed ledgers.
-	if ledgers, ok := client.Midaz.Ledgers.(*fakeLedgers); ok && ledgers != nil {
+	if ledgers, ok := client.Midaz.Onboarding.Ledgers.(*fakeLedgers); ok && ledgers != nil {
 		for _, l := range cfg.seedLedgers {
 			if l.ID == "" {
 				l.ID = generateID("ledger")
@@ -78,13 +79,24 @@ func applySeedData(client *lerian.Client, cfg *fakeConfig) {
 	}
 
 	// Seed accounts.
-	if accounts, ok := client.Midaz.Accounts.(*fakeAccounts); ok && accounts != nil {
+	if accounts, ok := client.Midaz.Onboarding.Accounts.(*fakeAccounts); ok && accounts != nil {
 		for _, a := range cfg.seedAccounts {
 			if a.ID == "" {
 				a.ID = generateID("acct")
 			}
 
 			accounts.store.Set(a.ID, a)
+		}
+	}
+
+	// Seed operations.
+	if operations, ok := client.Midaz.Transactions.Operations.(*fakeOperations); ok && operations != nil {
+		for _, operation := range cfg.seedOperations {
+			if operation.ID == "" {
+				operation.ID = generateID("op")
+			}
+
+			operations.store.Set(operation.ID, operation)
 		}
 	}
 }
@@ -116,6 +128,15 @@ func WithSeedLedgers(ledgers ...midaz.Ledger) FakeOption {
 func WithSeedAccounts(accts ...midaz.Account) FakeOption {
 	return func(cfg *fakeConfig) {
 		cfg.seedAccounts = append(cfg.seedAccounts, accts...)
+	}
+}
+
+// WithSeedOperations pre-populates the Midaz Operations store with the given
+// operations. If an operation ID is empty, a unique ID is generated
+// automatically.
+func WithSeedOperations(ops ...midaz.Operation) FakeOption {
+	return func(cfg *fakeConfig) {
+		cfg.seedOperations = append(cfg.seedOperations, ops...)
 	}
 }
 

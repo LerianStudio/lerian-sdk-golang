@@ -1,154 +1,58 @@
 package leriantest
 
 import (
-	"context"
 	"reflect"
-	"time"
 
 	"github.com/LerianStudio/lerian-sdk-golang/fees"
-	"github.com/LerianStudio/lerian-sdk-golang/models"
-	sdkerrors "github.com/LerianStudio/lerian-sdk-golang/pkg/errors"
-	"github.com/LerianStudio/lerian-sdk-golang/pkg/pagination"
 )
 
-// newFakeFeesClient constructs a [fees.Client] with all service fields
-// backed by in-memory fakes.
-func newFakeFeesClient(cfg *fakeConfig) *fees.Client {
-	return &fees.Client{
-		Packages:  &fakeFeesPackages{store: newFakeStore[fees.Package](), cfg: cfg},
-		Estimates: &fakeFeesEstimates{cfg: cfg},
-		Fees:      &fakeFeesFees{cfg: cfg},
-	}
-}
+func clonePackage(input fees.Package) fees.Package {
+	output := input
+	output.Description = cloneStringPointer(input.Description)
+	output.SegmentID = cloneStringPointer(input.SegmentID)
+	output.TransactionRoute = cloneStringPointer(input.TransactionRoute)
+	output.WaivedAccounts = cloneStringSlicePointer(input.WaivedAccounts)
+	output.Fees = cloneFeeMap(input.Fees)
+	output.Enable = cloneBoolPointer(input.Enable)
 
-// ---------------------------------------------------------------------------
-// Packages
-// ---------------------------------------------------------------------------
-
-type fakeFeesPackages struct {
-	store *fakeStore[fees.Package]
-	cfg   *fakeConfig
-}
-
-var _ fees.PackagesService = (*fakeFeesPackages)(nil)
-
-func (f *fakeFeesPackages) Create(_ context.Context, input *fees.CreatePackageInput) (*fees.Package, error) {
-	if err := f.cfg.injectedError("fees.Packages.Create"); err != nil {
-		return nil, err
+	if input.DeletedAt != nil {
+		deletedAt := *input.DeletedAt
+		output.DeletedAt = &deletedAt
 	}
 
-	now := time.Now()
-
-	p := fees.Package{
-		ID:        generateID("fpkg"),
-		Name:      input.Name,
-		Status:    "active",
-		CreatedAt: now,
-		UpdatedAt: now,
-	}
-
-	f.store.Set(p.ID, p)
-
-	return &p, nil
+	return output
 }
 
-func (f *fakeFeesPackages) Get(_ context.Context, id string) (*fees.Package, error) {
-	p, ok := f.store.Get(id)
-	if !ok {
-		return nil, sdkerrors.NewNotFound("Packages.Get", "Package", id)
-	}
-
-	return &p, nil
-}
-
-func (f *fakeFeesPackages) List(_ context.Context, opts *models.ListOptions) *pagination.Iterator[fees.Package] {
-	return f.store.PaginatedIterator(opts)
-}
-
-func (f *fakeFeesPackages) Update(_ context.Context, id string, _ *fees.UpdatePackageInput) (*fees.Package, error) {
-	p, ok := f.store.Get(id)
-	if !ok {
-		return nil, sdkerrors.NewNotFound("Packages.Update", "Package", id)
-	}
-
-	p.UpdatedAt = time.Now()
-	f.store.Set(id, p)
-
-	return &p, nil
-}
-
-func (f *fakeFeesPackages) Delete(_ context.Context, id string) error {
-	if _, ok := f.store.Get(id); !ok {
-		return sdkerrors.NewNotFound("Packages.Delete", "Package", id)
-	}
-
-	f.store.Delete(id)
-
-	return nil
-}
-
-// ---------------------------------------------------------------------------
-// Estimates (RPC-style, no store)
-// ---------------------------------------------------------------------------
-
-type fakeFeesEstimates struct {
-	cfg *fakeConfig
-}
-
-var _ fees.EstimatesService = (*fakeFeesEstimates)(nil)
-
-func (f *fakeFeesEstimates) Calculate(_ context.Context, _ *fees.CalculateEstimateInput) (*fees.Estimate, error) {
-	if err := f.cfg.injectedError("fees.Estimates.Calculate"); err != nil {
-		return nil, err
-	}
-
-	return &fees.Estimate{
-		ID: generateID("fest"),
-	}, nil
-}
-
-// ---------------------------------------------------------------------------
-// Fees (RPC-style, no store)
-// ---------------------------------------------------------------------------
-
-type fakeFeesFees struct {
-	cfg *fakeConfig
-}
-
-var _ fees.FeesService = (*fakeFeesFees)(nil)
-
-func (f *fakeFeesFees) Calculate(_ context.Context, _ *fees.CalculateFeeInput) (*fees.Fee, error) {
-	if err := f.cfg.injectedError("fees.Fees.Calculate"); err != nil {
-		return nil, err
-	}
-
-	return &fees.Fee{
-		ID: generateID("ffee"),
-	}, nil
-}
-
-func (f *fakeFeesFees) TransformTransaction(_ context.Context, input *fees.TransformTransactionInput) (*fees.TransformTransactionOutput, error) {
-	if err := f.cfg.injectedError("fees.Fees.TransformTransaction"); err != nil {
-		return nil, err
-	}
-
+func clonePackagePointer(input *fees.Package) *fees.Package {
 	if input == nil {
-		return nil, sdkerrors.NewValidation("Fees.TransformTransaction", "Fee", "input is required")
+		return nil
 	}
 
-	if input.LedgerID == "" {
-		return nil, sdkerrors.NewValidation("Fees.TransformTransaction", "Fee", "ledger ID is required")
-	}
-
-	return &fees.TransformTransactionOutput{
-		Transaction: cloneTransactionDSL(input.Transaction),
-	}, nil
+	output := clonePackage(*input)
+	return &output
 }
+
+func clonePackageSlice(input []fees.Package) []fees.Package {
+	if input == nil {
+		return nil
+	}
+
+	output := make([]fees.Package, 0, len(input))
+	for _, item := range input {
+		output = append(output, clonePackage(item))
+	}
+
+	return output
+}
+
+// ---------------------------------------------------------------------------
+// Clone helpers — deep-copy TransactionDSL types so the fake never
+// shares mutable state with caller code.
+// ---------------------------------------------------------------------------
 
 func cloneTransactionDSL(input fees.TransactionDSL) fees.TransactionDSL {
 	output := input
 	output.Metadata = cloneMap(input.Metadata)
-	output.RouteID = cloneStringPointer(input.RouteID)
 	output.TransactionDate = cloneAny(input.TransactionDate)
 	output.Send = cloneTransactionDSLSend(input.Send)
 
@@ -195,7 +99,6 @@ func cloneTransactionDSLLeg(input fees.TransactionDSLLeg) fees.TransactionDSLLeg
 	output.Amount = cloneTransactionDSLAmount(input.Amount)
 	output.Share = cloneTransactionDSLShare(input.Share)
 	output.Rate = cloneTransactionDSLRate(input.Rate)
-	output.RouteID = cloneStringPointer(input.RouteID)
 	output.Metadata = cloneMap(input.Metadata)
 
 	return output
@@ -233,6 +136,10 @@ func cloneTransactionDSLRate(input *fees.TransactionDSLRate) *fees.TransactionDS
 	return &output
 }
 
+// ---------------------------------------------------------------------------
+// Primitive clone helpers
+// ---------------------------------------------------------------------------
+
 func cloneStringPointer(input *string) *string {
 	if input == nil {
 		return nil
@@ -241,6 +148,56 @@ func cloneStringPointer(input *string) *string {
 	value := *input
 
 	return &value
+}
+
+func cloneBoolPointer(input *bool) *bool {
+	if input == nil {
+		return nil
+	}
+
+	value := *input
+
+	return &value
+}
+
+func cloneStringSlicePointer(input *[]string) *[]string {
+	if input == nil {
+		return nil
+	}
+
+	cloned := make([]string, len(*input))
+	copy(cloned, *input)
+
+	return &cloned
+}
+
+func cloneFeeMap(input map[string]fees.Fee) map[string]fees.Fee {
+	if input == nil {
+		return map[string]fees.Fee{}
+	}
+
+	output := make(map[string]fees.Fee, len(input))
+	for k, v := range input {
+		output[k] = cloneFee(v)
+	}
+
+	return output
+}
+
+func cloneFee(input fees.Fee) fees.Fee {
+	output := input
+	output.RouteFrom = cloneStringPointer(input.RouteFrom)
+	output.RouteTo = cloneStringPointer(input.RouteTo)
+	output.IsDeductibleFrom = cloneBoolPointer(input.IsDeductibleFrom)
+
+	if input.CalculationModel != nil {
+		cm := *input.CalculationModel
+		cm.Calculations = make([]fees.Calculation, len(input.CalculationModel.Calculations))
+		copy(cm.Calculations, input.CalculationModel.Calculations)
+		output.CalculationModel = &cm
+	}
+
+	return output
 }
 
 func cloneMap(input map[string]any) map[string]any {

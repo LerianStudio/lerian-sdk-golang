@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/LerianStudio/lerian-sdk-golang/models"
-	sdkerrors "github.com/LerianStudio/lerian-sdk-golang/pkg/errors"
 	"github.com/LerianStudio/lerian-sdk-golang/pkg/pagination"
 	"github.com/LerianStudio/lerian-sdk-golang/tracer"
 )
@@ -30,8 +29,6 @@ type fakeTracerRules struct {
 	cfg   *fakeConfig
 }
 
-var _ tracer.RulesService = (*fakeTracerRules)(nil)
-
 func (f *fakeTracerRules) Create(_ context.Context, input *tracer.CreateRuleInput) (*tracer.Rule, error) {
 	if err := f.cfg.injectedError("tracer.Rules.Create"); err != nil {
 		return nil, err
@@ -45,81 +42,45 @@ func (f *fakeTracerRules) Create(_ context.Context, input *tracer.CreateRuleInpu
 }
 
 func (f *fakeTracerRules) Get(_ context.Context, id string) (*tracer.Rule, error) {
-	r, ok := f.store.Get(id)
-	if !ok {
-		return nil, sdkerrors.NewNotFound("Rules.Get", "Rule", id)
-	}
-
-	return &r, nil
+	return fakeGetStored(f.cfg, "", "Rules.Get", "Rule", id, f.store)
 }
 
-func (f *fakeTracerRules) List(_ context.Context, opts *models.ListOptions) *pagination.Iterator[tracer.Rule] {
-	return f.store.PaginatedIterator(opts)
+func (f *fakeTracerRules) List(_ context.Context, opts *models.CursorListOptions) *pagination.Iterator[tracer.Rule] {
+	return fakeListStored(f.cfg, "", f.store, opts)
 }
 
 func (f *fakeTracerRules) Update(_ context.Context, id string, input *tracer.UpdateRuleInput) (*tracer.Rule, error) {
-	r, ok := f.store.Get(id)
-	if !ok {
-		return nil, sdkerrors.NewNotFound("Rules.Update", "Rule", id)
-	}
-
-	if input.Name != nil {
-		r.Name = *input.Name
-	}
-
-	r.UpdatedAt = time.Now()
-	f.store.Set(id, r)
-
-	return &r, nil
+	return fakeMutateStored(f.cfg, "", "Rules.Update", "Rule", id, f.store, func(r *tracer.Rule) {
+		if input.Name != nil {
+			r.Name = *input.Name
+		}
+		r.UpdatedAt = time.Now()
+	})
 }
 
 func (f *fakeTracerRules) Delete(_ context.Context, id string) error {
-	if _, ok := f.store.Get(id); !ok {
-		return sdkerrors.NewNotFound("Rules.Delete", "Rule", id)
-	}
-
-	f.store.Delete(id)
-
-	return nil
+	return fakeDeleteStored(f.cfg, "", "Rules.Delete", "Rule", id, f.store)
 }
 
 func (f *fakeTracerRules) Activate(_ context.Context, id string) (*tracer.Rule, error) {
-	r, ok := f.store.Get(id)
-	if !ok {
-		return nil, sdkerrors.NewNotFound("Rules.Activate", "Rule", id)
-	}
-
-	r.Status = "ACTIVE"
-	r.UpdatedAt = time.Now()
-	f.store.Set(id, r)
-
-	return &r, nil
+	return fakeMutateStored(f.cfg, "", "Rules.Activate", "Rule", id, f.store, func(r *tracer.Rule) {
+		r.Status = "ACTIVE"
+		r.UpdatedAt = time.Now()
+	})
 }
 
 func (f *fakeTracerRules) Deactivate(_ context.Context, id string) (*tracer.Rule, error) {
-	r, ok := f.store.Get(id)
-	if !ok {
-		return nil, sdkerrors.NewNotFound("Rules.Deactivate", "Rule", id)
-	}
-
-	r.Status = "INACTIVE"
-	r.UpdatedAt = time.Now()
-	f.store.Set(id, r)
-
-	return &r, nil
+	return fakeMutateStored(f.cfg, "", "Rules.Deactivate", "Rule", id, f.store, func(r *tracer.Rule) {
+		r.Status = "INACTIVE"
+		r.UpdatedAt = time.Now()
+	})
 }
 
 func (f *fakeTracerRules) Draft(_ context.Context, id string) (*tracer.Rule, error) {
-	r, ok := f.store.Get(id)
-	if !ok {
-		return nil, sdkerrors.NewNotFound("Rules.Draft", "Rule", id)
-	}
-
-	r.Status = "DRAFT"
-	r.UpdatedAt = time.Now()
-	f.store.Set(id, r)
-
-	return &r, nil
+	return fakeMutateStored(f.cfg, "", "Rules.Draft", "Rule", id, f.store, func(r *tracer.Rule) {
+		r.Status = "DRAFT"
+		r.UpdatedAt = time.Now()
+	})
 }
 
 // ---------------------------------------------------------------------------
@@ -130,8 +91,6 @@ type fakeTracerLimits struct {
 	store *fakeStore[tracer.Limit]
 	cfg   *fakeConfig
 }
-
-var _ tracer.LimitsService = (*fakeTracerLimits)(nil)
 
 func (f *fakeTracerLimits) Create(_ context.Context, input *tracer.CreateLimitInput) (*tracer.Limit, error) {
 	if err := f.cfg.injectedError("tracer.Limits.Create"); err != nil {
@@ -146,81 +105,45 @@ func (f *fakeTracerLimits) Create(_ context.Context, input *tracer.CreateLimitIn
 }
 
 func (f *fakeTracerLimits) Get(_ context.Context, id string) (*tracer.Limit, error) {
-	l, ok := f.store.Get(id)
-	if !ok {
-		return nil, sdkerrors.NewNotFound("Limits.Get", "Limit", id)
-	}
-
-	return &l, nil
+	return fakeGetStored(f.cfg, "", "Limits.Get", "Limit", id, f.store)
 }
 
-func (f *fakeTracerLimits) List(_ context.Context, opts *models.ListOptions) *pagination.Iterator[tracer.Limit] {
-	return f.store.PaginatedIterator(opts)
+func (f *fakeTracerLimits) List(_ context.Context, opts *models.CursorListOptions) *pagination.Iterator[tracer.Limit] {
+	return fakeListStored(f.cfg, "", f.store, opts)
 }
 
 func (f *fakeTracerLimits) Update(_ context.Context, id string, input *tracer.UpdateLimitInput) (*tracer.Limit, error) {
-	l, ok := f.store.Get(id)
-	if !ok {
-		return nil, sdkerrors.NewNotFound("Limits.Update", "Limit", id)
-	}
-
-	if input.Name != nil {
-		l.Name = *input.Name
-	}
-
-	l.UpdatedAt = time.Now()
-	f.store.Set(id, l)
-
-	return &l, nil
+	return fakeMutateStored(f.cfg, "", "Limits.Update", "Limit", id, f.store, func(l *tracer.Limit) {
+		if input.Name != nil {
+			l.Name = *input.Name
+		}
+		l.UpdatedAt = time.Now()
+	})
 }
 
 func (f *fakeTracerLimits) Delete(_ context.Context, id string) error {
-	if _, ok := f.store.Get(id); !ok {
-		return sdkerrors.NewNotFound("Limits.Delete", "Limit", id)
-	}
-
-	f.store.Delete(id)
-
-	return nil
+	return fakeDeleteStored(f.cfg, "", "Limits.Delete", "Limit", id, f.store)
 }
 
 func (f *fakeTracerLimits) Activate(_ context.Context, id string) (*tracer.Limit, error) {
-	l, ok := f.store.Get(id)
-	if !ok {
-		return nil, sdkerrors.NewNotFound("Limits.Activate", "Limit", id)
-	}
-
-	l.Status = "ACTIVE"
-	l.UpdatedAt = time.Now()
-	f.store.Set(id, l)
-
-	return &l, nil
+	return fakeMutateStored(f.cfg, "", "Limits.Activate", "Limit", id, f.store, func(l *tracer.Limit) {
+		l.Status = "ACTIVE"
+		l.UpdatedAt = time.Now()
+	})
 }
 
 func (f *fakeTracerLimits) Deactivate(_ context.Context, id string) (*tracer.Limit, error) {
-	l, ok := f.store.Get(id)
-	if !ok {
-		return nil, sdkerrors.NewNotFound("Limits.Deactivate", "Limit", id)
-	}
-
-	l.Status = "INACTIVE"
-	l.UpdatedAt = time.Now()
-	f.store.Set(id, l)
-
-	return &l, nil
+	return fakeMutateStored(f.cfg, "", "Limits.Deactivate", "Limit", id, f.store, func(l *tracer.Limit) {
+		l.Status = "INACTIVE"
+		l.UpdatedAt = time.Now()
+	})
 }
 
 func (f *fakeTracerLimits) Draft(_ context.Context, id string) (*tracer.Limit, error) {
-	l, ok := f.store.Get(id)
-	if !ok {
-		return nil, sdkerrors.NewNotFound("Limits.Draft", "Limit", id)
-	}
-
-	l.Status = "DRAFT"
-	l.UpdatedAt = time.Now()
-	f.store.Set(id, l)
-
-	return &l, nil
+	return fakeMutateStored(f.cfg, "", "Limits.Draft", "Limit", id, f.store, func(l *tracer.Limit) {
+		l.Status = "DRAFT"
+		l.UpdatedAt = time.Now()
+	})
 }
 
 // ---------------------------------------------------------------------------
@@ -232,8 +155,6 @@ type fakeTracerValidations struct {
 	cfg   *fakeConfig
 }
 
-var _ tracer.ValidationsService = (*fakeTracerValidations)(nil)
-
 func (f *fakeTracerValidations) Create(_ context.Context, _ *tracer.CreateValidationInput) (*tracer.Validation, error) {
 	now := time.Now()
 	v := tracer.Validation{ID: generateID("tval"), Status: "PASSED", CreatedAt: now}
@@ -243,16 +164,11 @@ func (f *fakeTracerValidations) Create(_ context.Context, _ *tracer.CreateValida
 }
 
 func (f *fakeTracerValidations) Get(_ context.Context, id string) (*tracer.Validation, error) {
-	v, ok := f.store.Get(id)
-	if !ok {
-		return nil, sdkerrors.NewNotFound("Validations.Get", "Validation", id)
-	}
-
-	return &v, nil
+	return fakeGetStored(f.cfg, "", "Validations.Get", "Validation", id, f.store)
 }
 
-func (f *fakeTracerValidations) List(_ context.Context, opts *models.ListOptions) *pagination.Iterator[tracer.Validation] {
-	return f.store.PaginatedIterator(opts)
+func (f *fakeTracerValidations) List(_ context.Context, opts *models.CursorListOptions) *pagination.Iterator[tracer.Validation] {
+	return fakeListStored(f.cfg, "", f.store, opts)
 }
 
 // ---------------------------------------------------------------------------
@@ -264,25 +180,17 @@ type fakeTracerAuditEvents struct {
 	cfg   *fakeConfig
 }
 
-var _ tracer.AuditEventsService = (*fakeTracerAuditEvents)(nil)
-
 func (f *fakeTracerAuditEvents) Get(_ context.Context, id string) (*tracer.AuditEvent, error) {
-	ev, ok := f.store.Get(id)
-	if !ok {
-		return nil, sdkerrors.NewNotFound("AuditEvents.Get", "AuditEvent", id)
-	}
-
-	return &ev, nil
+	return fakeGetStored(f.cfg, "", "AuditEvents.Get", "AuditEvent", id, f.store)
 }
 
-func (f *fakeTracerAuditEvents) List(_ context.Context, opts *models.ListOptions) *pagination.Iterator[tracer.AuditEvent] {
-	return f.store.PaginatedIterator(opts)
+func (f *fakeTracerAuditEvents) List(_ context.Context, opts *models.CursorListOptions) *pagination.Iterator[tracer.AuditEvent] {
+	return fakeListStored(f.cfg, "", f.store, opts)
 }
 
 func (f *fakeTracerAuditEvents) Verify(_ context.Context, id string) (*tracer.AuditVerification, error) {
-	if _, ok := f.store.Get(id); !ok {
-		return nil, sdkerrors.NewNotFound("AuditEvents.Verify", "AuditEvent", id)
+	if _, err := fakeActionStored(f.cfg, "", "AuditEvents.Verify", "AuditEvent", id, f.store); err != nil {
+		return nil, err
 	}
-
 	return &tracer.AuditVerification{EventID: id, Valid: true}, nil
 }
