@@ -38,9 +38,22 @@ func newFeesCalcService(backend core.Backend) feesServiceAPI {
 // The service mutates the input transaction DSL and returns it with
 // fee legs injected.
 func (s *feesCalcService) Calculate(ctx context.Context, input *FeeCalculate) (*FeeCalculate, error) {
+	if err := ensureService(s); err != nil {
+		return nil, err
+	}
+
 	if err := input.Validate(); err != nil {
 		return nil, err
 	}
 
-	return core.Create[FeeCalculate, FeeCalculate](ctx, &s.BaseService, "/fees", input)
+	resp, err := core.Create[FeeCalculate, FeeCalculate](ctx, &s.BaseService, "/fees", input)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := validateCalculatedTransaction("Fees.Calculate", input, resp); err != nil {
+		return nil, err
+	}
+
+	return resp, nil
 }
