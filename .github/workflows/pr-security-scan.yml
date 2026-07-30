@@ -21,7 +21,7 @@ permissions:
 jobs:
   trivy-fs-scan:
     name: Trivy Filesystem Scan
-    runs-on: ubuntu-24.04
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v5
