@@ -1,3 +1,11 @@
+## [1.0.0-beta.4](https://github.com/LerianStudio/lerian-sdk-golang/compare/v1.0.0-beta.3...v1.0.0-beta.4) (2026-07-30)
+
+
+### Bug Fixes
+
+* **deps:** upgrade x/net, x/sys, x/text, and grpc to patch Trivy-flagged CVEs ([218f795](https://github.com/LerianStudio/lerian-sdk-golang/commit/218f79510de17f43fe242dc02f61b0bd2fd4f6f6))
+* **midaz:** expose parentTransactionId in JSON and remove unused balance model fields ([f665ebb](https://github.com/LerianStudio/lerian-sdk-golang/commit/f665ebb6d54c42c56e5508c673dba408b249c467))
+
 ## [1.0.0-beta.3](https://github.com/LerianStudio/lerian-sdk-golang/compare/v1.0.0-beta.2...v1.0.0-beta.3) (2026-04-04)
 
 ## [1.0.0-beta.2](https://github.com/LerianStudio/lerian-sdk-golang/compare/v1.0.0-beta.1...v1.0.0-beta.2) (2026-03-25)
