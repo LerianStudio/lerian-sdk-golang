@@ -135,10 +135,10 @@ func TestConfigStringRedaction(t *testing.T) {
 	t.Parallel()
 
 	cfg := Config{
-		BaseURL:        "http://localhost:3005/v1",
+		BaseURL:        "http://user:secret@localhost:3005/v1?api_key=secret-key#frag",
 		ClientID:       "client-id",
 		ClientSecret:   "super-secret-client-secret",
-		TokenURL:       "https://auth.example.com/token",
+		TokenURL:       "https://oauth-user:oauth-secret@auth.example.com/token?access_token=abc123",
 		OrganizationID: "org-456",
 		Timeout:        30 * time.Second,
 	}
@@ -147,11 +147,13 @@ func TestConfigStringRedaction(t *testing.T) {
 
 	assert.Contains(t, s, "[REDACTED]")
 	assert.Contains(t, s, "FeesConfig")
-	assert.Contains(t, s, "http://localhost:3005/v1", "BaseURL should be visible")
+	assert.Contains(t, s, "http://user@localhost:3005/v1?api_key=%5BREDACTED%5D#%5BREDACTED%5D", "BaseURL should be redacted safely")
 	assert.Contains(t, s, "client-id", "ClientID should be visible")
-	assert.Contains(t, s, "https://auth.example.com/token", "TokenURL should be visible")
+	assert.Contains(t, s, "https://oauth-user@auth.example.com/token?access_token=%5BREDACTED%5D", "TokenURL should be redacted safely")
 	assert.Contains(t, s, "org-456", "OrganizationID should be visible")
 	assert.Contains(t, s, "30s", "Timeout should be visible")
+	assert.NotContains(t, s, "secret-key")
+	assert.NotContains(t, s, "oauth-secret")
 	assert.NotContains(t, s, "super-secret-client-secret",
 		"String() must not contain the actual client secret")
 }
@@ -164,10 +166,10 @@ func TestConfigMarshalJSONRedaction(t *testing.T) {
 	t.Parallel()
 
 	cfg := Config{
-		BaseURL:        "http://localhost:3005/v1",
+		BaseURL:        "http://user:secret@localhost:3005/v1?api_key=secret-key#frag",
 		ClientID:       "client-id",
 		ClientSecret:   "super-secret-client-secret",
-		TokenURL:       "https://auth.example.com/token",
+		TokenURL:       "https://oauth-user:oauth-secret@auth.example.com/token?access_token=abc123",
 		OrganizationID: "org-456",
 		Timeout:        30 * time.Second,
 	}
@@ -178,10 +180,12 @@ func TestConfigMarshalJSONRedaction(t *testing.T) {
 	s := string(data)
 
 	assert.Contains(t, s, "[REDACTED]")
-	assert.Contains(t, s, "http://localhost:3005/v1", "BaseURL should be visible")
+	assert.Contains(t, s, "http://user@localhost:3005/v1?api_key=%5BREDACTED%5D#%5BREDACTED%5D")
 	assert.Contains(t, s, "client-id", "ClientID should be visible")
-	assert.Contains(t, s, "https://auth.example.com/token", "TokenURL should be visible")
+	assert.Contains(t, s, "https://oauth-user@auth.example.com/token?access_token=%5BREDACTED%5D")
 	assert.Contains(t, s, "org-456", "OrganizationID should be visible")
+	assert.NotContains(t, s, "secret-key")
+	assert.NotContains(t, s, "oauth-secret")
 	assert.NotContains(t, s, "super-secret-client-secret",
 		"MarshalJSON must not contain the actual client secret")
 }

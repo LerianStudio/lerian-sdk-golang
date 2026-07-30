@@ -127,8 +127,8 @@ func createDSLMultipartBody(dslContent []byte) ([]byte, string, error) {
 }
 
 func buildCreateTransactionRequest(operation string, input *CreateTransactionInput) (*createTransactionRequest, error) {
-	if input.Send == nil {
-		return nil, sdkerrors.NewValidation(operation, transactionResource, "send is required")
+	if err := validateTransactionSend(operation, input.Send); err != nil {
+		return nil, err
 	}
 
 	request := &createTransactionRequest{
@@ -144,6 +144,26 @@ func buildCreateTransactionRequest(operation string, input *CreateTransactionInp
 	}
 
 	return request, nil
+}
+
+func validateTransactionSend(operation string, send *TransactionSend) error {
+	if send == nil {
+		return sdkerrors.NewValidation(operation, transactionResource, "send is required")
+	}
+
+	if strings.TrimSpace(send.Asset) == "" {
+		return sdkerrors.NewValidation(operation, transactionResource, "send asset is required")
+	}
+
+	if strings.TrimSpace(send.Value) == "" {
+		return sdkerrors.NewValidation(operation, transactionResource, "send value is required")
+	}
+
+	if err := validateTransactionVariantLegs(operation, "source", send.Source.From); err != nil {
+		return err
+	}
+
+	return validateTransactionVariantLegs(operation, "distribute", send.Distribute.To)
 }
 
 func validateTransactionVariantLegs(operation, field string, legs []TransactionOperationLeg) error {
@@ -260,6 +280,10 @@ func (s *transactionsService) CreateDSL(ctx context.Context, orgID, ledgerID str
 		return nil, err
 	}
 
+	if res == nil {
+		return nil, sdkerrors.NewInternal("midaz", operation, "backend returned nil response", nil)
+	}
+
 	var result Transaction
 	if err := json.Unmarshal(res.Body, &result); err != nil {
 		return nil, sdkerrors.NewInternal("midaz", operation, "failed to unmarshal response body", err)
@@ -342,6 +366,10 @@ func (s *transactionsService) CreateOutflow(ctx context.Context, orgID, ledgerID
 func (s *transactionsService) Get(ctx context.Context, orgID, ledgerID, id string) (*Transaction, error) {
 	const operation = "Transactions.Get"
 
+	if err := ensureService(s); err != nil {
+		return nil, err
+	}
+
 	if orgID == "" {
 		return nil, sdkerrors.NewValidation(operation, transactionResource, "organization id is required")
 	}
@@ -359,10 +387,12 @@ func (s *transactionsService) Get(ctx context.Context, orgID, ledgerID, id strin
 
 // List returns a paginated iterator over transactions in a ledger.
 func (s *transactionsService) List(ctx context.Context, orgID, ledgerID string, opts *models.CursorListOptions) *pagination.Iterator[Transaction] {
+	if err := ensureService(s); err != nil {
+		return newErrorIterator[Transaction](err)
+	}
+
 	if orgID == "" || ledgerID == "" {
-		return pagination.NewIterator[Transaction](func(_ context.Context, _ string) ([]Transaction, string, error) {
-			return nil, "", sdkerrors.NewValidation("Transactions.List", transactionResource, "organization ID and ledger ID are required")
-		})
+		return newErrorIterator[Transaction](sdkerrors.NewValidation("Transactions.List", transactionResource, "organization ID and ledger ID are required"))
 	}
 
 	return core.List[Transaction](ctx, &s.BaseService, transactionsBasePath(orgID, ledgerID), opts)
@@ -371,6 +401,10 @@ func (s *transactionsService) List(ctx context.Context, orgID, ledgerID string, 
 // Update partially updates an existing transaction.
 func (s *transactionsService) Update(ctx context.Context, orgID, ledgerID, id string, input *UpdateTransactionInput) (*Transaction, error) {
 	const operation = "Transactions.Update"
+
+	if err := ensureService(s); err != nil {
+		return nil, err
+	}
 
 	if orgID == "" {
 		return nil, sdkerrors.NewValidation(operation, transactionResource, "organization id is required")
@@ -399,6 +433,10 @@ func (s *transactionsService) Commit(ctx context.Context, orgID, ledgerID, id st
 		return nil, err
 	}
 
+	if err := ensureService(s); err != nil {
+		return nil, err
+	}
+
 	if orgID == "" {
 		return nil, sdkerrors.NewValidation(operation, transactionResource, "organization id is required")
 	}
@@ -422,6 +460,10 @@ func (s *transactionsService) Cancel(ctx context.Context, orgID, ledgerID, id st
 		return nil, err
 	}
 
+	if err := ensureService(s); err != nil {
+		return nil, err
+	}
+
 	if orgID == "" {
 		return nil, sdkerrors.NewValidation(operation, transactionResource, "organization id is required")
 	}
@@ -440,6 +482,10 @@ func (s *transactionsService) Cancel(ctx context.Context, orgID, ledgerID, id st
 // Revert creates a reversal of a previously committed transaction.
 func (s *transactionsService) Revert(ctx context.Context, orgID, ledgerID, id string) (*Transaction, error) {
 	const operation = "Transactions.Revert"
+
+	if err := ensureService(s); err != nil {
+		return nil, err
+	}
 
 	if err := ensureService(s); err != nil {
 		return nil, err

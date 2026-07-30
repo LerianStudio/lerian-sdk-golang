@@ -157,10 +157,11 @@ func TestOperationsListWithOptions(t *testing.T) {
 	}
 
 	svc := newOperationsService(mock)
-	opts := &models.CursorListOptions{Limit: 25, SortBy: "type", SortOrder: "asc"}
+	opts := &models.CursorListOptions{Limit: 25, Cursor: "cursor-1", SortBy: "type", SortOrder: "asc"}
 	iter := svc.List(context.Background(), "org-1", "led-1", opts)
 
 	require.True(t, iter.Next(context.Background()))
+	assert.Contains(t, receivedPath, "cursor=cursor-1")
 	assert.Contains(t, receivedPath, "limit=25")
 	assert.Contains(t, receivedPath, "sortBy=type")
 	assert.Contains(t, receivedPath, "sortOrder=asc")
@@ -227,11 +228,12 @@ func TestOperationsListByTransactionWithOptions(t *testing.T) {
 	}
 
 	svc := newOperationsService(mock)
-	opts := &models.CursorListOptions{Limit: 50}
+	opts := &models.CursorListOptions{Limit: 50, Cursor: "cursor-2"}
 	iter := svc.ListByTransaction(context.Background(), "org-1", "led-1", "txn-1", opts)
 
 	require.True(t, iter.Next(context.Background()))
 	assert.Contains(t, receivedPath, "/organizations/org-1/ledgers/led-1/transactions/txn-1/operations")
+	assert.Contains(t, receivedPath, "cursor=cursor-2")
 	assert.Contains(t, receivedPath, "limit=50")
 }
 
@@ -313,13 +315,42 @@ func TestOperationsListByAccountWithOptions(t *testing.T) {
 	}
 
 	svc := newOperationsService(mock)
-	opts := &models.CursorListOptions{Limit: 30, SortOrder: "desc"}
+	opts := &models.CursorListOptions{Limit: 30, Cursor: "cursor-3", SortOrder: "desc"}
 	iter := svc.ListByAccount(context.Background(), "org-1", "led-1", "acc-1", opts)
 
 	require.True(t, iter.Next(context.Background()))
 	assert.Contains(t, receivedPath, "/organizations/org-1/ledgers/led-1/accounts/acc-1/operations")
+	assert.Contains(t, receivedPath, "cursor=cursor-3")
 	assert.Contains(t, receivedPath, "limit=30")
 	assert.Contains(t, receivedPath, "sortOrder=desc")
+}
+
+func TestOperationsUpdateEmptyTransactionID(t *testing.T) {
+	t.Parallel()
+
+	svc := newOperationsService(&mockBackend{})
+	op, err := svc.Update(context.Background(), testOrgID, testLedgerID, "", "op-1", &UpdateOperationInput{})
+
+	require.Error(t, err)
+	assert.Nil(t, op)
+	assert.True(t, errors.Is(err, sdkerrors.ErrValidation))
+	assert.Contains(t, err.Error(), "transaction id is required")
+}
+
+func TestOperationsUpdateBackendError(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errors.New("backend error")
+	mock := &mockBackend{callFn: func(_ context.Context, _, _ string, _, _ any) error {
+		return expectedErr
+	}}
+
+	svc := newOperationsService(mock)
+	op, err := svc.Update(context.Background(), testOrgID, testLedgerID, "txn-1", "op-1", &UpdateOperationInput{})
+
+	require.Error(t, err)
+	assert.Nil(t, op)
+	assert.Equal(t, expectedErr, err)
 }
 
 func TestOperationsListByAccountBackendError(t *testing.T) {
@@ -337,6 +368,38 @@ func TestOperationsListByAccountBackendError(t *testing.T) {
 
 	assert.False(t, iter.Next(context.Background()))
 	assert.Equal(t, expectedErr, iter.Err())
+}
+
+// ---------------------------------------------------------------------------
+// Operations — Update
+// ---------------------------------------------------------------------------
+
+func TestOperationsUpdate(t *testing.T) {
+	t.Parallel()
+
+	description := "updated operation"
+	mock := &mockBackend{
+		callFn: func(_ context.Context, method, path string, body, result any) error {
+			assert.Equal(t, "PATCH", method)
+			assert.Equal(t, "/organizations/org-1/ledgers/led-1/transactions/txn-1/operations/op-1", path)
+
+			input, ok := body.(*UpdateOperationInput)
+			require.True(t, ok)
+			require.NotNil(t, input.Description)
+			assert.Equal(t, description, *input.Description)
+
+			return unmarshalInto(Operation{ID: "op-1", TransactionID: "txn-1", Description: &description}, result)
+		},
+	}
+
+	svc := newOperationsService(mock)
+	op, err := svc.Update(context.Background(), testOrgID, testLedgerID, "txn-1", "op-1", &UpdateOperationInput{Description: &description})
+
+	require.NoError(t, err)
+	require.NotNil(t, op)
+	assert.Equal(t, "op-1", op.ID)
+	require.NotNil(t, op.Description)
+	assert.Equal(t, description, *op.Description)
 }
 
 // ---------------------------------------------------------------------------

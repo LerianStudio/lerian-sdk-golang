@@ -246,10 +246,11 @@ func TestOperationRoutesListWithOptions(t *testing.T) {
 	}
 
 	svc := newOperationRoutesService(mock)
-	opts := &models.CursorListOptions{Limit: 50, SortBy: "type"}
+	opts := &models.CursorListOptions{Limit: 50, Cursor: "cursor-1", SortBy: "type"}
 	iter := svc.List(context.Background(), "org-1", "led-1", opts)
 
 	require.True(t, iter.Next(context.Background()))
+	assert.Contains(t, receivedPath, "cursor=cursor-1")
 	assert.Contains(t, receivedPath, "limit=50")
 	assert.Contains(t, receivedPath, "sortBy=type")
 }

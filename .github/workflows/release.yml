@@ -38,7 +38,7 @@ jobs:
   # Execute post steps after the release is published
   post-release-steps:
     name: Post Release Tasks
-    runs-on: ubuntu-24.04
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     needs: publish-release
     steps:
       - name: Checkout code
@@ -63,7 +63,7 @@ jobs:
   # Generate changelog using the lerian-studio/github-actions-gptchangelog custom module
   generate-changelog:
     name: Generate AI-powered Changelog
-    runs-on: ubuntu-24.04
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     needs: post-release-steps
     steps:
       - name: Generate app installation token

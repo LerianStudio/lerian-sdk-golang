@@ -194,6 +194,10 @@ func Count(ctx context.Context, s *BaseService, path string) (int, error) {
 		return 0, err
 	}
 
+	if res == nil {
+		return 0, sdkerrors.NewInternal("sdk", "Count", "backend returned nil response", nil)
+	}
+
 	var countValues []string
 
 	for key, values := range res.Headers {
@@ -223,6 +227,10 @@ func doJSON[T any](ctx context.Context, backend Backend, req Request) (*T, error
 	res, err := backend.Do(ctx, req)
 	if err != nil {
 		return nil, err
+	}
+
+	if res == nil {
+		return nil, sdkerrors.NewInternal("sdk", req.Method+" "+req.Path, "backend returned nil response", nil)
 	}
 
 	var result T

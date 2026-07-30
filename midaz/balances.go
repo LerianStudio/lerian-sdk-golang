@@ -13,7 +13,6 @@ package midaz
 
 import (
 	"context"
-	"encoding/json"
 	"net/url"
 
 	"github.com/LerianStudio/lerian-sdk-golang/models"
@@ -144,6 +143,10 @@ func (s *balancesService) CreateForAccount(ctx context.Context, orgID, ledgerID,
 func (s *balancesService) Get(ctx context.Context, orgID, ledgerID, id string) (*Balance, error) {
 	const operation = "Balances.Get"
 
+	if err := ensureService(s); err != nil {
+		return nil, err
+	}
+
 	if orgID == "" {
 		return nil, sdkerrors.NewValidation(operation, balanceResource, "organization id is required")
 	}
@@ -161,10 +164,12 @@ func (s *balancesService) Get(ctx context.Context, orgID, ledgerID, id string) (
 
 // List returns a paginated iterator over balances in a ledger.
 func (s *balancesService) List(ctx context.Context, orgID, ledgerID string, opts *models.CursorListOptions) *pagination.Iterator[Balance] {
+	if err := ensureService(s); err != nil {
+		return newErrorIterator[Balance](err)
+	}
+
 	if orgID == "" || ledgerID == "" {
-		return pagination.NewIterator[Balance](func(_ context.Context, _ string) ([]Balance, string, error) {
-			return nil, "", sdkerrors.NewValidation("Balances.List", balanceResource, "organization ID and ledger ID are required")
-		})
+		return newErrorIterator[Balance](sdkerrors.NewValidation("Balances.List", balanceResource, "organization ID and ledger ID are required"))
 	}
 
 	return core.List[Balance](ctx, &s.BaseService, balancesBasePath(orgID, ledgerID), opts)
@@ -173,6 +178,10 @@ func (s *balancesService) List(ctx context.Context, orgID, ledgerID string, opts
 // Update partially updates an existing balance.
 func (s *balancesService) Update(ctx context.Context, orgID, ledgerID, id string, input *UpdateBalanceInput) (*Balance, error) {
 	const operation = "Balances.Update"
+
+	if err := ensureService(s); err != nil {
+		return nil, err
+	}
 
 	if orgID == "" {
 		return nil, sdkerrors.NewValidation(operation, balanceResource, "organization id is required")
@@ -197,6 +206,10 @@ func (s *balancesService) Update(ctx context.Context, orgID, ledgerID, id string
 func (s *balancesService) Delete(ctx context.Context, orgID, ledgerID, id string) error {
 	const operation = "Balances.Delete"
 
+	if err := ensureService(s); err != nil {
+		return err
+	}
+
 	if orgID == "" {
 		return sdkerrors.NewValidation(operation, balanceResource, "organization id is required")
 	}
@@ -217,19 +230,13 @@ func (s *balancesService) listByLookupPath(ctx context.Context, path string) ([]
 		return nil, err
 	}
 
-	backend, err := core.ResolveBackend(&s.BaseService)
+	response, err := core.Get[balancesLookupResponse](ctx, &s.BaseService, path)
 	if err != nil {
 		return nil, err
 	}
 
-	res, err := backend.Do(ctx, core.Request{Method: "GET", Path: path})
-	if err != nil {
-		return nil, err
-	}
-
-	var response balancesLookupResponse
-	if err := json.Unmarshal(res.Body, &response); err != nil {
-		return nil, sdkerrors.NewInternal("midaz", "Balances.Lookup", "failed to unmarshal response body", err)
+	if response.Items == nil {
+		return []Balance{}, nil
 	}
 
 	return response.Items, nil

@@ -1,10 +1,12 @@
 package midaz
 
 import (
+	"context"
 	"encoding/json"
 	"testing"
 	"time"
 
+	"github.com/LerianStudio/lerian-sdk-golang/pkg/core"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -25,7 +27,14 @@ func TestNewClientConstructionWithoutCRM(t *testing.T) {
 	client := NewClient(nil, nil, cfg)
 	require.NotNil(t, client, "NewClient must return a non-nil *Client")
 
-	assert.Nil(t, client.CRM)
+	require.NotNil(t, client.CRM)
+	assert.NotNil(t, client.CRM.Holders)
+	assert.NotNil(t, client.CRM.Aliases)
+
+	holder, err := client.CRM.Holders.Get(context.Background(), "org-1", "holder-1", nil)
+	require.Error(t, err)
+	assert.Nil(t, holder)
+	assert.ErrorIs(t, err, core.ErrNilBackend)
 }
 
 // ---------------------------------------------------------------------------
@@ -58,8 +67,9 @@ func TestNewClientWiredServicesNotNil(t *testing.T) {
 		assert.NotNil(t, client.Transactions.TransactionRoutes)
 		assert.NotNil(t, client.Transactions.Operations)
 		assert.NotNil(t, client.Transactions.OperationRoutes)
+		assert.NotNil(t, client.CRM.Holders)
+		assert.NotNil(t, client.CRM.Aliases)
 	})
-	assert.Nil(t, client.CRM)
 }
 
 func TestNewClientWithCRMWiresCRMServices(t *testing.T) {
@@ -191,6 +201,25 @@ func TestConfigStringRedaction(t *testing.T) {
 	assert.Contains(t, s, "30s", "Timeout should be visible")
 	assert.NotContains(t, s, "super-secret-client-secret",
 		"String() must not contain the actual client secret")
+}
+
+func TestConfigGoStringRedaction(t *testing.T) {
+	t.Parallel()
+
+	cfg := Config{
+		OnboardingURL:  "https://user:pass@example.com/v1",
+		TransactionURL: "https://tx.example.com/v1",
+		CRMURL:         "https://crm.example.com/v1",
+		ClientID:       "client-id",
+		ClientSecret:   "top-secret",
+		TokenURL:       "https://auth.example.com/token?client_secret=super-secret",
+	}
+
+	debugValue := cfg.GoString()
+	assert.NotContains(t, debugValue, "top-secret")
+	assert.NotContains(t, debugValue, "pass")
+	assert.NotContains(t, debugValue, "super-secret")
+	assert.Contains(t, debugValue, "[REDACTED]")
 }
 
 // ---------------------------------------------------------------------------

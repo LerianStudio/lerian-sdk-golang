@@ -153,10 +153,8 @@ type CreateBalanceInput struct {
 
 	// AllowSending and AllowReceiving are pointers so omitted fields stay omitted
 	// and the server can apply its default behavior.
-	AllowSending   *bool           `json:"allowSending,omitempty"`
-	AllowReceiving *bool           `json:"allowReceiving,omitempty"`
-	Status         *models.Status  `json:"-"`
-	Metadata       models.Metadata `json:"-"`
+	AllowSending   *bool `json:"allowSending,omitempty"`
+	AllowReceiving *bool `json:"allowReceiving,omitempty"`
 }
 
 // UpdateBalanceInput holds the fields that may be updated on an
@@ -183,7 +181,7 @@ type CreateTransactionInput struct {
 	TransactionDate          *string          `json:"transactionDate,omitempty"`
 	Send                     *TransactionSend `json:"send,omitempty"`
 	Metadata                 models.Metadata  `json:"metadata,omitempty"`
-	ParentTransactionID      *string          `json:"-"`
+	ParentTransactionID      *string          `json:"parentTransactionId,omitempty"`
 }
 
 // TransactionSend represents the Midaz send-based transaction payload.
@@ -303,38 +301,6 @@ type UpdateTransactionInput struct {
 	Description *string         `json:"description,omitempty"`
 	Status      *models.Status  `json:"status,omitempty"`
 	Metadata    models.Metadata `json:"metadata,omitempty"`
-}
-
-// TransactionSource describes a single source-to-destination leg of a
-// transaction, linking a sender account to a receiver account with an
-// amount or percentage share.
-type TransactionSource struct {
-	From   TransactionFromTo  `json:"from"`
-	To     TransactionFromTo  `json:"to"`
-	Amount *TransactionAmount `json:"amount,omitempty"`
-	Share  *TransactionShare  `json:"share,omitempty"`
-}
-
-// TransactionFromTo identifies an account in a transaction source leg.
-type TransactionFromTo struct {
-	Account         string  `json:"account"`
-	AccountType     *string `json:"accountType,omitempty"`
-	ChartOfAccounts *string `json:"chartOfAccounts,omitempty"`
-}
-
-// TransactionAmount specifies a fixed monetary amount with explicit scale
-// and asset denomination.
-type TransactionAmount struct {
-	Amount int64  `json:"amount"`
-	Scale  int    `json:"scale"`
-	Asset  string `json:"asset"`
-}
-
-// TransactionShare specifies a percentage-based share for distributing
-// a transaction amount.
-type TransactionShare struct {
-	Percentage   int     `json:"percentage"`
-	PercentageOf *string `json:"percentageOf,omitempty"`
 }
 
 // ---------------------------------------------------------------------------
