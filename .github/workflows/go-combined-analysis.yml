@@ -21,7 +21,7 @@ permissions:
 jobs:
   GolangCI-Lint:
     name: Run GolangCI-Lint
-    runs-on: ubuntu-24.04
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v5
@@ -39,7 +39,7 @@ jobs:
 
   GoSec:
     name: Run GoSec Security Scanner
-    runs-on: ubuntu-24.04
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - uses: actions/checkout@v5
 
@@ -55,7 +55,7 @@ jobs:
 
   test:
     name: Test
-    runs-on: ubuntu-24.04
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -80,7 +80,7 @@ jobs:
 
   verify:
     name: Verify SDK
-    runs-on: ubuntu-24.04
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -96,7 +96,7 @@ jobs:
 
   CodeQL:
     name: Run CodeQL
-    runs-on: ubuntu-24.04
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 360
     strategy:
       fail-fast: false
