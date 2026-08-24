@@ -1,0 +1,81 @@
+# Pull Request Labeler configuration
+#
+# Labels are aligned with the pr_title_scopes in pr-validation.yml.
+
+# Midaz product client
+midaz:
+  - changed-files:
+      - any-glob-to-any-file: 'midaz/**/*'
+
+# Matcher product client
+matcher:
+  - changed-files:
+      - any-glob-to-any-file: 'matcher/**/*'
+
+# Tracer product client
+tracer:
+  - changed-files:
+      - any-glob-to-any-file: 'tracer/**/*'
+
+# Reporter product client
+reporter:
+  - changed-files:
+      - any-glob-to-any-file: 'reporter/**/*'
+
+# Fees product client
+fees:
+  - changed-files:
+      - any-glob-to-any-file: 'fees/**/*'
+
+# Domain/response models
+models:
+  - changed-files:
+      - any-glob-to-any-file: 'models/**/*'
+
+# Reusable public packages
+pkg:
+  - changed-files:
+      - any-glob-to-any-file: 'pkg/**/*'
+
+# Example programs
+examples:
+  - changed-files:
+      - any-glob-to-any-file: 'examples/**/*'
+
+# Shared test helpers
+testing:
+  - changed-files:
+      - any-glob-to-any-file: 'testing/**/*'
+
+# Application and tooling configuration
+config:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '.golangci.yml'
+          - '.goreleaser.yml'
+          - '.releaserc.yml'
+
+# Continuous integration pipelines and shared workflows
+ci:
+  - changed-files:
+      - any-glob-to-any-file: '.github/workflows/**/*'
+
+# Markdown docs
+docs:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '**/*.md'
+          - 'docs/**/*'
+
+# Unit, integration and contract tests
+tests:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '**/*_test.go'
+
+# Go module dependencies
+deps:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'go.mod'
+          - 'go.sum'
