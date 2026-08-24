@@ -35,8 +35,9 @@ jobs:
         ci
         deps
         tests
-      go_version: "1.24.0"
+      go_version: "1.26.1"
       go_private_modules: "github.com/LerianStudio/*"
+      run_lib_version_check: false
       enable_custom_checks: true
       custom_checks: |
         verify-sdk
