@@ -1,0 +1,16 @@
+plugins:
+  - path: "@semantic-release/commit-analyzer"
+    preset: conventionalcommits
+
+  - path: "@semantic-release/release-notes-generator"
+    preset: conventionalcommits
+
+  - path: "@semantic-release/github"
+
+branches:
+  - name: main
+  - name: develop
+    prerelease: beta
+  - name: hotfix/*
+    prerelease: false
+    channel: false

@@ -4,26 +4,27 @@ on:
   release:
     types: [published]
 
+permissions:
+  contents: read
+
 jobs:
   github-release-notification:
     name: Notify Discord and Slack of New Release
     runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
-      - uses: actions/create-github-app-token@v1
-        id: app-token
-        with:
-          app-id: ${{ secrets.LERIAN_STUDIO_MIDAZ_PUSH_BOT_APP_ID }}
-          private-key: ${{ secrets.LERIAN_STUDIO_MIDAZ_PUSH_BOT_PRIVATE_KEY }}
-
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
 
       - name: Fetch Latest Release
         id: latest_release
-        run: echo "tag=${{ github.event.release.tag_name }}" >> $GITHUB_OUTPUT
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: printf 'tag=%s\n' "$RELEASE_TAG" >> "$GITHUB_OUTPUT"
 
       - name: Releases to Discord
-        uses: SethCohen/github-releases-to-discord@v1.16.2
+        uses: SethCohen/github-releases-to-discord@6ac5abea42b8cbac14316970819a8a535aab08ea # v1.16.2
         if: ${{ !contains(github.ref, '-beta.') }}
         with:
           webhook_url: ${{ secrets.DISCORD_WEBHOOK_URL }}

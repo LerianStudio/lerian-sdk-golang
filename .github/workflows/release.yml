@@ -1,11 +1,8 @@
-name: release
+name: Release Pipeline
 
 on:
   push:
-    branches:
-      - develop
-      - main
-      - hotfix/v*
+    branches: [main, develop, hotfix/*]
     paths-ignore:
       - '.gitignore'
       - '**/*.env'
@@ -14,55 +11,51 @@ on:
       - '*.md'
       - '**/*.txt'
       - '*.txt'
+      - '.github/**'
+      - 'docs/**'
+      - 'LICENSE*'
+      - '.golangci.yml'
     tags-ignore:
       - '**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
 
 permissions:
   id-token: write
   contents: write
+  issues: write
   pull-requests: write
-  packages: read
+  packages: write
 
 jobs:
-  # Publish release using the lerian-studio/github-actions-go-pipeline-template
-  publish-release:
-    uses: LerianStudio/github-actions-go-pipeline-template/.github/workflows/release.yml@main
-    secrets:
-      lerian_studio_push_bot_app_id: ${{ secrets.LERIAN_STUDIO_MIDAZ_PUSH_BOT_APP_ID }}
-      lerian_studio_push_bot_private_key: ${{ secrets.LERIAN_STUDIO_MIDAZ_PUSH_BOT_PRIVATE_KEY }}
-      lerian_ci_cd_user_gpg_key: ${{ secrets.LERIAN_CI_CD_USER_GPG_KEY }}
-      lerian_ci_cd_user_gpg_key_password: ${{ secrets.LERIAN_CI_CD_USER_GPG_KEY_PASSWORD }}
-      lerian_ci_cd_user_name: ${{ secrets.LERIAN_CI_CD_USER_NAME }}
-      lerian_ci_cd_user_email: ${{ secrets.LERIAN_CI_CD_USER_EMAIL }}
+  pipeline:
+    uses: LerianStudio/github-actions-shared-workflows/.github/workflows/release.yml@v1.57.0
+    with:
+      enable_changelog: ${{ github.ref == 'refs/heads/main' }}
+      stable_releases_only: true
+      enable_release_announcement: false
+    secrets: inherit
 
-  # Execute post steps after the release is published
   post-release-steps:
     name: Post Release Tasks
     runs-on: blacksmith-4vcpu-ubuntu-2404
-    needs: publish-release
+    needs: pipeline
+    if: needs.pipeline.outputs.new_release_published == 'true'
+    permissions:
+      contents: write
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
-          fetch-depth: 0
-
-      - name: Clean repo (reset + clean)
-        run: |
-          git reset --hard
-          git clean -fd
+          ref: ${{ needs.pipeline.outputs.new_release_git_tag }}
+          persist-credentials: false
 
       - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v6
+        uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94 # v7
         with:
-          version: latest
+          version: "~> v2"
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GPG_FINGERPRINT: ${{ needs.publish-release.outputs.gpg_fingerprint }}
-
-  # Generate changelog using the shared gptchangelog reusable workflow
-  generate-changelog:
-    name: Generate AI-powered Changelog
-    needs: post-release-steps
-    uses: LerianStudio/github-actions-shared-workflows/.github/workflows/gptchangelog.yml@v1.56.0
-    secrets: inherit
