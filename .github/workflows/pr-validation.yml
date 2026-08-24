@@ -36,8 +36,10 @@ jobs:
         deps
         tests
       go_version: "1.26.1"
+      golangci_lint_version: "v2.13.1"
       go_private_modules: "github.com/LerianStudio/*"
       run_lib_version_check: false
+      enable_docker_scan: false
       enable_custom_checks: true
       custom_checks: |
         verify-sdk
