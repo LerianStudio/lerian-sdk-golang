@@ -61,7 +61,17 @@ func (b *BackendImpl) doRequest(ctx context.Context, req Request) (*Response, er
 		}
 
 		respBody, readErr := io.ReadAll(io.LimitReader(resp.Body, 10<<20))
-		resp.Body.Close()
+
+		// A response body that fails to close after an apparently clean read did
+		// not arrive intact: a broken chunked encoding or an aborted stream
+		// surfaces here and nowhere else. Discarding that error handed however
+		// many bytes had arrived to the decoder as if they were the whole
+		// response, so a truncated payload could be parsed into a value the
+		// caller then acted on. Promote it to a read failure instead, which is
+		// the same treatment any other incomplete read already gets.
+		if closeErr := resp.Body.Close(); closeErr != nil && readErr == nil {
+			readErr = closeErr
+		}
 
 		if readErr != nil {
 			span.SetStatus(codes.Error, "failed to read response body")
