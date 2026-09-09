@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"net/textproto"
 	"net/url"
 	"reflect"
@@ -80,7 +81,7 @@ func Get[T any](ctx context.Context, s *BaseService, path string) (*T, error) {
 		return nil, err
 	}
 
-	return doJSON[T](ctx, backend, Request{Method: "GET", Path: path})
+	return doJSON[T](ctx, backend, Request{Method: http.MethodGet, Path: path})
 }
 
 // Create creates a new resource by POSTing the input to the given path.
@@ -91,7 +92,7 @@ func Create[T any, I any](ctx context.Context, s *BaseService, path string, inpu
 		return nil, err
 	}
 
-	return doJSON[T](ctx, backend, Request{Method: "POST", Path: path, Body: input})
+	return doJSON[T](ctx, backend, Request{Method: http.MethodPost, Path: path, Body: input})
 }
 
 // Update modifies an existing resource using PATCH.
@@ -102,7 +103,7 @@ func Update[T any, I any](ctx context.Context, s *BaseService, path string, inpu
 		return nil, err
 	}
 
-	return doJSON[T](ctx, backend, Request{Method: "PATCH", Path: path, Body: input})
+	return doJSON[T](ctx, backend, Request{Method: http.MethodPatch, Path: path, Body: input})
 }
 
 // Upsert creates or replaces a resource using PUT.
@@ -114,7 +115,7 @@ func Upsert[T any, I any](ctx context.Context, s *BaseService, path string, inpu
 		return nil, err
 	}
 
-	return doJSON[T](ctx, backend, Request{Method: "PUT", Path: path, Body: input})
+	return doJSON[T](ctx, backend, Request{Method: http.MethodPut, Path: path, Body: input})
 }
 
 // Delete removes a resource by path. It sends a DELETE request and expects
@@ -125,7 +126,7 @@ func Delete(ctx context.Context, s *BaseService, path string) error {
 		return err
 	}
 
-	_, err = backend.Do(ctx, Request{Method: "DELETE", Path: path, ExpectNoResponse: true})
+	_, err = backend.Do(ctx, Request{Method: http.MethodDelete, Path: path, ExpectNoResponse: true})
 
 	return err
 }
@@ -139,7 +140,7 @@ func Action[T any](ctx context.Context, s *BaseService, path string, input any) 
 		return nil, err
 	}
 
-	return doJSON[T](ctx, backend, Request{Method: "POST", Path: path, Body: input})
+	return doJSON[T](ctx, backend, Request{Method: http.MethodPost, Path: path, Body: input})
 }
 
 // ActionWithHeaders performs a POST action on a resource while allowing
@@ -150,7 +151,7 @@ func ActionWithHeaders[T any](ctx context.Context, s *BaseService, path string, 
 		return nil, err
 	}
 
-	return doJSON[T](ctx, backend, Request{Method: "POST", Path: path, Headers: headers, Body: input})
+	return doJSON[T](ctx, backend, Request{Method: http.MethodPost, Path: path, Headers: headers, Body: input})
 }
 
 // List returns a paginated [pagination.Iterator] over resources at the
@@ -170,7 +171,7 @@ func List[T any](ctx context.Context, s *BaseService, path string, opts *models.
 	fetcher := func(fetchCtx context.Context, cursor string) ([]T, string, error) {
 		queryPath := buildListPath(path, opts, cursor)
 
-		resp, err := doJSON[models.ListResponse[T]](fetchCtx, backend, Request{Method: "GET", Path: queryPath})
+		resp, err := doJSON[models.ListResponse[T]](fetchCtx, backend, Request{Method: http.MethodGet, Path: queryPath})
 		if err != nil {
 			return nil, "", err
 		}
@@ -189,7 +190,7 @@ func Count(ctx context.Context, s *BaseService, path string) (int, error) {
 		return 0, err
 	}
 
-	res, err := backend.Do(ctx, Request{Method: "HEAD", Path: path})
+	res, err := backend.Do(ctx, Request{Method: http.MethodHead, Path: path})
 	if err != nil {
 		return 0, err
 	}

@@ -91,7 +91,7 @@ func (f *fakeBalances) CreateForAccount(_ context.Context, orgID, ledgerID, acco
 		AccountID:      accountID,
 		AssetCode:      account.AssetCode,
 		AccountAlias:   account.Alias,
-		Status:         models.Status{Code: "active"},
+		Status:         models.Status{Code: statusActive},
 		AllowSending:   input.AllowSending == nil || *input.AllowSending,
 		AllowReceiving: input.AllowReceiving == nil || *input.AllowReceiving,
 		CreatedAt:      now,
@@ -323,7 +323,7 @@ func (f *fakeTransactions) Create(_ context.Context, orgID, ledgerID string, inp
 		AssetCode:      assetCode,
 		Amount:         amount,
 		AmountScale:    scale,
-		Status:         models.Status{Code: "pending"},
+		Status:         models.Status{Code: statusPending},
 		Metadata:       input.Metadata,
 		CreatedAt:      now,
 		UpdatedAt:      now,
@@ -377,7 +377,7 @@ func (f *fakeTransactions) CreateDSL(_ context.Context, orgID, ledgerID string, 
 		ID:             generateID("tx"),
 		OrganizationID: orgID,
 		LedgerID:       ledgerID,
-		Status:         models.Status{Code: "pending"},
+		Status:         models.Status{Code: statusPending},
 		CreatedAt:      now,
 		UpdatedAt:      now,
 	}
@@ -430,7 +430,7 @@ func (f *fakeTransactions) CreateInflow(_ context.Context, orgID, ledgerID strin
 		AssetCode:      assetCode,
 		Amount:         amount,
 		AmountScale:    scale,
-		Status:         models.Status{Code: "pending"},
+		Status:         models.Status{Code: statusPending},
 		Metadata:       input.Metadata,
 		CreatedAt:      now,
 		UpdatedAt:      now,
@@ -488,7 +488,7 @@ func (f *fakeTransactions) CreateOutflow(_ context.Context, orgID, ledgerID stri
 		AssetCode:      assetCode,
 		Amount:         amount,
 		AmountScale:    scale,
-		Status:         models.Status{Code: "pending"},
+		Status:         models.Status{Code: statusPending},
 		Metadata:       input.Metadata,
 		CreatedAt:      now,
 		UpdatedAt:      now,
@@ -597,7 +597,7 @@ func (f *fakeTransactions) Commit(_ context.Context, orgID, ledgerID string, id 
 	return fakeScopedMutateStored(f.cfg, "", "Transactions.Commit", "Transaction", id, f.store, func(tx midaz.Transaction) bool {
 		return transactionInScope(tx, orgID, ledgerID)
 	}, func(tx *midaz.Transaction) error {
-		if tx.Status.Code != "pending" {
+		if tx.Status.Code != statusPending {
 			return sdkerrors.NewConflict("midaz", "Transactions.Commit", "Transaction",
 				fmt.Sprintf("cannot commit transaction %s: current status is %q, expected \"pending\"", id, tx.Status.Code))
 		}
@@ -627,7 +627,7 @@ func (f *fakeTransactions) Cancel(_ context.Context, orgID, ledgerID string, id 
 	return fakeScopedMutateStored(f.cfg, "", "Transactions.Cancel", "Transaction", id, f.store, func(tx midaz.Transaction) bool {
 		return transactionInScope(tx, orgID, ledgerID)
 	}, func(tx *midaz.Transaction) error {
-		if tx.Status.Code != "pending" {
+		if tx.Status.Code != statusPending {
 			return sdkerrors.NewConflict("midaz", "Transactions.Cancel", "Transaction",
 				fmt.Sprintf("cannot cancel transaction %s: current status is %q, expected \"pending\"", id, tx.Status.Code))
 		}

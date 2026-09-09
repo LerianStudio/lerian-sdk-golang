@@ -26,6 +26,9 @@ import (
 	"github.com/LerianStudio/lerian-sdk-golang/fees"
 )
 
+// demoLedgerID is the placeholder ledger this walkthrough bills against.
+const demoLedgerID = "00000000-0000-0000-0000-000000000001"
+
 func main() {
 	// -----------------------------------------------------------------------
 	// Step 1: Create the SDK client configured for the Fees product.
@@ -72,7 +75,7 @@ func main() {
 	pkg, err := client.Fees.Packages.Create(ctx, &fees.CreatePackageInput{
 		FeeGroupLabel: "Wire Transfer Fees - BRL",
 		Description:   &pkgDesc,
-		LedgerID:      "00000000-0000-0000-0000-000000000001",
+		LedgerID:      demoLedgerID,
 		MinimumAmount: "100.00",
 		MaximumAmount: "100000.00",
 		Enable:        &enablePkg,
@@ -132,7 +135,7 @@ func main() {
 	// -----------------------------------------------------------------------
 	estimateResp, err := client.Fees.Estimates.Calculate(ctx, &fees.FeeEstimateInput{
 		PackageID: pkg.ID,
-		LedgerID:  "00000000-0000-0000-0000-000000000001",
+		LedgerID:  demoLedgerID,
 		Transaction: fees.TransactionDSL{
 			Description: "Wire transfer estimate",
 			Send: fees.TransactionDSLSend{
@@ -175,7 +178,7 @@ func main() {
 
 	feeResult, err := client.Fees.Fees.Calculate(ctx, &fees.FeeCalculate{
 		SegmentID: &segmentID,
-		LedgerID:  "00000000-0000-0000-0000-000000000001",
+		LedgerID:  demoLedgerID,
 		Transaction: fees.TransactionDSL{
 			Description: "Wire transfer with fees",
 			Route:       "wire_transfer",

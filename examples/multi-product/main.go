@@ -38,6 +38,9 @@ import (
 	"github.com/LerianStudio/lerian-sdk-golang/tracer"
 )
 
+// assetBRL is the asset this walkthrough moves end to end.
+const assetBRL = "BRL"
+
 func main() {
 	// -----------------------------------------------------------------------
 	// Step 1: Create a single client with multiple products.
@@ -113,7 +116,7 @@ func main() {
 	// Create a BRL asset.
 	_, err = client.Midaz.Onboarding.Assets.Create(ctx, org.ID, ledger.ID, &midaz.CreateAssetInput{
 		Name: "Brazilian Real",
-		Code: "BRL",
+		Code: assetBRL,
 		Type: "currency",
 	})
 	if err != nil {
@@ -123,7 +126,7 @@ func main() {
 	// Create sender and receiver accounts.
 	sender, err := client.Midaz.Onboarding.Accounts.Create(ctx, org.ID, ledger.ID, &midaz.CreateAccountInput{
 		Name:      "Treasury",
-		AssetCode: "BRL",
+		AssetCode: assetBRL,
 		Type:      "deposit",
 	})
 	if err != nil {
@@ -132,7 +135,7 @@ func main() {
 
 	receiver, err := client.Midaz.Onboarding.Accounts.Create(ctx, org.ID, ledger.ID, &midaz.CreateAccountInput{
 		Name:      "Vendor Payout",
-		AssetCode: "BRL",
+		AssetCode: assetBRL,
 		Type:      "deposit",
 	})
 	if err != nil {
@@ -142,7 +145,7 @@ func main() {
 	// Create a transaction (R$ 25,000.00).
 	txn, err := client.Midaz.Transactions.Transactions.Create(ctx, org.ID, ledger.ID, &midaz.CreateTransactionInput{
 		Send: &midaz.TransactionSend{
-			Asset: "BRL",
+			Asset: assetBRL,
 			Value: "25000.00",
 			Source: midaz.TransactionSendSource{From: []midaz.TransactionOperationLeg{{
 				AccountAlias: sender.ID,
