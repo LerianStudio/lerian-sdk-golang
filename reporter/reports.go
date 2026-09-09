@@ -10,8 +10,13 @@ import (
 	"github.com/LerianStudio/lerian-sdk-golang/pkg/pagination"
 )
 
-// reportsServiceAPI provides full CRUD access to Reporter report endpoints,
-// plus a Download method for retrieving the generated report file.
+// reportsServiceAPI provides access to Reporter report endpoints, plus a
+// Download method for retrieving the generated report file.
+//
+// Reporter serves four report operations: create, get, list and download. A
+// generated report is retained, not edited: the service exposes no way to
+// change or remove one. The Update and Delete methods below predate that
+// finding and fail against any deployment.
 type reportsServiceAPI interface {
 	// Create generates a new report from the given input parameters.
 	Create(ctx context.Context, input *CreateReportInput) (*Report, error)
@@ -22,10 +27,20 @@ type reportsServiceAPI interface {
 	// List returns a paginated iterator over all reports.
 	List(ctx context.Context, opts *models.CursorListOptions) *pagination.Iterator[Report]
 
-	// Update modifies an existing report's mutable fields.
+	// Update sends a PATCH request that Reporter does not answer. The service
+	// registers no update operation for a report, so this call fails against
+	// every deployment. Do not build on it.
+	//
+	// Deprecated: Reporter has no report update operation. This method cannot
+	// succeed.
 	Update(ctx context.Context, id string, input *UpdateReportInput) (*Report, error)
 
-	// Delete removes a report by ID.
+	// Delete sends a DELETE request that Reporter does not answer. The service
+	// registers no delete operation for a report, so this call fails against
+	// every deployment. A retention or correction flow cannot be built on it.
+	//
+	// Deprecated: Reporter has no report delete operation. This method cannot
+	// succeed.
 	Delete(ctx context.Context, id string) error
 
 	// Download retrieves the raw file content (PDF, CSV, XLSX, etc.)
@@ -76,7 +91,10 @@ func (s *reportsService) List(ctx context.Context, opts *models.CursorListOption
 	return core.List[Report](ctx, &s.BaseService, "/reports", opts)
 }
 
-// Update modifies an existing report.
+// Update sends PATCH /reports/{id}, an operation Reporter does not register.
+//
+// Deprecated: Reporter has no report update operation. This method cannot
+// succeed.
 func (s *reportsService) Update(ctx context.Context, id string, input *UpdateReportInput) (*Report, error) {
 	const operation = "Reports.Update"
 
@@ -91,7 +109,10 @@ func (s *reportsService) Update(ctx context.Context, id string, input *UpdateRep
 	return core.Update[Report, UpdateReportInput](ctx, &s.BaseService, "/reports/"+url.PathEscape(id), input)
 }
 
-// Delete removes a report by ID.
+// Delete sends DELETE /reports/{id}, an operation Reporter does not register.
+//
+// Deprecated: Reporter has no report delete operation. This method cannot
+// succeed.
 func (s *reportsService) Delete(ctx context.Context, id string) error {
 	const operation = "Reports.Delete"
 

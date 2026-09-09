@@ -75,12 +75,18 @@ func (f *fakeReporterReports) List(_ context.Context, opts *models.CursorListOpt
 	return fakeListStored(f.cfg, "", f.store, opts)
 }
 
+// Update succeeds here, but Reporter registers no report update operation, so
+// the same call fails against a real deployment. A test that passes through
+// this fake proves nothing about the flow it models.
 func (f *fakeReporterReports) Update(_ context.Context, id string, _ *reporter.UpdateReportInput) (*reporter.Report, error) {
 	return fakeMutateStored(f.cfg, "", "Reports.Update", "Report", id, f.store, func(r *reporter.Report) {
 		r.UpdatedAt = time.Now()
 	})
 }
 
+// Delete succeeds here, but Reporter registers no report delete operation, so
+// the same call fails against a real deployment. A retention flow that is green
+// against this fake still cannot delete a report in production.
 func (f *fakeReporterReports) Delete(_ context.Context, id string) error {
 	return fakeDeleteStored(f.cfg, "", "Reports.Delete", "Report", id, f.store)
 }

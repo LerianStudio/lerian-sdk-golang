@@ -511,6 +511,14 @@ linters:
         path: _test\.go
         text: "empty-lines"
 
+      # The fake client must implement every method of a product service
+      # interface, deprecated ones included, or it stops satisfying it.
+      # Customer code keeps SA1019, which is the point of the marker.
+      - linters:
+          - staticcheck
+        path: testing/
+        text: "SA1019"
+
       # Relax revive in testing/ helpers (fake implementations satisfy interfaces)
       - linters:
           - revive
