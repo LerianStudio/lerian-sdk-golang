@@ -13,10 +13,9 @@ import (
 // reportsServiceAPI provides access to Reporter report endpoints, plus a
 // Download method for retrieving the generated report file.
 //
-// Reporter serves four report operations: create, get, list and download. A
-// generated report is retained, not edited: the service exposes no way to
-// change or remove one. The Update and Delete methods below predate that
-// finding and fail against any deployment.
+// Reporter serves four report operations and only four: create, get, list and
+// download. A generated report is retained, not edited -- the service registers
+// no update and no delete operation for one, so this interface offers neither.
 type reportsServiceAPI interface {
 	// Create generates a new report from the given input parameters.
 	Create(ctx context.Context, input *CreateReportInput) (*Report, error)
@@ -26,22 +25,6 @@ type reportsServiceAPI interface {
 
 	// List returns a paginated iterator over all reports.
 	List(ctx context.Context, opts *models.CursorListOptions) *pagination.Iterator[Report]
-
-	// Update sends a PATCH request that Reporter does not answer. The service
-	// registers no update operation for a report, so this call fails against
-	// every deployment. Do not build on it.
-	//
-	// Deprecated: Reporter has no report update operation. This method cannot
-	// succeed.
-	Update(ctx context.Context, id string, input *UpdateReportInput) (*Report, error)
-
-	// Delete sends a DELETE request that Reporter does not answer. The service
-	// registers no delete operation for a report, so this call fails against
-	// every deployment. A retention or correction flow cannot be built on it.
-	//
-	// Deprecated: Reporter has no report delete operation. This method cannot
-	// succeed.
-	Delete(ctx context.Context, id string) error
 
 	// Download retrieves the raw file content (PDF, CSV, XLSX, etc.)
 	// of a generated report.
@@ -89,38 +72,6 @@ func (s *reportsService) Get(ctx context.Context, id string) (*Report, error) {
 // List returns a paginated iterator over reports.
 func (s *reportsService) List(ctx context.Context, opts *models.CursorListOptions) *pagination.Iterator[Report] {
 	return core.List[Report](ctx, &s.BaseService, "/reports", opts)
-}
-
-// Update sends PATCH /reports/{id}, an operation Reporter does not register.
-//
-// Deprecated: Reporter has no report update operation. This method cannot
-// succeed.
-func (s *reportsService) Update(ctx context.Context, id string, input *UpdateReportInput) (*Report, error) {
-	const operation = "Reports.Update"
-
-	if id == "" {
-		return nil, sdkerrors.NewValidation(operation, "Report", "id is required")
-	}
-
-	if input == nil {
-		return nil, sdkerrors.NewValidation(operation, "Report", "input is required")
-	}
-
-	return core.Update[Report, UpdateReportInput](ctx, &s.BaseService, "/reports/"+url.PathEscape(id), input)
-}
-
-// Delete sends DELETE /reports/{id}, an operation Reporter does not register.
-//
-// Deprecated: Reporter has no report delete operation. This method cannot
-// succeed.
-func (s *reportsService) Delete(ctx context.Context, id string) error {
-	const operation = "Reports.Delete"
-
-	if id == "" {
-		return sdkerrors.NewValidation(operation, "Report", "id is required")
-	}
-
-	return core.Delete(ctx, &s.BaseService, "/reports/"+url.PathEscape(id))
 }
 
 // Download retrieves the raw file bytes of a generated report. The returned
