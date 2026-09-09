@@ -309,6 +309,7 @@ linters:
           arguments:
             - fmt.Printf
             - fmt.Println
+            - fmt.Fprint
             - fmt.Fprintf
         - name: cognitive-complexity
           severity: warning
