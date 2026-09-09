@@ -70,7 +70,6 @@ func TestLoadConfigFromEnvOtherProducts(t *testing.T) {
 	t.Setenv(envMatcherURL, "http://matcher-from-env:3002/v1")
 	t.Setenv(envTracerURL, "http://tracer-from-env:3003/v1")
 	t.Setenv(envReporterURL, "http://reporter-from-env:3004/v1")
-	t.Setenv(envReporterOrgID, "org-reporter")
 	t.Setenv(envFeesURL, "http://fees-from-env:3005/v1")
 	t.Setenv(envFeesOrgID, "org-fees")
 
@@ -81,7 +80,7 @@ func TestLoadConfigFromEnvOtherProducts(t *testing.T) {
 	require.NotNil(t, cfg.Fees)
 	assert.Equal(t, "http://matcher-from-env:3002/v1", cfg.Matcher.BaseURL)
 	assert.Equal(t, "http://tracer-from-env:3003/v1", cfg.Tracer.BaseURL)
-	assert.Equal(t, "org-reporter", cfg.Reporter.OrganizationID)
+	assert.Equal(t, "http://reporter-from-env:3004/v1", cfg.Reporter.BaseURL)
 	assert.Equal(t, "org-fees", cfg.Fees.OrganizationID)
 }
 
@@ -91,7 +90,6 @@ func TestNewFromLoadedEnvConfig(t *testing.T) {
 	t.Setenv(envMatcherURL, "http://matcher:3002/v1")
 	t.Setenv(envTracerURL, "http://tracer:3003/v1")
 	t.Setenv(envReporterURL, "http://reporter:3004/v1")
-	t.Setenv(envReporterOrgID, "org-reporter")
 	t.Setenv(envFeesURL, "http://fees:3005/v1")
 	t.Setenv(envFeesOrgID, "org-fees")
 	t.Setenv(envDebug, "1")

@@ -215,7 +215,6 @@ func TestNewWithMultipleProducts(t *testing.T) {
 		Tracer:  mustTracerConfig(t, tracer.WithBaseURL("http://localhost:3003/v1")),
 		Reporter: mustReporterConfig(t,
 			reporter.WithBaseURL("http://localhost:3004/v1"),
-			reporter.WithOrganizationID("org-1"),
 		),
 		Fees: mustFeesConfig(t,
 			fees.WithBaseURL("http://localhost:3005/v1"),
@@ -384,14 +383,14 @@ func TestNewInvalidTracerMissingBaseURL(t *testing.T) {
 func TestNewInvalidReporterMissingRequiredFields(t *testing.T) {
 	t.Parallel()
 
-	_, err := New(Config{Reporter: &reporter.Config{OrganizationID: "org-123"}})
+	_, err := New(Config{Reporter: &reporter.Config{}})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "reporter: BaseURL is required")
 
+	// A base URL is the only thing Reporter needs from this config. It used to
+	// also refuse without an organization id that no Reporter handler read.
 	_, err = New(Config{Reporter: &reporter.Config{BaseURL: "http://localhost:3004/v1"}})
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "OrganizationID is required")
-	assert.Contains(t, err.Error(), "Config.Reporter.OrganizationID")
+	require.NoError(t, err)
 }
 
 func TestNewInvalidFeesMissingRequiredFields(t *testing.T) {

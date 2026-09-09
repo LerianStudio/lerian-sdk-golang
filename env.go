@@ -49,7 +49,6 @@ const (
 	envReporterClientID        = "LERIAN_REPORTER_CLIENT_ID"
 	envReporterClientSecret    = "LERIAN_REPORTER_CLIENT_SECRET"
 	envReporterTokenURL        = "LERIAN_REPORTER_TOKEN_URL"
-	envReporterOrgID           = "LERIAN_REPORTER_ORG_ID"
 	envReporterLegacyAuthToken = "LERIAN_REPORTER_AUTH_TOKEN"
 
 	// Fees
@@ -156,7 +155,6 @@ func loadTracerConfigFromEnv() *tracer.Config {
 func loadReporterConfigFromEnv() *reporter.Config {
 	if !anyEnvSet(
 		envReporterURL,
-		envReporterOrgID,
 		envReporterClientID,
 		envReporterClientSecret,
 		envReporterTokenURL,
@@ -166,11 +164,10 @@ func loadReporterConfigFromEnv() *reporter.Config {
 	}
 
 	return &reporter.Config{
-		BaseURL:        envOrDefault(envReporterURL, ""),
-		OrganizationID: envOrDefault(envReporterOrgID, ""),
-		ClientID:       envOrDefault(envReporterClientID, ""),
-		ClientSecret:   envOrDefault(envReporterClientSecret, ""),
-		TokenURL:       envOrDefault(envReporterTokenURL, ""),
+		BaseURL:      envOrDefault(envReporterURL, ""),
+		ClientID:     envOrDefault(envReporterClientID, ""),
+		ClientSecret: envOrDefault(envReporterClientSecret, ""),
+		TokenURL:     envOrDefault(envReporterTokenURL, ""),
 	}
 }
 

@@ -10,8 +10,7 @@
 //
 //	client, _ := lerian.New(lerian.Config{
 //	    Reporter: &reporter.Config{
-//	        BaseURL:        "http://localhost:3004/v1",
-//	        OrganizationID: "org-uuid",
+//	        BaseURL: "http://localhost:3004/v1",
 //	    },
 //	})
 //

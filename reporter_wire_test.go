@@ -61,8 +61,7 @@ func newReporterWireClient(t *testing.T, baseURL string) *Client {
 
 	client, err := New(Config{
 		Reporter: &reporter.Config{
-			BaseURL:        baseURL + "/v1",
-			OrganizationID: "org-42",
+			BaseURL: baseURL + "/v1",
 		},
 	})
 	require.NoError(t, err)

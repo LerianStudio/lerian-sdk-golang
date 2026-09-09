@@ -414,20 +414,11 @@ func (c *Client) initReporter(cfg *reporter.Config) error {
 			"(use http://localhost:3004/v1 for local development only)")
 	}
 
-	if resolved.OrganizationID == "" {
-		return fmt.Errorf("lerian: reporter: OrganizationID is required; " +
-			"set Config.Reporter.OrganizationID to \"org-uuid\"")
-	}
-
 	warnInsecureURL("reporter", resolved.BaseURL)
 
 	authenticator := buildOAuthAuthenticator(resolved.ClientID, resolved.ClientSecret, resolved.TokenURL, c.httpClientForTimeout(resolved.Timeout))
 
-	defaultHeaders := map[string]string{
-		"X-Organization-Id": resolved.OrganizationID,
-	}
-
-	backend := c.createBackend(resolved.BaseURL, authenticator, reporter.ParseError, defaultHeaders, resolved.Timeout)
+	backend := c.createBackend(resolved.BaseURL, authenticator, reporter.ParseError, nil, resolved.Timeout)
 	c.Reporter = reporter.NewClient(backend, resolved)
 
 	return nil
