@@ -37,7 +37,10 @@ func main() {
 	client, err := lerian.New(lerian.Config{
 		Debug: os.Getenv("LERIAN_DEBUG") == "true",
 		Matcher: &matcher.Config{
-			BaseURL: envOr("LERIAN_MATCHER_URL", "http://localhost:3002/v1"),
+			BaseURL:      envOr("LERIAN_MATCHER_URL", "http://localhost:3002/v1"),
+			ClientID:     os.Getenv("LERIAN_MATCHER_CLIENT_ID"),
+			ClientSecret: os.Getenv("LERIAN_MATCHER_CLIENT_SECRET"),
+			TokenURL:     os.Getenv("LERIAN_MATCHER_TOKEN_URL"),
 		},
 	})
 	if err != nil {

@@ -41,6 +41,9 @@ func main() {
 		Fees: &fees.Config{
 			BaseURL:        envOr("LERIAN_FEES_URL", "http://localhost:3005/v1"),
 			OrganizationID: orgID,
+			ClientID:       os.Getenv("LERIAN_FEES_CLIENT_ID"),
+			ClientSecret:   os.Getenv("LERIAN_FEES_CLIENT_SECRET"),
+			TokenURL:       os.Getenv("LERIAN_FEES_TOKEN_URL"),
 		},
 	})
 	if err != nil {

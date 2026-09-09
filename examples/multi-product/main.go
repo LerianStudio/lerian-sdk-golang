@@ -43,7 +43,9 @@ func main() {
 	// Step 1: Create a single client with multiple products.
 	//
 	// The root config enables multiple products at once. Shared fields like
-	// Debug and Observability apply to every configured product.
+	// Debug and Observability apply to every configured product; credentials
+	// are per-product. Leave the credential variables unset to run against
+	// local services that do not require them.
 	// -----------------------------------------------------------------------
 	// NOTE: Use HTTPS URLs in production. HTTP is only for local development.
 	client, err := lerian.New(lerian.Config{
@@ -51,12 +53,21 @@ func main() {
 		Midaz: &midaz.Config{
 			OnboardingURL:  envOr("LERIAN_MIDAZ_ONBOARDING_URL", "http://localhost:3000/v1"),
 			TransactionURL: envOr("LERIAN_MIDAZ_TRANSACTION_URL", "http://localhost:3001/v1"),
+			ClientID:       os.Getenv("LERIAN_MIDAZ_CLIENT_ID"),
+			ClientSecret:   os.Getenv("LERIAN_MIDAZ_CLIENT_SECRET"),
+			TokenURL:       os.Getenv("LERIAN_MIDAZ_TOKEN_URL"),
 		},
 		Tracer: &tracer.Config{
-			BaseURL: envOr("LERIAN_TRACER_URL", "http://localhost:3003/v1"),
+			BaseURL:      envOr("LERIAN_TRACER_URL", "http://localhost:3003/v1"),
+			ClientID:     os.Getenv("LERIAN_TRACER_CLIENT_ID"),
+			ClientSecret: os.Getenv("LERIAN_TRACER_CLIENT_SECRET"),
+			TokenURL:     os.Getenv("LERIAN_TRACER_TOKEN_URL"),
 		},
 		Matcher: &matcher.Config{
-			BaseURL: envOr("LERIAN_MATCHER_URL", "http://localhost:3002/v1"),
+			BaseURL:      envOr("LERIAN_MATCHER_URL", "http://localhost:3002/v1"),
+			ClientID:     os.Getenv("LERIAN_MATCHER_CLIENT_ID"),
+			ClientSecret: os.Getenv("LERIAN_MATCHER_CLIENT_SECRET"),
+			TokenURL:     os.Getenv("LERIAN_MATCHER_TOKEN_URL"),
 		},
 	})
 	if err != nil {

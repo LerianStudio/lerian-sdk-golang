@@ -28,16 +28,20 @@ func main() {
 	// -----------------------------------------------------------------------
 	// Step 1: Create the SDK client configured for the Reporter product.
 	//
-	// A base URL is all Reporter needs here. Which data a call can reach
-	// follows from the access token alone. Authentication uses OAuth2 client
-	// credentials.
+	// A base URL and the OAuth2 client credentials. Which data a call can
+	// reach follows from the access token alone, so there is nothing else to
+	// scope here. Leave the credential variables unset to run against a local
+	// service that does not require them.
 	// -----------------------------------------------------------------------
 
 	// NOTE: Use HTTPS URLs in production. HTTP is only for local development.
 	client, err := lerian.New(lerian.Config{
 		Debug: os.Getenv("LERIAN_DEBUG") == "true",
 		Reporter: &reporter.Config{
-			BaseURL: envOr("LERIAN_REPORTER_URL", "http://localhost:3004/v1"),
+			BaseURL:      envOr("LERIAN_REPORTER_URL", "http://localhost:3004/v1"),
+			ClientID:     os.Getenv("LERIAN_REPORTER_CLIENT_ID"),
+			ClientSecret: os.Getenv("LERIAN_REPORTER_CLIENT_SECRET"),
+			TokenURL:     os.Getenv("LERIAN_REPORTER_TOKEN_URL"),
 		},
 	})
 	if err != nil {
