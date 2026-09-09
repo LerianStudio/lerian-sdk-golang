@@ -35,11 +35,10 @@ func TestNewClientBasic(t *testing.T) {
 	t.Parallel()
 
 	cfg := Config{
-		BaseURL:        "http://localhost:3004/v1",
-		ClientID:       "client-id",
-		ClientSecret:   "client-secret",
-		TokenURL:       "https://auth.example.com/token",
-		OrganizationID: "org-123",
+		BaseURL:      "http://localhost:3004/v1",
+		ClientID:     "client-id",
+		ClientSecret: "client-secret",
+		TokenURL:     "https://auth.example.com/token",
 	}
 
 	client := NewClient(&fakeBackend{}, cfg)
@@ -87,16 +86,6 @@ func TestWithClientCredentials(t *testing.T) {
 	assert.Equal(t, "https://auth.example.com/token", cfg.TokenURL)
 }
 
-func TestWithOrganizationID(t *testing.T) {
-	t.Parallel()
-
-	var cfg Config
-
-	err := WithOrganizationID("org-abc")(&cfg)
-	require.NoError(t, err)
-	assert.Equal(t, "org-abc", cfg.OrganizationID)
-}
-
 func TestWithTimeout(t *testing.T) {
 	t.Parallel()
 
@@ -115,12 +104,11 @@ func TestConfigStringRedaction(t *testing.T) {
 	t.Parallel()
 
 	cfg := Config{
-		BaseURL:        "http://localhost:3004/v1",
-		ClientID:       "client-id",
-		ClientSecret:   "super-secret-client-secret",
-		TokenURL:       "https://auth.example.com/token",
-		OrganizationID: "org-123",
-		Timeout:        30 * time.Second,
+		BaseURL:      "http://localhost:3004/v1",
+		ClientID:     "client-id",
+		ClientSecret: "super-secret-client-secret",
+		TokenURL:     "https://auth.example.com/token",
+		Timeout:      30 * time.Second,
 	}
 
 	s := cfg.String()
@@ -130,7 +118,6 @@ func TestConfigStringRedaction(t *testing.T) {
 	assert.Contains(t, s, "http://localhost:3004/v1", "BaseURL should be visible")
 	assert.Contains(t, s, "client-id", "ClientID should be visible")
 	assert.Contains(t, s, "https://auth.example.com/token", "TokenURL should be visible")
-	assert.Contains(t, s, "org-123", "OrganizationID should be visible")
 	assert.Contains(t, s, "30s", "Timeout should be visible")
 	assert.NotContains(t, s, "super-secret-client-secret",
 		"String() must not contain the actual client secret")
@@ -144,12 +131,11 @@ func TestConfigMarshalJSONRedaction(t *testing.T) {
 	t.Parallel()
 
 	cfg := Config{
-		BaseURL:        "http://localhost:3004/v1",
-		ClientID:       "client-id",
-		ClientSecret:   "super-secret-client-secret",
-		TokenURL:       "https://auth.example.com/token",
-		OrganizationID: "org-123",
-		Timeout:        30 * time.Second,
+		BaseURL:      "http://localhost:3004/v1",
+		ClientID:     "client-id",
+		ClientSecret: "super-secret-client-secret",
+		TokenURL:     "https://auth.example.com/token",
+		Timeout:      30 * time.Second,
 	}
 
 	data, err := json.Marshal(cfg)
@@ -161,7 +147,6 @@ func TestConfigMarshalJSONRedaction(t *testing.T) {
 	assert.Contains(t, s, "http://localhost:3004/v1", "BaseURL should be visible")
 	assert.Contains(t, s, "client-id", "ClientID should be visible")
 	assert.Contains(t, s, "https://auth.example.com/token", "TokenURL should be visible")
-	assert.Contains(t, s, "org-123", "OrganizationID should be visible")
 	assert.NotContains(t, s, "super-secret-client-secret",
 		"MarshalJSON must not contain the actual client secret")
 }

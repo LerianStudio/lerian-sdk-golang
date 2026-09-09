@@ -45,10 +45,10 @@ func (s *dataSourcesService) Get(ctx context.Context, id string) (*DataSource, e
 		return nil, sdkerrors.NewValidation(operation, "DataSource", "id is required")
 	}
 
-	return core.Get[DataSource](ctx, &s.BaseService, "/datasources/"+url.PathEscape(id))
+	return core.Get[DataSource](ctx, &s.BaseService, "/data-sources/"+url.PathEscape(id))
 }
 
 // List returns a paginated iterator over data sources.
 func (s *dataSourcesService) List(ctx context.Context, opts *models.CursorListOptions) *pagination.Iterator[DataSource] {
-	return core.List[DataSource](ctx, &s.BaseService, "/datasources", opts)
+	return core.List[DataSource](ctx, &s.BaseService, "/data-sources", opts)
 }

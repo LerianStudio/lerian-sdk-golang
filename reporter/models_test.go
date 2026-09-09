@@ -290,59 +290,6 @@ func TestCreateReportInputMinimal(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// UpdateReportInput — JSON round-trip
-// ---------------------------------------------------------------------------
-
-func TestUpdateReportInputJSONRoundTrip(t *testing.T) {
-	t.Parallel()
-
-	name := "Updated Report Name"
-	desc := "Updated description"
-
-	original := UpdateReportInput{
-		Name:        &name,
-		Description: &desc,
-		Parameters: map[string]any{
-			"newParam": "value",
-		},
-		Metadata: map[string]any{
-			"updatedBy": "admin",
-		},
-	}
-
-	data, err := json.Marshal(original)
-	require.NoError(t, err)
-
-	var decoded UpdateReportInput
-
-	err = json.Unmarshal(data, &decoded)
-	require.NoError(t, err)
-
-	require.NotNil(t, decoded.Name)
-	assert.Equal(t, *original.Name, *decoded.Name)
-	require.NotNil(t, decoded.Description)
-	assert.Equal(t, *original.Description, *decoded.Description)
-	assert.Equal(t, original.Parameters["newParam"], decoded.Parameters["newParam"])
-	assert.Equal(t, original.Metadata["updatedBy"], decoded.Metadata["updatedBy"])
-}
-
-func TestUpdateReportInputEmpty(t *testing.T) {
-	t.Parallel()
-
-	input := UpdateReportInput{}
-
-	data, err := json.Marshal(input)
-	require.NoError(t, err)
-
-	// All fields are omitempty, so an empty input should produce minimal JSON.
-	raw := string(data)
-	assert.NotContains(t, raw, `"name"`)
-	assert.NotContains(t, raw, `"description"`)
-	assert.NotContains(t, raw, `"parameters"`)
-	assert.NotContains(t, raw, `"metadata"`)
-}
-
-// ---------------------------------------------------------------------------
 // CreateTemplateInput — JSON round-trip
 // ---------------------------------------------------------------------------
 

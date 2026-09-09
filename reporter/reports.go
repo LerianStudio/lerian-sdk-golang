@@ -10,8 +10,12 @@ import (
 	"github.com/LerianStudio/lerian-sdk-golang/pkg/pagination"
 )
 
-// reportsServiceAPI provides full CRUD access to Reporter report endpoints,
-// plus a Download method for retrieving the generated report file.
+// reportsServiceAPI provides access to Reporter report endpoints, plus a
+// Download method for retrieving the generated report file.
+//
+// Reporter serves four report operations and only four: create, get, list and
+// download. A generated report is retained, not edited -- the service registers
+// no update and no delete operation for one, so this interface offers neither.
 type reportsServiceAPI interface {
 	// Create generates a new report from the given input parameters.
 	Create(ctx context.Context, input *CreateReportInput) (*Report, error)
@@ -21,12 +25,6 @@ type reportsServiceAPI interface {
 
 	// List returns a paginated iterator over all reports.
 	List(ctx context.Context, opts *models.CursorListOptions) *pagination.Iterator[Report]
-
-	// Update modifies an existing report's mutable fields.
-	Update(ctx context.Context, id string, input *UpdateReportInput) (*Report, error)
-
-	// Delete removes a report by ID.
-	Delete(ctx context.Context, id string) error
 
 	// Download retrieves the raw file content (PDF, CSV, XLSX, etc.)
 	// of a generated report.
@@ -74,32 +72,6 @@ func (s *reportsService) Get(ctx context.Context, id string) (*Report, error) {
 // List returns a paginated iterator over reports.
 func (s *reportsService) List(ctx context.Context, opts *models.CursorListOptions) *pagination.Iterator[Report] {
 	return core.List[Report](ctx, &s.BaseService, "/reports", opts)
-}
-
-// Update modifies an existing report.
-func (s *reportsService) Update(ctx context.Context, id string, input *UpdateReportInput) (*Report, error) {
-	const operation = "Reports.Update"
-
-	if id == "" {
-		return nil, sdkerrors.NewValidation(operation, "Report", "id is required")
-	}
-
-	if input == nil {
-		return nil, sdkerrors.NewValidation(operation, "Report", "input is required")
-	}
-
-	return core.Update[Report, UpdateReportInput](ctx, &s.BaseService, "/reports/"+url.PathEscape(id), input)
-}
-
-// Delete removes a report by ID.
-func (s *reportsService) Delete(ctx context.Context, id string) error {
-	const operation = "Reports.Delete"
-
-	if id == "" {
-		return sdkerrors.NewValidation(operation, "Report", "id is required")
-	}
-
-	return core.Delete(ctx, &s.BaseService, "/reports/"+url.PathEscape(id))
 }
 
 // Download retrieves the raw file bytes of a generated report. The returned

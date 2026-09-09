@@ -45,10 +45,10 @@ func TestFakeReporterDataSourcesNotFound(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// 2. Reports -- CRUD + Download
+// 2. Reports -- create, get, list, download
 // ---------------------------------------------------------------------------
 
-func TestFakeReporterReportsCRUD(t *testing.T) {
+func TestFakeReporterReportsLifecycle(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
@@ -72,12 +72,6 @@ func TestFakeReporterReportsCRUD(t *testing.T) {
 	assert.Equal(t, created.ID, got.ID)
 	assert.Equal(t, "Monthly Revenue", got.Name)
 
-	// Update
-	updated, err := client.Reporter.Reports.Update(ctx, created.ID, &reporter.UpdateReportInput{})
-	require.NoError(t, err)
-	assert.Equal(t, created.ID, updated.ID)
-	assert.True(t, updated.UpdatedAt.After(created.UpdatedAt) || updated.UpdatedAt.Equal(created.UpdatedAt))
-
 	// List -- should have 1 item
 	iter := client.Reporter.Reports.List(ctx, nil)
 	items, err := iter.Collect(ctx)
@@ -90,14 +84,12 @@ func TestFakeReporterReportsCRUD(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, []byte("fake-report-data"), data)
 
-	// Delete
-	err = client.Reporter.Reports.Delete(ctx, created.ID)
+	// A generated report is retained, not edited or removed: Reporter registers
+	// no update and no delete operation for one, so the fake must offer neither
+	// and the report must still be there after a download.
+	retained, err := client.Reporter.Reports.Get(ctx, created.ID)
 	require.NoError(t, err)
-
-	// Verify deleted
-	_, err = client.Reporter.Reports.Get(ctx, created.ID)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "not found")
+	assert.Equal(t, created.ID, retained.ID)
 }
 
 func TestFakeReporterReportsNotFound(t *testing.T) {
@@ -112,11 +104,6 @@ func TestFakeReporterReportsNotFound(t *testing.T) {
 		fn   func() error
 	}{
 		{"Get", func() error { _, err := client.Reporter.Reports.Get(ctx, ghost); return err }},
-		{"Update", func() error {
-			_, err := client.Reporter.Reports.Update(ctx, ghost, &reporter.UpdateReportInput{})
-			return err
-		}},
-		{"Delete", func() error { return client.Reporter.Reports.Delete(ctx, ghost) }},
 		{"Download", func() error { _, err := client.Reporter.Reports.Download(ctx, ghost); return err }},
 	}
 

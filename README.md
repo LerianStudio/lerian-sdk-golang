@@ -71,7 +71,7 @@ The SDK provides access to the full suite of Lerian products through a single cl
 | **Midaz** | 13 | Core ledger -- organizations, ledgers, accounts, portfolios, assets, segments, transactions, operations, balances, and more |
 | **Matcher** | 14 | Transaction matching engine -- rules, reconciliation pipelines, match results, and manual overrides |
 | **Tracer** | 4 | Transaction tracing and audit trail -- trace queries, event streams, and validation |
-| **Reporter** | 3 | Financial reporting and analytics -- report generation, templates, and scheduling |
+| **Reporter** | 3 | Financial reporting and analytics -- report generation, templates, and data sources. Covers part of the Reporter REST API; see the `reporter` package docs |
 | **Fees** | 3 | Fee management -- fee rules, estimation, and billing |
 
 Enable only the products you need:
@@ -84,10 +84,7 @@ client, err := lerian.New(lerian.Config{
     },
     Matcher: &matcher.Config{BaseURL: "http://localhost:3002/v1"},
     Tracer:  &tracer.Config{BaseURL: "http://localhost:3003/v1"},
-    Reporter: &reporter.Config{
-        BaseURL:        "http://localhost:3004/v1",
-        OrganizationID: "org-uuid",
-    },
+    Reporter: &reporter.Config{BaseURL: "http://localhost:3004/v1"},
     Fees: &fees.Config{
         BaseURL:        "http://localhost:3005/v1",
         OrganizationID: "org-uuid",
@@ -129,7 +126,6 @@ LERIAN_TRACER_TOKEN_URL=https://auth.example.com/token
 
 # Reporter (Analytics)
 LERIAN_REPORTER_URL=http://localhost:3004/v1
-LERIAN_REPORTER_ORG_ID=org-uuid
 LERIAN_REPORTER_CLIENT_ID=my-client-id
 LERIAN_REPORTER_CLIENT_SECRET=my-client-secret
 LERIAN_REPORTER_TOKEN_URL=https://auth.example.com/token

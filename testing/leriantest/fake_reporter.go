@@ -11,6 +11,15 @@ import (
 	"github.com/LerianStudio/lerian-sdk-golang/reporter"
 )
 
+// Seeded status values the fakes hand back. Named because the same string is
+// the shipped status on several resources, and a fake that disagrees with the
+// service about a status value is a fake that teaches the wrong branch.
+const (
+	statusActive  = "active"
+	statusPending = "pending"
+	statusDraft   = "DRAFT"
+)
+
 // newFakeReporterClient constructs a [reporter.Client] with all service
 // fields backed by in-memory fakes.
 func newFakeReporterClient(cfg *fakeConfig) *reporter.Client {
@@ -57,7 +66,7 @@ func (f *fakeReporterReports) Create(_ context.Context, input *reporter.CreateRe
 	r := reporter.Report{
 		ID:        generateID("rpt"),
 		Name:      input.Name,
-		Status:    "pending",
+		Status:    statusPending,
 		CreatedAt: now,
 		UpdatedAt: now,
 	}
@@ -73,16 +82,6 @@ func (f *fakeReporterReports) Get(_ context.Context, id string) (*reporter.Repor
 
 func (f *fakeReporterReports) List(_ context.Context, opts *models.CursorListOptions) *pagination.Iterator[reporter.Report] {
 	return fakeListStored(f.cfg, "", f.store, opts)
-}
-
-func (f *fakeReporterReports) Update(_ context.Context, id string, _ *reporter.UpdateReportInput) (*reporter.Report, error) {
-	return fakeMutateStored(f.cfg, "", "Reports.Update", "Report", id, f.store, func(r *reporter.Report) {
-		r.UpdatedAt = time.Now()
-	})
-}
-
-func (f *fakeReporterReports) Delete(_ context.Context, id string) error {
-	return fakeDeleteStored(f.cfg, "", "Reports.Delete", "Report", id, f.store)
 }
 
 func (f *fakeReporterReports) Download(_ context.Context, id string) ([]byte, error) {

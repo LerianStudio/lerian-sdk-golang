@@ -29,10 +29,6 @@ type Config struct {
 	// TokenURL is the OAuth2 token endpoint URL used to acquire access tokens.
 	TokenURL string
 
-	// OrganizationID is the organization scope for all Reporter operations.
-	// It is sent as the X-Organization-Id header on every request. Required.
-	OrganizationID string
-
 	// Timeout overrides the default HTTP client timeout for Reporter requests.
 	// A zero value means the shared client timeout is used.
 	Timeout time.Duration
@@ -42,8 +38,8 @@ type Config struct {
 // The ClientSecret field is replaced with "[REDACTED]".
 func (c Config) String() string {
 	return fmt.Sprintf(
-		"ReporterConfig{BaseURL: %q, ClientID: %q, ClientSecret: [REDACTED], TokenURL: %q, OrganizationID: %q, Timeout: %s}",
-		c.BaseURL, c.ClientID, c.TokenURL, c.OrganizationID, c.Timeout,
+		"ReporterConfig{BaseURL: %q, ClientID: %q, ClientSecret: [REDACTED], TokenURL: %q, Timeout: %s}",
+		c.BaseURL, c.ClientID, c.TokenURL, c.Timeout,
 	)
 }
 
@@ -82,14 +78,6 @@ func WithClientCredentials(clientID, clientSecret, tokenURL string) Option {
 		c.ClientSecret = clientSecret
 		c.TokenURL = tokenURL
 
-		return nil
-	}
-}
-
-// WithOrganizationID sets the organization scope for Reporter operations.
-func WithOrganizationID(orgID string) Option {
-	return func(c *Config) error {
-		c.OrganizationID = orgID
 		return nil
 	}
 }

@@ -1,0 +1,34 @@
+# Coverage scope for the CI unit-coverage gate.
+#
+# A repo-provided .ignorecoverunit REPLACES the shared workflow's built-in
+# default list rather than extending it, so every default entry is reproduced
+# verbatim below and /examples/ is the only addition.
+#
+# Why /examples/: those packages are runnable `main` demonstration programs
+# with no tests by design, the same category as the /cmd/ entrypoints the
+# default list already drops. `make coverage` -- the target CLAUDE.md tells
+# contributors to run -- has always excluded them from its package list, so
+# the gate was measuring a scope the module itself does not claim to cover.
+# Six example packages at 0% held the reported total at 77.3% while the
+# library packages sit at 82.8% against an 80% threshold.
+
+# Auto-generated mocks
+*_mock.go
+
+# Bootstrap / entrypoints
+/bootstrap/
+/cmd/
+bootstrap.go
+
+# Generated API docs
+/api/
+
+# E2E and integration test directories
+/test/e2e/
+/tests/e2e/
+
+# Testutil helpers
+/internal/testutil/
+
+# Runnable example programs (no tests by design; see the coverage target)
+/examples/

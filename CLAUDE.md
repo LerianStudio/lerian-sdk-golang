@@ -5,7 +5,7 @@
 - `midaz/` -- Midaz product client (13 services: organizations, ledgers, accounts, portfolios, assets, segments, transactions, operations, balances, etc.)
 - `matcher/` -- Matcher product client (14 services: rules, reconciliation, match results, overrides, etc.)
 - `tracer/` -- Tracer product client (4 services: traces, events, queries, validation)
-- `reporter/` -- Reporter product client (3 services: reports, templates, schedules)
+- `reporter/` -- Reporter product client (3 services: reports, templates, data sources)
 - `fees/` -- Fees product client (3 services: fee rules, estimation, billing)
 - `models/` -- Shared model types used across products (request/response payloads)
 - `pkg/` -- SDK infrastructure utilities:

@@ -68,14 +68,6 @@ type CreateReportInput struct {
 	Metadata     map[string]any `json:"metadata,omitempty"`
 }
 
-// UpdateReportInput is the input for updating a report.
-type UpdateReportInput struct {
-	Name        *string        `json:"name,omitempty"`
-	Description *string        `json:"description,omitempty"`
-	Parameters  map[string]any `json:"parameters,omitempty"`
-	Metadata    map[string]any `json:"metadata,omitempty"`
-}
-
 // CreateTemplateInput is the input for uploading a new template.
 // The file content is provided separately via io.Reader.
 type CreateTemplateInput struct {

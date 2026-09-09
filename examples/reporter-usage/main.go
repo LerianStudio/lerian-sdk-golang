@@ -7,7 +7,6 @@
 // Configure via environment variables:
 //
 //	LERIAN_REPORTER_URL           (default: http://localhost:3004/v1)
-//	LERIAN_REPORTER_ORG_ID        (required -- the organization scope)
 //	LERIAN_REPORTER_CLIENT_ID     (required with secret + token URL for OAuth2)
 //	LERIAN_REPORTER_CLIENT_SECRET (required with client ID + token URL for OAuth2)
 //	LERIAN_REPORTER_TOKEN_URL     (required with client ID + secret for OAuth2)
@@ -29,19 +28,20 @@ func main() {
 	// -----------------------------------------------------------------------
 	// Step 1: Create the SDK client configured for the Reporter product.
 	//
-	// Reporter requires an OrganizationID which is sent as the
-	// X-Organization-Id header on every request. This scopes all report
-	// operations to a single organization. Authentication uses OAuth2
-	// client credentials.
+	// A base URL and the OAuth2 client credentials. Which data a call can
+	// reach follows from the access token alone, so there is nothing else to
+	// scope here. Leave the credential variables unset to run against a local
+	// service that does not require them.
 	// -----------------------------------------------------------------------
-	orgID := envOr("LERIAN_REPORTER_ORG_ID", "org-placeholder-id")
 
 	// NOTE: Use HTTPS URLs in production. HTTP is only for local development.
 	client, err := lerian.New(lerian.Config{
 		Debug: os.Getenv("LERIAN_DEBUG") == "true",
 		Reporter: &reporter.Config{
-			BaseURL:        envOr("LERIAN_REPORTER_URL", "http://localhost:3004/v1"),
-			OrganizationID: orgID,
+			BaseURL:      envOr("LERIAN_REPORTER_URL", "http://localhost:3004/v1"),
+			ClientID:     os.Getenv("LERIAN_REPORTER_CLIENT_ID"),
+			ClientSecret: os.Getenv("LERIAN_REPORTER_CLIENT_SECRET"),
+			TokenURL:     os.Getenv("LERIAN_REPORTER_TOKEN_URL"),
 		},
 	})
 	if err != nil {

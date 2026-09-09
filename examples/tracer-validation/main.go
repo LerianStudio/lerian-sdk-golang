@@ -37,7 +37,10 @@ func main() {
 	client, err := lerian.New(lerian.Config{
 		Debug: os.Getenv("LERIAN_DEBUG") == "true",
 		Tracer: &tracer.Config{
-			BaseURL: envOr("LERIAN_TRACER_URL", "http://localhost:3003/v1"),
+			BaseURL:      envOr("LERIAN_TRACER_URL", "http://localhost:3003/v1"),
+			ClientID:     os.Getenv("LERIAN_TRACER_CLIENT_ID"),
+			ClientSecret: os.Getenv("LERIAN_TRACER_CLIENT_SECRET"),
+			TokenURL:     os.Getenv("LERIAN_TRACER_TOKEN_URL"),
 		},
 	})
 	if err != nil {

@@ -161,7 +161,7 @@ func TestDataSourcesGet(t *testing.T) {
 	mock := &mockBackend{
 		callFn: func(_ context.Context, method, path string, body, result any) error {
 			assert.Equal(t, "GET", method)
-			assert.Equal(t, "/datasources/ds-1", path)
+			assert.Equal(t, "/data-sources/ds-1", path)
 			assert.Nil(t, body)
 
 			return unmarshalInto(DataSource{ID: "ds-1", Name: "Primary DB", Type: "postgres"}, result)
@@ -217,7 +217,7 @@ func TestDataSourcesList(t *testing.T) {
 	mock := &mockBackend{
 		callFn: func(_ context.Context, method, path string, body, result any) error {
 			assert.Equal(t, "GET", method)
-			assert.Contains(t, path, "/datasources")
+			assert.Contains(t, path, "/data-sources")
 			assert.Nil(t, body)
 
 			resp := models.ListResponse[DataSource]{

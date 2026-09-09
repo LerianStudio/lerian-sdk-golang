@@ -38,12 +38,17 @@ import (
 	"github.com/LerianStudio/lerian-sdk-golang/tracer"
 )
 
+// assetBRL is the asset this walkthrough moves end to end.
+const assetBRL = "BRL"
+
 func main() {
 	// -----------------------------------------------------------------------
 	// Step 1: Create a single client with multiple products.
 	//
 	// The root config enables multiple products at once. Shared fields like
-	// Debug and Observability apply to every configured product.
+	// Debug and Observability apply to every configured product; credentials
+	// are per-product. Leave the credential variables unset to run against
+	// local services that do not require them.
 	// -----------------------------------------------------------------------
 	// NOTE: Use HTTPS URLs in production. HTTP is only for local development.
 	client, err := lerian.New(lerian.Config{
@@ -51,12 +56,21 @@ func main() {
 		Midaz: &midaz.Config{
 			OnboardingURL:  envOr("LERIAN_MIDAZ_ONBOARDING_URL", "http://localhost:3000/v1"),
 			TransactionURL: envOr("LERIAN_MIDAZ_TRANSACTION_URL", "http://localhost:3001/v1"),
+			ClientID:       os.Getenv("LERIAN_MIDAZ_CLIENT_ID"),
+			ClientSecret:   os.Getenv("LERIAN_MIDAZ_CLIENT_SECRET"),
+			TokenURL:       os.Getenv("LERIAN_MIDAZ_TOKEN_URL"),
 		},
 		Tracer: &tracer.Config{
-			BaseURL: envOr("LERIAN_TRACER_URL", "http://localhost:3003/v1"),
+			BaseURL:      envOr("LERIAN_TRACER_URL", "http://localhost:3003/v1"),
+			ClientID:     os.Getenv("LERIAN_TRACER_CLIENT_ID"),
+			ClientSecret: os.Getenv("LERIAN_TRACER_CLIENT_SECRET"),
+			TokenURL:     os.Getenv("LERIAN_TRACER_TOKEN_URL"),
 		},
 		Matcher: &matcher.Config{
-			BaseURL: envOr("LERIAN_MATCHER_URL", "http://localhost:3002/v1"),
+			BaseURL:      envOr("LERIAN_MATCHER_URL", "http://localhost:3002/v1"),
+			ClientID:     os.Getenv("LERIAN_MATCHER_CLIENT_ID"),
+			ClientSecret: os.Getenv("LERIAN_MATCHER_CLIENT_SECRET"),
+			TokenURL:     os.Getenv("LERIAN_MATCHER_TOKEN_URL"),
 		},
 	})
 	if err != nil {
@@ -102,7 +116,7 @@ func main() {
 	// Create a BRL asset.
 	_, err = client.Midaz.Onboarding.Assets.Create(ctx, org.ID, ledger.ID, &midaz.CreateAssetInput{
 		Name: "Brazilian Real",
-		Code: "BRL",
+		Code: assetBRL,
 		Type: "currency",
 	})
 	if err != nil {
@@ -112,7 +126,7 @@ func main() {
 	// Create sender and receiver accounts.
 	sender, err := client.Midaz.Onboarding.Accounts.Create(ctx, org.ID, ledger.ID, &midaz.CreateAccountInput{
 		Name:      "Treasury",
-		AssetCode: "BRL",
+		AssetCode: assetBRL,
 		Type:      "deposit",
 	})
 	if err != nil {
@@ -121,7 +135,7 @@ func main() {
 
 	receiver, err := client.Midaz.Onboarding.Accounts.Create(ctx, org.ID, ledger.ID, &midaz.CreateAccountInput{
 		Name:      "Vendor Payout",
-		AssetCode: "BRL",
+		AssetCode: assetBRL,
 		Type:      "deposit",
 	})
 	if err != nil {
@@ -131,7 +145,7 @@ func main() {
 	// Create a transaction (R$ 25,000.00).
 	txn, err := client.Midaz.Transactions.Transactions.Create(ctx, org.ID, ledger.ID, &midaz.CreateTransactionInput{
 		Send: &midaz.TransactionSend{
-			Asset: "BRL",
+			Asset: assetBRL,
 			Value: "25000.00",
 			Source: midaz.TransactionSendSource{From: []midaz.TransactionOperationLeg{{
 				AccountAlias: sender.ID,

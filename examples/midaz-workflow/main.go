@@ -27,12 +27,17 @@ import (
 	"github.com/LerianStudio/lerian-sdk-golang/midaz"
 )
 
+// assetBRL is the asset this walkthrough moves end to end.
+const assetBRL = "BRL"
+
 func main() {
 	// -----------------------------------------------------------------------
 	// Step 1: Create the SDK client configured for the Midaz product.
 	//
 	// Midaz requires at minimum the two service URLs (onboarding and
-	// transaction). Authentication can be loaded into the config separately.
+	// transaction), plus the OAuth2 client credentials. Leave the credential
+	// variables unset to run against a local service that does not require
+	// them.
 	// -----------------------------------------------------------------------
 	// NOTE: Use HTTPS URLs in production. HTTP is only for local development.
 	client, err := lerian.New(lerian.Config{
@@ -40,6 +45,9 @@ func main() {
 		Midaz: &midaz.Config{
 			OnboardingURL:  envOr("LERIAN_MIDAZ_ONBOARDING_URL", "http://localhost:3000/v1"),
 			TransactionURL: envOr("LERIAN_MIDAZ_TRANSACTION_URL", "http://localhost:3001/v1"),
+			ClientID:       os.Getenv("LERIAN_MIDAZ_CLIENT_ID"),
+			ClientSecret:   os.Getenv("LERIAN_MIDAZ_CLIENT_SECRET"),
+			TokenURL:       os.Getenv("LERIAN_MIDAZ_TOKEN_URL"),
 		},
 	})
 	if err != nil {
@@ -89,7 +97,7 @@ func main() {
 	// -----------------------------------------------------------------------
 	asset, err := client.Midaz.Onboarding.Assets.Create(ctx, org.ID, ledger.ID, &midaz.CreateAssetInput{
 		Name: "Brazilian Real",
-		Code: "BRL",
+		Code: assetBRL,
 		Type: "currency",
 	})
 	if err != nil {
@@ -107,7 +115,7 @@ func main() {
 	// -----------------------------------------------------------------------
 	sender, err := client.Midaz.Onboarding.Accounts.Create(ctx, org.ID, ledger.ID, &midaz.CreateAccountInput{
 		Name:      "Sender Account",
-		AssetCode: "BRL",
+		AssetCode: assetBRL,
 		Type:      "deposit",
 	})
 	if err != nil {
@@ -118,7 +126,7 @@ func main() {
 
 	receiver, err := client.Midaz.Onboarding.Accounts.Create(ctx, org.ID, ledger.ID, &midaz.CreateAccountInput{
 		Name:      "Receiver Account",
-		AssetCode: "BRL",
+		AssetCode: assetBRL,
 		Type:      "deposit",
 	})
 	if err != nil {
@@ -136,7 +144,7 @@ func main() {
 	// -----------------------------------------------------------------------
 	txn, err := client.Midaz.Transactions.Transactions.Create(ctx, org.ID, ledger.ID, &midaz.CreateTransactionInput{
 		Send: &midaz.TransactionSend{
-			Asset: "BRL",
+			Asset: assetBRL,
 			Value: "100.00",
 			Source: midaz.TransactionSendSource{From: []midaz.TransactionOperationLeg{{
 				AccountAlias: sender.ID,

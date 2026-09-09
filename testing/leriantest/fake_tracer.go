@@ -35,7 +35,7 @@ func (f *fakeTracerRules) Create(_ context.Context, input *tracer.CreateRuleInpu
 	}
 
 	now := time.Now()
-	r := tracer.Rule{ID: generateID("trule"), Name: input.Name, Status: "DRAFT", CreatedAt: now, UpdatedAt: now}
+	r := tracer.Rule{ID: generateID("trule"), Name: input.Name, Status: statusDraft, CreatedAt: now, UpdatedAt: now}
 	f.store.Set(r.ID, r)
 
 	return &r, nil
@@ -78,7 +78,7 @@ func (f *fakeTracerRules) Deactivate(_ context.Context, id string) (*tracer.Rule
 
 func (f *fakeTracerRules) Draft(_ context.Context, id string) (*tracer.Rule, error) {
 	return fakeMutateStored(f.cfg, "", "Rules.Draft", "Rule", id, f.store, func(r *tracer.Rule) {
-		r.Status = "DRAFT"
+		r.Status = statusDraft
 		r.UpdatedAt = time.Now()
 	})
 }
@@ -98,7 +98,7 @@ func (f *fakeTracerLimits) Create(_ context.Context, input *tracer.CreateLimitIn
 	}
 
 	now := time.Now()
-	l := tracer.Limit{ID: generateID("tlimit"), Name: input.Name, Status: "DRAFT", CreatedAt: now, UpdatedAt: now}
+	l := tracer.Limit{ID: generateID("tlimit"), Name: input.Name, Status: statusDraft, CreatedAt: now, UpdatedAt: now}
 	f.store.Set(l.ID, l)
 
 	return &l, nil
@@ -141,7 +141,7 @@ func (f *fakeTracerLimits) Deactivate(_ context.Context, id string) (*tracer.Lim
 
 func (f *fakeTracerLimits) Draft(_ context.Context, id string) (*tracer.Limit, error) {
 	return fakeMutateStored(f.cfg, "", "Limits.Draft", "Limit", id, f.store, func(l *tracer.Limit) {
-		l.Status = "DRAFT"
+		l.Status = statusDraft
 		l.UpdatedAt = time.Now()
 	})
 }
