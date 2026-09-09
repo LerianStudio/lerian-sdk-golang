@@ -29,8 +29,13 @@ type Config struct {
 	// TokenURL is the OAuth2 token endpoint URL used to acquire access tokens.
 	TokenURL string
 
-	// OrganizationID is the organization scope for all Reporter operations.
-	// It is sent as the X-Organization-Id header on every request. Required.
+	// OrganizationID is sent as the X-Organization-Id header on every Reporter
+	// request. This SDK requires it; Reporter does not read it.
+	//
+	// It is not a scoping or isolation control: it does not select the tenant
+	// or the organization a request runs against. Reporter resolves that from
+	// the access token the request carries, so changing this value changes
+	// nothing about which data a call can reach.
 	OrganizationID string
 
 	// Timeout overrides the default HTTP client timeout for Reporter requests.
@@ -86,7 +91,8 @@ func WithClientCredentials(clientID, clientSecret, tokenURL string) Option {
 	}
 }
 
-// WithOrganizationID sets the organization scope for Reporter operations.
+// WithOrganizationID sets the X-Organization-Id header value sent on Reporter
+// requests. See [Config.OrganizationID]: the value does not scope the request.
 func WithOrganizationID(orgID string) Option {
 	return func(c *Config) error {
 		c.OrganizationID = orgID
