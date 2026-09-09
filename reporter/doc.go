@@ -21,7 +21,20 @@
 //
 // # Available Services
 //
-//   - Reports -- report generation and retrieval
-//   - Templates -- reusable report templates
-//   - DataSources -- data source configuration for reports
+//   - Reports -- report creation, retrieval and download
+//   - Templates -- template upload, retrieval and removal
+//   - DataSources -- read access to the configured data sources
+//
+// # Coverage
+//
+// This package covers part of the Reporter API. Reporter's REST API is the
+// complete surface: a capability absent here is not a capability the product
+// lacks. Reach for the REST API directly for anything this package does not
+// carry.
+//
+// Areas Reporter serves that this package does not reach include report
+// deadlines and their notifications, service metrics, the template builder
+// (block configuration, filters, code generation, preview and validation),
+// template updates and template content retrieval, the streaming event
+// manifest, and data-source creation, update, removal and diagnostics.
 package reporter
